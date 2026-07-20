@@ -1,0 +1,63 @@
+import React from 'react';
+import { Text, View } from 'react-native';
+
+type Entry = { label: string; hours: number | null };
+
+type Props = {
+  entries: Entry[];
+  goalHours?: number;
+  maxScaleHours?: number;
+};
+
+const BAR_TRACK_HEIGHT = 80;
+
+export function SleepBarChart({
+  entries,
+  goalHours = 8,
+  maxScaleHours = 10,
+}: Props) {
+  const goalOffsetPercent = Math.min(
+    100,
+    Math.max(0, (1 - goalHours / maxScaleHours) * 100),
+  );
+  const todayLabel = entries[entries.length - 1]?.label;
+
+  return (
+    <View className="relative mt-2">
+      <View
+        className="absolute left-0 right-0 border-t border-dashed border-gray-200 z-0"
+        style={{ top: `${goalOffsetPercent}%` }}
+      >
+        <Text className="absolute -top-2.5 left-0 bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded overflow-hidden">
+          {`Goal ${goalHours}h`}
+        </Text>
+      </View>
+
+      <View className="flex-row justify-between items-end relative z-10 pt-4 px-2">
+        {entries.map((entry, idx) => {
+          const heightPercent = Math.min(
+            100,
+            ((entry.hours ?? 0) / maxScaleHours) * 100,
+          );
+          const isToday = entry.label === todayLabel;
+          return (
+            <View key={idx} className="items-center gap-1.5 w-7">
+              <View
+                className="w-2.5 bg-gray-100 rounded-full items-end overflow-hidden"
+                style={{ height: BAR_TRACK_HEIGHT }}
+              >
+                <View
+                  className={`w-full rounded-full ${isToday ? 'bg-amber-500' : 'bg-black'}`}
+                  style={{ height: `${heightPercent}%` }}
+                />
+              </View>
+              <Text className="text-[9px] text-gray-400 font-medium">
+                {entry.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
