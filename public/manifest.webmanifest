@@ -1,0 +1,16 @@
+{
+  "name": "Fitness",
+  "short_name": "Fitness",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EAECEF",
+  "theme_color": "#EAECEF",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

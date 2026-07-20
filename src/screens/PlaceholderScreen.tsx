@@ -1,11 +1,8 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-
 export function PlaceholderScreen({ title }: { title: string }) {
   return (
-    <View className="flex-1 bg-[#EAECEF] items-center justify-center px-8">
-      <Text className="text-lg font-bold text-gray-900 mb-2">{title}</Text>
-      <Text className="text-sm text-gray-400 text-center">Coming soon.</Text>
-    </View>
+    <div className="flex min-h-full flex-col items-center justify-center bg-[#EAECEF] px-8 py-24">
+      <h1 className="mb-2 text-lg font-bold text-gray-900">{title}</h1>
+      <p className="text-center text-sm text-gray-400">Coming soon.</p>
+    </div>
   );
 }

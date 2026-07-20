@@ -1,5 +1,3 @@
-import React from 'react';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { smoothPath } from '../../utils/svgPath';
 
 type Props = {
@@ -16,7 +14,7 @@ export function WeightSparkline({
   color = '#ea580c',
 }: Props) {
   if (values.length < 2) {
-    return <Svg width={width} height={height} viewBox="0 0 100 40" />;
+    return <svg width={width} height={height} viewBox="0 0 100 40" />;
   }
 
   const min = Math.min(...values);
@@ -33,16 +31,16 @@ export function WeightSparkline({
   const last = points[points.length - 1];
 
   return (
-    <Svg width={width} height={height} viewBox="0 0 100 40">
-      <Path
+    <svg width={width} height={height} viewBox="0 0 100 40">
+      <path
         d={smoothPath(points)}
         fill="none"
         stroke={color}
         strokeWidth={2.5}
         strokeLinecap="round"
       />
-      <Circle cx={last.x} cy={last.y} r={3.5} fill={color} />
-      <Circle cx={last.x} cy={last.y} r={6} fill={color} fillOpacity={0.2} />
-    </Svg>
+      <circle cx={last.x} cy={last.y} r={3.5} fill={color} />
+      <circle cx={last.x} cy={last.y} r={6} fill={color} fillOpacity={0.2} />
+    </svg>
   );
 }
