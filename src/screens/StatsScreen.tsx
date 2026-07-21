@@ -2,8 +2,11 @@ import { Activity } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useLatestMeasurement } from '../hooks/useLatestMeasurement';
+import { useTodayLog } from '../hooks/useTodayLog';
+import { useProfile } from '../hooks/useProfile';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
+import { ageFromBirthDate, computeBMR, computeDailyCalorieTarget } from '../utils/calculations';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -11,11 +14,26 @@ export function StatsScreen() {
   const { totals } = useTodayNutrition();
   const { logs: weightLogs } = useRecentDailyLogs(14);
   const { measurement } = useLatestMeasurement();
+  const { log: todayLog } = useTodayLog();
+  const { profile } = useProfile();
 
   const weightValues = weightLogs
     .map(l => l.weight)
     .filter((w): w is number => w != null);
-  const latestWeight = weightValues[weightValues.length - 1];
+  const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
+
+  const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
+  const calorieTarget = canComputeTarget
+    ? computeDailyCalorieTarget({
+        bmr: computeBMR({
+          gender: profile!.gender!,
+          weightKg: latestWeight!,
+          heightCm: profile!.height!,
+          ageYears: ageFromBirthDate(profile!.birth_date!),
+        }),
+        activeCalories: todayLog?.active_calories_burned ?? 0,
+      })
+    : REFERENCE_CALORIE_TARGET;
 
   return (
     <div className="min-h-full bg-[#EAECEF] px-6 pt-4 pb-8">
@@ -50,11 +68,13 @@ export function StatsScreen() {
         </div>
 
         <CalorieGauge
-          percent={totals.calories / REFERENCE_CALORIE_TARGET}
-          valueLabel={String(Math.max(0, REFERENCE_CALORIE_TARGET - Math.round(totals.calories)))}
+          percent={totals.calories / calorieTarget}
+          valueLabel={String(Math.max(0, calorieTarget - Math.round(totals.calories)))}
         />
         <p className="-mt-2 text-center text-[10px] text-gray-400">
-          vs {REFERENCE_CALORIE_TARGET} kcal reference &middot; personalized target coming soon
+          {canComputeTarget
+            ? `${calorieTarget} kcal target · BMR + activity − 500 kcal deficit`
+            : `vs ${REFERENCE_CALORIE_TARGET} kcal reference · complete your profile and log weight for a personalized target`}
         </p>
       </div>
 

@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import { BarChart3, Compass, Dumbbell, Home, Users } from 'lucide-react';
+import { BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { Sheet } from '../components/Sheet';
+import { WeightForm } from '../components/forms/WeightForm';
+import { MeasurementsForm } from '../components/forms/MeasurementsForm';
+import { MealForm } from '../components/forms/MealForm';
+import { ProfileForm } from '../components/forms/ProfileForm';
 
 type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
+type ActiveSheet = 'quickAdd' | 'weight' | 'measurements' | 'meal' | 'profile' | null;
 
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Home', icon: Home },
@@ -16,15 +22,41 @@ const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  function closeSheet() {
+    setActiveSheet(null);
+  }
+
+  function onSaved() {
+    setRefreshKey(key => key + 1);
+    closeSheet();
+  }
 
   return (
     <div className="flex h-screen flex-col bg-[#EAECEF] pt-[env(safe-area-inset-top)]">
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'home' && <HomeScreen onNavigateStats={() => setActiveTab('stats')} />}
-        {activeTab === 'stats' && <StatsScreen />}
+      <div className="relative flex-1 overflow-y-auto">
+        {activeTab === 'home' && (
+          <HomeScreen
+            key={refreshKey}
+            onNavigateStats={() => setActiveTab('stats')}
+            onOpenProfile={() => setActiveSheet('profile')}
+          />
+        )}
+        {activeTab === 'stats' && <StatsScreen key={refreshKey} />}
         {activeTab === 'discover' && <PlaceholderScreen title="Discover" />}
         {activeTab === 'community' && <PlaceholderScreen title="Community" />}
         {activeTab === 'workouts' && <PlaceholderScreen title="Workouts" />}
+
+        <button
+          type="button"
+          onClick={() => setActiveSheet('quickAdd')}
+          aria-label="Quick add"
+          className="absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg"
+        >
+          <Plus size={24} strokeWidth={2.5} />
+        </button>
       </div>
 
       <nav className="flex shrink-0 justify-between border-t border-gray-100 bg-white/80 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
@@ -42,6 +74,63 @@ export function AppShell() {
           );
         })}
       </nav>
+
+      <Sheet open={activeSheet === 'quickAdd'} onClose={closeSheet} title="Quick add">
+        <div className="flex flex-col gap-3">
+          <QuickAddOption
+            icon={Weight}
+            label="Log weight"
+            onClick={() => setActiveSheet('weight')}
+          />
+          <QuickAddOption
+            icon={Ruler}
+            label="Log measurements"
+            onClick={() => setActiveSheet('measurements')}
+          />
+          <QuickAddOption
+            icon={UtensilsCrossed}
+            label="Add meal"
+            onClick={() => setActiveSheet('meal')}
+          />
+        </div>
+      </Sheet>
+
+      <Sheet open={activeSheet === 'weight'} onClose={closeSheet} title="Log weight">
+        <WeightForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'measurements'} onClose={closeSheet} title="Log measurements">
+        <MeasurementsForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'meal'} onClose={closeSheet} title="Add meal">
+        <MealForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'profile'} onClose={closeSheet} title="Your profile">
+        <ProfileForm onSaved={onSaved} />
+      </Sheet>
     </div>
+  );
+}
+
+function QuickAddOption({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Weight;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-3.5 text-left text-sm font-semibold text-gray-800"
+    >
+      <Icon size={18} />
+      {label}
+    </button>
   );
 }

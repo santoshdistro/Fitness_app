@@ -17,9 +17,10 @@ function shortDayLabel(dateStr: string): string {
 
 type Props = {
   onNavigateStats: () => void;
+  onOpenProfile: () => void;
 };
 
-export function HomeScreen({ onNavigateStats }: Props) {
+export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
   const { log: todayLog, loading: todayLoading, refresh: refreshToday } = useTodayLog();
   const { logs: recentLogs, loading: recentLoading, refresh: refreshRecent } =
     useRecentDailyLogs(6);
@@ -41,9 +42,13 @@ export function HomeScreen({ onNavigateStats }: Props) {
     <div className="min-h-full bg-[#EAECEF] px-6 pt-4 pb-8">
       <div className="mt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[#E5BA73]">
+          <button
+            onClick={onOpenProfile}
+            aria-label="Edit profile"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[#E5BA73]"
+          >
             <span className="text-sm font-bold text-white">U</span>
-          </div>
+          </button>
           <div className="flex items-center gap-1 rounded-full border border-gray-100 bg-white px-3 py-1.5">
             <span className="text-xs font-medium text-gray-800">Today</span>
             <ChevronDown size={14} color="#6b7280" />
