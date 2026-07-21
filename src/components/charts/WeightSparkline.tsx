@@ -11,7 +11,7 @@ export function WeightSparkline({
   values,
   width = 128,
   height = 56,
-  color = '#ea580c',
+  color = '#e08a3e',
 }: Props) {
   if (values.length < 2) {
     return <svg width={width} height={height} viewBox="0 0 100 40" />;

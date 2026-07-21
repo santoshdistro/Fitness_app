@@ -39,89 +39,99 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
   const latestSleepHours = recentLogs[recentLogs.length - 1]?.sleep_hours ?? null;
 
   return (
-    <div className="min-h-full bg-[#EAECEF] px-6 pt-4 pb-8">
-      <div className="mt-2 flex items-center justify-between">
+    <div className="min-h-full px-6 pt-4 pb-8">
+      <div className="anim-drop-in mt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenProfile}
             aria-label="Edit profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[#E5BA73]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 bg-[#E5BA73]"
           >
             <span className="text-sm font-bold text-white">U</span>
           </button>
-          <div className="flex items-center gap-1 rounded-full border border-gray-100 bg-white px-3 py-1.5">
-            <span className="text-xs font-medium text-gray-800">Today</span>
-            <ChevronDown size={14} color="#6b7280" />
+          <div className="glass flex items-center gap-1 rounded-full px-3 py-1.5">
+            <span className="text-xs font-medium text-[var(--text)]">Today</span>
+            <ChevronDown size={14} className="text-[var(--muted)]" />
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white"
+            className="glass flex h-10 w-10 items-center justify-center rounded-full"
           >
-            <RefreshCw size={15} color="#374151" className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={15}
+              className={`text-[var(--muted)] ${refreshing ? 'animate-spin' : ''}`}
+            />
           </button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white">
-            <Bell size={16} color="#374151" />
+          <div className="glass flex h-10 w-10 items-center justify-center rounded-full">
+            <Bell size={16} className="text-[var(--muted)]" />
           </div>
         </div>
       </div>
 
       <div className="mt-6 flex items-center justify-between">
-        <div className="flex flex-col gap-5">
+        <div className="anim-fade-rise flex flex-col gap-5" style={{ animationDelay: '0.12s' }}>
           <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">
+            <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
               {todayLog?.steps ?? '--'}
             </p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
               Steps
             </p>
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">{waterLiters}</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <p className="text-2xl font-bold tracking-tight text-[var(--text)]">{waterLiters}</p>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
               Water (L)
             </p>
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">
+            <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
               {todayLog?.active_calories_burned ?? '--'}
             </p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
               Cals
             </p>
           </div>
           <button
             onClick={onNavigateStats}
-            className="mt-2 flex items-center gap-1 text-xs font-semibold text-teal-600"
+            className="mt-2 flex items-center gap-1 text-xs font-semibold"
+            style={{ color: 'var(--accent)' }}
           >
             See data
-            <ChevronRight size={14} color="#0d9488" />
+            <ChevronRight size={14} />
           </button>
         </div>
 
-        <div className="relative flex h-[220px] w-[160px] items-center justify-center">
-          <div className="absolute h-40 w-40 rounded-full bg-teal-100/40" />
+        <div className="anim-fade-in relative flex h-[220px] w-[160px] items-center justify-center" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="absolute h-40 w-40 rounded-full blur-2xl"
+            style={{ background: 'rgba(224, 138, 62, 0.25)' }}
+          />
           <svg width={140} height={140} viewBox="0 0 100 100" className="relative">
-            <circle cx={50} cy={30} r={10} stroke="#f43f5e" strokeWidth={1.5} fill="none" />
-            <line x1={50} y1={40} x2={50} y2={70} stroke="#f43f5e" strokeWidth={2} />
-            <line x1={50} y1={48} x2={32} y2={35} stroke="#f43f5e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={48} x2={68} y2={35} stroke="#e2e8f0" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={40} y2={90} stroke="#f43f5e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={60} y2={90} stroke="#e2e8f0" strokeWidth={2} strokeLinecap="round" />
+            <circle cx={50} cy={30} r={10} stroke="#e08a3e" strokeWidth={1.5} fill="none" />
+            <line x1={50} y1={40} x2={50} y2={70} stroke="#e08a3e" strokeWidth={2} />
+            <line x1={50} y1={48} x2={32} y2={35} stroke="#e08a3e" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={48} x2={68} y2={35} stroke="rgba(235,220,205,0.3)" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={70} x2={40} y2={90} stroke="#e08a3e" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={70} x2={60} y2={90} stroke="rgba(235,220,205,0.3)" strokeWidth={2} strokeLinecap="round" />
           </svg>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-4 rounded-[2rem] border border-gray-100/50 bg-white p-5">
+      <div
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-4 p-5"
+        style={{ animationDelay: '0.3s' }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
               <span>🌙</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Sleep</p>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-sm font-semibold text-[var(--text)]">Sleep</p>
+              <p className="text-[11px] text-[var(--muted)]">
                 {latestSleepHours && latestSleepHours < 7
                   ? 'You slept too little last night'
                   : latestSleepHours
@@ -130,7 +140,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
               </p>
             </div>
           </div>
-          <p className="text-sm font-bold text-gray-900">
+          <p className="text-sm font-bold text-[var(--text)]">
             {formatSleepDuration(latestSleepHours)}
           </p>
         </div>

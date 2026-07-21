@@ -35,9 +35,9 @@ export function Sheet({ open, onClose, title, children }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center anim-fade-in">
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/60"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -46,16 +46,20 @@ export function Sheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full max-w-md rounded-t-[2rem] bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl"
+        className="glass-card relative w-full max-w-md rounded-b-none p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl anim-fade-rise"
+        style={{ background: '#241109', borderBottom: 'none' }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: 'var(--card-border)' }} />
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-500"
+            className="glass flex h-8 w-8 items-center justify-center rounded-full"
+            style={{ color: 'var(--muted)' }}
           >
             &times;
           </button>

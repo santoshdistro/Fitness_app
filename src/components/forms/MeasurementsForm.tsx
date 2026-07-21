@@ -65,7 +65,7 @@ export function MeasurementsForm({ onSaved }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       {!canComputeBodyFat ? (
-        <p className="mb-4 text-xs text-amber-600">
+        <p className="mb-4 text-xs" style={{ color: 'var(--accent)' }}>
           Add your height and gender in Profile to auto-calculate body fat %.
         </p>
       ) : null}

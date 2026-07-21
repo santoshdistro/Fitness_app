@@ -36,28 +36,31 @@ export function StatsScreen() {
     : REFERENCE_CALORIE_TARGET;
 
   return (
-    <div className="min-h-full bg-[#EAECEF] px-6 pt-4 pb-8">
-      <div className="mt-2 flex items-center justify-center">
-        <h1 className="text-sm font-bold tracking-wide text-gray-800">Statistics</h1>
+    <div className="min-h-full px-6 pt-4 pb-8">
+      <div className="anim-drop-in mt-2 flex items-center justify-center">
+        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Statistics</h1>
       </div>
 
       {/* Calories */}
-      <div className="mt-4 flex flex-col gap-4 rounded-[2rem] border border-gray-100/50 bg-white p-5">
+      <div
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-4 p-5"
+        style={{ animationDelay: '0.1s' }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50">
-              <Activity size={16} color="#4f46e5" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-400/15">
+              <Activity size={16} className="text-indigo-300" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Calories</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+              <p className="text-sm font-semibold text-[var(--text)]">Calories</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
                 Logged today
               </p>
             </div>
           </div>
-          <p className="text-sm font-bold text-gray-900">
+          <p className="text-sm font-bold text-[var(--text)]">
             {Math.round(totals.calories)}{' '}
-            <span className="text-xs font-semibold text-gray-400">kcal</span>
+            <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
           </p>
         </div>
 
@@ -71,7 +74,7 @@ export function StatsScreen() {
           percent={totals.calories / calorieTarget}
           valueLabel={String(Math.max(0, calorieTarget - Math.round(totals.calories)))}
         />
-        <p className="-mt-2 text-center text-[10px] text-gray-400">
+        <p className="-mt-2 text-center text-[10px] text-[var(--muted)]">
           {canComputeTarget
             ? `${calorieTarget} kcal target · BMR + activity − 500 kcal deficit`
             : `vs ${REFERENCE_CALORIE_TARGET} kcal reference · complete your profile and log weight for a personalized target`}
@@ -79,14 +82,20 @@ export function StatsScreen() {
       </div>
 
       {/* Weight */}
-      <div className="mt-4 flex flex-col gap-2 rounded-[2rem] bg-[#FFE8E2] p-5">
+      <div
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
+        style={{
+          animationDelay: '0.18s',
+          background: 'linear-gradient(160deg, rgba(224,138,62,0.16), rgba(224,138,62,0.03))',
+        }}
+      >
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-            <Activity size={16} color="#ea580c" />
+          <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
+            <Activity size={16} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-orange-950">Weight</p>
-            <p className="text-[10px] font-medium text-orange-700">
+            <p className="text-sm font-semibold text-[var(--text)]">Weight</p>
+            <p className="text-[10px] font-medium text-[var(--muted)]">
               {weightValues.length >= 2
                 ? `${weightValues[0]}kg -> ${latestWeight}kg over last ${weightValues.length} entries`
                 : 'Log your weight to start a trend'}
@@ -95,7 +104,7 @@ export function StatsScreen() {
         </div>
 
         <div className="mt-4 flex h-16 items-end justify-between">
-          <p className="text-5xl font-black tracking-tighter text-orange-950">
+          <p className="text-5xl font-black tracking-tighter text-[var(--text)]">
             {latestWeight ?? '--'}
           </p>
           {weightValues.length >= 2 ? <WeightSparkline values={weightValues} /> : null}
@@ -103,13 +112,19 @@ export function StatsScreen() {
       </div>
 
       {/* Body fat */}
-      <div className="mt-4 flex items-center gap-3 rounded-[2rem] bg-[#F2EBFC] p-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-          <Activity size={16} color="#9333ea" />
+      <div
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
+        style={{
+          animationDelay: '0.26s',
+          background: 'linear-gradient(160deg, rgba(147,51,234,0.14), rgba(147,51,234,0.03))',
+        }}
+      >
+        <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
+          <Activity size={16} className="text-purple-300" />
         </div>
         <div>
-          <p className="text-xs font-semibold text-purple-950">Body Fat</p>
-          <p className="text-[10px] text-purple-700">
+          <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
+          <p className="text-[10px] text-[var(--muted)]">
             {measurement?.calculated_body_fat != null
               ? `${measurement.calculated_body_fat.toFixed(1)}% - U.S. Navy method`
               : 'No measurements logged yet'}
@@ -122,9 +137,9 @@ export function StatsScreen() {
 
 function MacroTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-2xl border border-gray-50 bg-gray-50/60 p-2.5">
-      <p className="text-xs font-bold text-gray-900">{value}</p>
-      <p className="mt-0.5 text-[8px] font-bold uppercase text-gray-400">{label}</p>
+    <div className="flex flex-1 flex-col items-center rounded-2xl bg-white/5 p-2.5">
+      <p className="text-xs font-bold text-[var(--text)]">{value}</p>
+      <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
 }

@@ -136,25 +136,25 @@ export function MealForm({ onSaved }: Props) {
             onClick={handleSearch}
             disabled={searching || !query.trim()}
             aria-label="Search"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-gray-900 text-white disabled:opacity-40"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#e08a3e,#a84e0a)]"
           >
             <Search size={18} />
           </button>
         </div>
 
-        {searchError ? <p className="mt-2 text-xs text-red-600">{searchError}</p> : null}
+        {searchError ? <p className={`mt-2 ${errorTextClass}`}>{searchError}</p> : null}
 
         {results.length > 0 ? (
-          <ul className="mt-2 max-h-48 overflow-y-auto rounded-2xl border border-gray-100">
+          <ul className="glass-card mt-2 max-h-48 overflow-y-auto !rounded-2xl">
             {results.map(result => (
               <li key={result.fdcId}>
                 <button
                   type="button"
                   onClick={() => selectResult(result)}
-                  className="flex w-full flex-col items-start border-b border-gray-50 px-4 py-2.5 text-left last:border-b-0"
+                  className="flex w-full flex-col items-start border-b border-[var(--card-border)] px-4 py-2.5 text-left last:border-b-0"
                 >
-                  <span className="text-sm text-gray-900">{result.description}</span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-sm text-[var(--text)]">{result.description}</span>
+                  <span className="text-[10px] text-[var(--muted)]">
                     {result.brandOwner ? `${result.brandOwner} · ` : ''}
                     {result.calories} kcal {result.isPerServing ? 'per serving' : 'per 100g'}
                   </span>
@@ -181,7 +181,7 @@ export function MealForm({ onSaved }: Props) {
         />
 
         {servingNote ? (
-          <p className="mb-3 text-xs text-gray-400">{servingNote}</p>
+          <p className="mb-3 text-xs text-[var(--muted)]">{servingNote}</p>
         ) : null}
 
         {perGram ? (

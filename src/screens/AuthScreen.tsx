@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { errorTextClass, inputClass, submitButtonClass } from '../components/forms/formStyles';
 
 export function AuthScreen() {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -32,15 +33,15 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#EAECEF] px-6">
+    <div className="app-bg flex min-h-screen flex-col items-center justify-center px-6">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-[2rem] border border-gray-100/50 bg-white p-6 shadow-sm"
+        className="glass-card anim-fade-rise w-full max-w-sm p-6 shadow-2xl"
       >
-        <h1 className="mb-1 text-2xl font-bold text-gray-900">
+        <h1 className="mb-1 text-2xl font-bold text-[var(--text)]">
           {mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
         </h1>
-        <p className="mb-6 text-xs text-gray-400">
+        <p className="mb-6 text-xs text-[var(--muted)]">
           Your personal fitness &amp; nutrition tracker
         </p>
 
@@ -50,24 +51,20 @@ export function AuthScreen() {
           placeholder="Email"
           type="email"
           autoCapitalize="none"
-          className="mb-3 w-full rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-3 text-sm text-gray-900 outline-none focus:border-gray-300"
+          className={`${inputClass} mb-3`}
         />
         <input
           value={password}
           onChange={e => setPassword(e.target.value)}
           placeholder="Password"
           type="password"
-          className="mb-4 w-full rounded-2xl border border-gray-100 bg-gray-50/60 px-4 py-3 text-sm text-gray-900 outline-none focus:border-gray-300"
+          className={`${inputClass} mb-4`}
         />
 
-        {error ? <p className="mb-3 text-xs text-red-600">{error}</p> : null}
-        {notice ? <p className="mb-3 text-xs text-emerald-600">{notice}</p> : null}
+        {error ? <p className={errorTextClass}>{error}</p> : null}
+        {notice ? <p className="mb-3 text-xs text-emerald-400">{notice}</p> : null}
 
-        <button
-          type="submit"
-          disabled={loading || !email || !password}
-          className="flex w-full items-center justify-center rounded-full bg-black py-3.5 text-sm font-semibold text-white disabled:opacity-40"
-        >
+        <button type="submit" disabled={loading || !email || !password} className={submitButtonClass}>
           {loading ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           ) : mode === 'sign-in' ? (
@@ -84,7 +81,8 @@ export function AuthScreen() {
             setNotice(null);
             setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
           }}
-          className="mt-4 w-full text-center text-xs font-semibold text-teal-600"
+          className="mt-4 w-full text-center text-xs font-semibold"
+          style={{ color: 'var(--accent)' }}
         >
           {mode === 'sign-in'
             ? "Don't have an account? Sign up"

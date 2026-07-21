@@ -22,10 +22,10 @@ export function SleepBarChart({
   return (
     <div className="relative mt-2">
       <div
-        className="absolute left-0 right-0 border-t border-dashed border-gray-200 z-0"
+        className="absolute left-0 right-0 z-0 border-t border-dashed border-[var(--card-border)]"
         style={{ top: `${goalOffsetPercent}%` }}
       >
-        <span className="absolute -top-2.5 left-0 bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded">
+        <span className="absolute -top-2.5 left-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-bold text-white">
           {`Goal ${goalHours}h`}
         </span>
       </div>
@@ -40,15 +40,18 @@ export function SleepBarChart({
           return (
             <div key={idx} className="flex flex-col items-center gap-1.5 w-7">
               <div
-                className="w-2.5 bg-gray-100 rounded-full flex items-end overflow-hidden"
+                className="flex w-2.5 items-end overflow-hidden rounded-full bg-white/10"
                 style={{ height: BAR_TRACK_HEIGHT }}
               >
                 <div
-                  className={`w-full rounded-full ${isToday ? 'bg-amber-500' : 'bg-black'}`}
-                  style={{ height: `${heightPercent}%` }}
+                  className="w-full rounded-full"
+                  style={{
+                    height: `${heightPercent}%`,
+                    background: isToday ? '#e08a3e' : 'rgba(235,220,205,0.35)',
+                  }}
                 />
               </div>
-              <span className="text-[9px] text-gray-400 font-medium">
+              <span className="text-[9px] font-medium text-[var(--muted)]">
                 {entry.label}
               </span>
             </div>
