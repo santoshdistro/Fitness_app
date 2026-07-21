@@ -107,15 +107,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
         <div className="anim-fade-in relative flex h-[220px] w-[160px] items-center justify-center" style={{ animationDelay: '0.2s' }}>
           <div
             className="absolute h-40 w-40 rounded-full blur-2xl"
-            style={{ background: 'rgba(224, 138, 62, 0.25)' }}
+            style={{ background: 'rgba(198, 255, 61, 0.18)' }}
           />
           <svg width={140} height={140} viewBox="0 0 100 100" className="relative">
-            <circle cx={50} cy={30} r={10} stroke="#e08a3e" strokeWidth={1.5} fill="none" />
-            <line x1={50} y1={40} x2={50} y2={70} stroke="#e08a3e" strokeWidth={2} />
-            <line x1={50} y1={48} x2={32} y2={35} stroke="#e08a3e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={48} x2={68} y2={35} stroke="rgba(235,220,205,0.3)" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={40} y2={90} stroke="#e08a3e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={60} y2={90} stroke="rgba(235,220,205,0.3)" strokeWidth={2} strokeLinecap="round" />
+            <circle cx={50} cy={30} r={10} stroke="#c6ff3d" strokeWidth={1.5} fill="none" />
+            <line x1={50} y1={40} x2={50} y2={70} stroke="#c6ff3d" strokeWidth={2} />
+            <line x1={50} y1={48} x2={32} y2={35} stroke="#c6ff3d" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={48} x2={68} y2={35} stroke="rgba(220,230,218,0.3)" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={70} x2={40} y2={90} stroke="#c6ff3d" strokeWidth={2} strokeLinecap="round" />
+            <line x1={50} y1={70} x2={60} y2={90} stroke="rgba(220,230,218,0.3)" strokeWidth={2} strokeLinecap="round" />
           </svg>
         </div>
       </div>

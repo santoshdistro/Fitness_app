@@ -136,7 +136,7 @@ export function MealForm({ onSaved }: Props) {
             onClick={handleSearch}
             disabled={searching || !query.trim()}
             aria-label="Search"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#e08a3e,#a84e0a)]"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-black disabled:opacity-40 bg-[linear-gradient(135deg,#c6ff3d,#5a9a1f)]"
           >
             <Search size={18} />
           </button>

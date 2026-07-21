@@ -86,7 +86,7 @@ export function StatsScreen() {
         className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
         style={{
           animationDelay: '0.18s',
-          background: 'linear-gradient(160deg, rgba(224,138,62,0.16), rgba(224,138,62,0.03))',
+          background: 'linear-gradient(160deg, rgba(198,255,61,0.14), rgba(198,255,61,0.02))',
         }}
       >
         <div className="flex items-center gap-2">

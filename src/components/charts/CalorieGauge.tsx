@@ -20,7 +20,7 @@ export function CalorieGauge({ percent, valueLabel, unitLabel = 'kcal' }: Props)
         <path
           d={gaugeArcPath(percent)}
           fill="none"
-          stroke="#e08a3e"
+          stroke="#c6ff3d"
           strokeWidth={8}
           strokeLinecap="round"
         />

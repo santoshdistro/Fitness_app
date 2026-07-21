@@ -25,7 +25,7 @@ export function SleepBarChart({
         className="absolute left-0 right-0 z-0 border-t border-dashed border-[var(--card-border)]"
         style={{ top: `${goalOffsetPercent}%` }}
       >
-        <span className="absolute -top-2.5 left-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-bold text-white">
+        <span className="absolute -top-2.5 left-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-bold text-black">
           {`Goal ${goalHours}h`}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function SleepBarChart({
                   className="w-full rounded-full"
                   style={{
                     height: `${heightPercent}%`,
-                    background: isToday ? '#e08a3e' : 'rgba(235,220,205,0.35)',
+                    background: isToday ? '#c6ff3d' : 'rgba(220,230,218,0.3)',
                   }}
                 />
               </div>

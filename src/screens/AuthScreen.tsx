@@ -66,7 +66,7 @@ export function AuthScreen() {
 
         <button type="submit" disabled={loading || !email || !password} className={submitButtonClass}>
           {loading ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
           ) : mode === 'sign-in' ? (
             'Sign In'
           ) : (
