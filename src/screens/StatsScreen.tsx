@@ -48,8 +48,8 @@ export function StatsScreen() {
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-400/15">
-              <Activity size={16} className="text-indigo-300" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10">
+              <Activity size={16} style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <p className="text-sm font-semibold text-[var(--text)]">Calories</p>
@@ -86,7 +86,7 @@ export function StatsScreen() {
         className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
         style={{
           animationDelay: '0.18s',
-          background: 'linear-gradient(160deg, rgba(198,255,61,0.14), rgba(198,255,61,0.02))',
+          background: 'linear-gradient(160deg, rgba(108,99,255,0.1), rgba(108,99,255,0.02))',
         }}
       >
         <div className="flex items-center gap-2">
@@ -116,11 +116,11 @@ export function StatsScreen() {
         className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
         style={{
           animationDelay: '0.26s',
-          background: 'linear-gradient(160deg, rgba(147,51,234,0.14), rgba(147,51,234,0.03))',
+          background: 'linear-gradient(160deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02))',
         }}
       >
         <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
-          <Activity size={16} className="text-purple-300" />
+          <Activity size={16} className="text-purple-600" />
         </div>
         <div>
           <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
@@ -137,7 +137,7 @@ export function StatsScreen() {
 
 function MacroTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-2xl bg-white/5 p-2.5">
+    <div className="flex flex-1 flex-col items-center rounded-2xl bg-[var(--bg)] p-2.5">
       <p className="text-xs font-bold text-[var(--text)]">{value}</p>
       <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>

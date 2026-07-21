@@ -46,8 +46,8 @@ export function Sheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="glass-card relative w-full max-w-md rounded-b-none p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl anim-fade-rise"
-        style={{ background: '#14170f', borderBottom: 'none' }}
+        className="glass-card relative w-full max-w-md rounded-b-none p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] anim-fade-rise"
+        style={{ borderBottom: 'none' }}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: 'var(--card-border)' }} />
         <div className="mb-4 flex items-center justify-between">

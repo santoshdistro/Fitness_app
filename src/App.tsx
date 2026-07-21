@@ -8,7 +8,7 @@ function AppContent() {
   if (initializing) {
     return (
       <div className="app-bg flex min-h-dvh items-center justify-center">
-        <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[var(--accent)]" />
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
       </div>
     );
   }

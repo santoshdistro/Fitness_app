@@ -36,7 +36,7 @@ export function AuthScreen() {
     <div className="app-bg flex min-h-dvh flex-col items-center justify-center px-6">
       <form
         onSubmit={handleSubmit}
-        className="glass-card anim-fade-rise w-full max-w-sm p-6 shadow-2xl"
+        className="glass-card anim-fade-rise w-full max-w-sm p-6"
       >
         <h1 className="mb-1 text-2xl font-bold text-[var(--text)]">
           {mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
@@ -62,11 +62,11 @@ export function AuthScreen() {
         />
 
         {error ? <p className={errorTextClass}>{error}</p> : null}
-        {notice ? <p className="mb-3 text-xs text-emerald-400">{notice}</p> : null}
+        {notice ? <p className="mb-3 text-xs text-emerald-600">{notice}</p> : null}
 
         <button type="submit" disabled={loading || !email || !password} className={submitButtonClass}>
           {loading ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           ) : mode === 'sign-in' ? (
             'Sign In'
           ) : (

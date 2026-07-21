@@ -2,6 +2,10 @@ import { Bell, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
+import { PhotoCard } from '../components/PhotoCard';
+
+const HERO_PHOTO_URL =
+  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=600&fit=crop&q=80';
 
 function formatSleepDuration(hours: number | null): string {
   if (!hours) return '--';
@@ -45,7 +49,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
           <button
             onClick={onOpenProfile}
             aria-label="Edit profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 bg-[#E5BA73]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)]"
           >
             <span className="text-sm font-bold text-white">U</span>
           </button>
@@ -70,7 +74,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-6 flex items-center justify-between gap-4">
         <div className="anim-fade-rise flex flex-col gap-5" style={{ animationDelay: '0.12s' }}>
           <div>
             <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
@@ -104,20 +108,18 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
           </button>
         </div>
 
-        <div className="anim-fade-in relative flex h-[220px] w-[160px] items-center justify-center" style={{ animationDelay: '0.2s' }}>
-          <div
-            className="absolute h-40 w-40 rounded-full blur-2xl"
-            style={{ background: 'rgba(198, 255, 61, 0.18)' }}
-          />
-          <svg width={140} height={140} viewBox="0 0 100 100" className="relative">
-            <circle cx={50} cy={30} r={10} stroke="#c6ff3d" strokeWidth={1.5} fill="none" />
-            <line x1={50} y1={40} x2={50} y2={70} stroke="#c6ff3d" strokeWidth={2} />
-            <line x1={50} y1={48} x2={32} y2={35} stroke="#c6ff3d" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={48} x2={68} y2={35} stroke="rgba(220,230,218,0.3)" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={40} y2={90} stroke="#c6ff3d" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={60} y2={90} stroke="rgba(220,230,218,0.3)" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-        </div>
+        <PhotoCard
+          src={HERO_PHOTO_URL}
+          alt="Today's workout"
+          className="anim-fade-in h-[220px] w-[150px] shrink-0"
+        >
+          <div className="flex h-full flex-col justify-end p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+              Today's Focus
+            </p>
+            <p className="text-base font-bold leading-tight text-white">Upper Body</p>
+          </div>
+        </PhotoCard>
       </div>
 
       <div

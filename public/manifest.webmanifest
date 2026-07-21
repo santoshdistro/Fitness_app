@@ -3,8 +3,8 @@
   "short_name": "Fitness",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0c0f0b",
-  "theme_color": "#0c0f0b",
+  "background_color": "#f7f7fb",
+  "theme_color": "#f7f7fb",
   "icons": [
     {
       "src": "/favicon.svg",

@@ -53,8 +53,8 @@ export function AppShell() {
           type="button"
           onClick={() => setActiveSheet('quickAdd')}
           aria-label="Quick add"
-          className="absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full text-black shadow-[0_8px_24px_rgba(198,255,61,0.4)]"
-          style={{ background: 'linear-gradient(135deg, #c6ff3d, #5a9a1f)' }}
+          className="absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
+          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
         >
           <Plus size={24} strokeWidth={2.5} />
         </button>
@@ -68,7 +68,7 @@ export function AppShell() {
               key={key}
               onClick={() => setActiveTab(key)}
               className="flex flex-col items-center gap-1"
-              style={{ color: isActive ? 'var(--text)' : 'var(--muted)' }}
+              style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
             >
               <Icon size={20} strokeWidth={2.5} />
               <span className="text-[9px] font-bold tracking-wider">{label}</span>
