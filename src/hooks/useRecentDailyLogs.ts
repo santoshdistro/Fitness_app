@@ -30,5 +30,14 @@ export function useRecentDailyLogs(limit: number) {
     refresh();
   }, [refresh]);
 
-  return { logs, loading, refresh };
+  const clearWeight = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('daily_logs').update({ weight: null }).eq('id', id);
+      if (!error) await refresh();
+      return { error };
+    },
+    [refresh],
+  );
+
+  return { logs, loading, refresh, clearWeight };
 }

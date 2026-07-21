@@ -20,14 +20,27 @@ const EMPTY_TOTALS: NutritionTotals = {
   mealCount: 0,
 };
 
+function computeTotals(meals: FoodLog[]): NutritionTotals {
+  return meals.reduce(
+    (acc, meal) => ({
+      calories: acc.calories + (meal.calories ?? 0),
+      protein_g: acc.protein_g + (meal.protein_g ?? 0),
+      carbs_g: acc.carbs_g + (meal.carbs_g ?? 0),
+      fat_g: acc.fat_g + (meal.fat_g ?? 0),
+      mealCount: acc.mealCount + 1,
+    }),
+    { ...EMPTY_TOTALS },
+  );
+}
+
 export function useTodayNutrition() {
   const { session } = useAuth();
-  const [totals, setTotals] = useState<NutritionTotals>(EMPTY_TOTALS);
+  const [meals, setMeals] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!session?.user) {
-      setTotals(EMPTY_TOTALS);
+      setMeals([]);
       setLoading(false);
       return;
     }
@@ -36,21 +49,10 @@ export function useTodayNutrition() {
       .from('food_logs')
       .select('*')
       .eq('user_id', session.user.id)
-      .gte('meal_timestamp', startOfTodayIso());
+      .gte('meal_timestamp', startOfTodayIso())
+      .order('meal_timestamp', { ascending: false });
 
-    const meals = (data as FoodLog[]) ?? [];
-    setTotals(
-      meals.reduce(
-        (acc, meal) => ({
-          calories: acc.calories + (meal.calories ?? 0),
-          protein_g: acc.protein_g + (meal.protein_g ?? 0),
-          carbs_g: acc.carbs_g + (meal.carbs_g ?? 0),
-          fat_g: acc.fat_g + (meal.fat_g ?? 0),
-          mealCount: acc.mealCount + 1,
-        }),
-        { ...EMPTY_TOTALS },
-      ),
-    );
+    setMeals((data as FoodLog[]) ?? []);
     setLoading(false);
   }, [session?.user]);
 
@@ -58,5 +60,14 @@ export function useTodayNutrition() {
     refresh();
   }, [refresh]);
 
-  return { totals, loading, refresh };
+  const deleteMeal = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('food_logs').delete().eq('id', id);
+      if (!error) await refresh();
+      return { error };
+    },
+    [refresh],
+  );
+
+  return { totals: computeTotals(meals), meals, loading, refresh, deleteMeal };
 }

@@ -1,7 +1,7 @@
-import { Activity } from 'lucide-react';
+import { Activity, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
-import { useLatestMeasurement } from '../hooks/useLatestMeasurement';
+import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -10,16 +10,27 @@ import { ageFromBirthDate, computeBMR, computeDailyCalorieTarget } from '../util
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
+function formatMealTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function formatShortDate(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export function StatsScreen() {
-  const { totals } = useTodayNutrition();
-  const { logs: weightLogs } = useRecentDailyLogs(14);
-  const { measurement } = useLatestMeasurement();
+  const { totals, meals, deleteMeal } = useTodayNutrition();
+  const { logs: weightLogs, clearWeight } = useRecentDailyLogs(14);
+  const { measurements, deleteMeasurement } = useRecentMeasurements(5);
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
 
-  const weightValues = weightLogs
-    .map(l => l.weight)
-    .filter((w): w is number => w != null);
+  const measurement = measurements[0];
+  const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
+  const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
 
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
@@ -81,6 +92,37 @@ export function StatsScreen() {
         </p>
       </div>
 
+      {/* Today's meals */}
+      <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's Meals</p>
+        {meals.length === 0 ? (
+          <p className="text-xs text-[var(--muted)]">No meals logged yet today.</p>
+        ) : (
+          meals.map(meal => (
+            <div
+              key={meal.id}
+              className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+            >
+              <div>
+                <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
+                <p className="text-[10px] text-[var(--muted)]">
+                  {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
+                  {meal.protein_g ?? 0}g protein
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => deleteMeal(meal.id)}
+                aria-label={`Delete ${meal.meal_name}`}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Weight */}
       <div
         className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
@@ -111,6 +153,34 @@ export function StatsScreen() {
         </div>
       </div>
 
+      {/* Weight history */}
+      {weightEntries.length > 0 ? (
+        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
+          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Weigh-ins</p>
+          {weightEntries
+            .slice()
+            .reverse()
+            .map(entry => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+              >
+                <p className="text-sm text-[var(--text)]">
+                  {formatShortDate(entry.log_date)} · <span className="font-semibold">{entry.weight}kg</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => clearWeight(entry.id)}
+                  aria-label="Delete weight entry"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+        </div>
+      ) : null}
+
       {/* Body fat */}
       <div
         className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
@@ -131,6 +201,40 @@ export function StatsScreen() {
           </p>
         </div>
       </div>
+
+      {/* Measurement history */}
+      {measurements.length > 0 ? (
+        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.3s' }}>
+          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Measurements</p>
+          {measurements.map(entry => (
+            <div
+              key={entry.id}
+              className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+            >
+              <div>
+                <p className="text-sm text-[var(--text)]">
+                  {formatShortDate(entry.entry_timestamp.slice(0, 10))}
+                  {entry.calculated_body_fat != null
+                    ? ` · ${entry.calculated_body_fat.toFixed(1)}% BF`
+                    : ''}
+                </p>
+                <p className="text-[10px] text-[var(--muted)]">
+                  Neck {entry.neck}in · Waist {entry.waist}in
+                  {entry.hips != null ? ` · Hips ${entry.hips}in` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => deleteMeasurement(entry.id)}
+                aria-label="Delete measurement entry"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

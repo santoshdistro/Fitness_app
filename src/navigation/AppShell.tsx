@@ -1,16 +1,27 @@
 import { useState } from 'react';
-import { BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight } from 'lucide-react';
+import { Activity, BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
+import { WorkoutsScreen } from '../screens/WorkoutsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { Sheet } from '../components/Sheet';
 import { WeightForm } from '../components/forms/WeightForm';
 import { MeasurementsForm } from '../components/forms/MeasurementsForm';
 import { MealForm } from '../components/forms/MealForm';
 import { ProfileForm } from '../components/forms/ProfileForm';
+import { ActivityForm } from '../components/forms/ActivityForm';
+import { WorkoutForm } from '../components/forms/WorkoutForm';
 
 type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
-type ActiveSheet = 'quickAdd' | 'weight' | 'measurements' | 'meal' | 'profile' | null;
+type ActiveSheet =
+  | 'quickAdd'
+  | 'weight'
+  | 'measurements'
+  | 'meal'
+  | 'profile'
+  | 'activity'
+  | 'workout'
+  | null;
 
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Home', icon: Home },
@@ -47,7 +58,9 @@ export function AppShell() {
         {activeTab === 'stats' && <StatsScreen key={refreshKey} />}
         {activeTab === 'discover' && <PlaceholderScreen title="Discover" />}
         {activeTab === 'community' && <PlaceholderScreen title="Community" />}
-        {activeTab === 'workouts' && <PlaceholderScreen title="Workouts" />}
+        {activeTab === 'workouts' && (
+          <WorkoutsScreen key={refreshKey} onLogWorkout={() => setActiveSheet('workout')} />
+        )}
 
         <button
           type="button"
@@ -94,6 +107,16 @@ export function AppShell() {
             label="Add meal"
             onClick={() => setActiveSheet('meal')}
           />
+          <QuickAddOption
+            icon={Activity}
+            label="Log steps, water & sleep"
+            onClick={() => setActiveSheet('activity')}
+          />
+          <QuickAddOption
+            icon={Dumbbell}
+            label="Log workout"
+            onClick={() => setActiveSheet('workout')}
+          />
         </div>
       </Sheet>
 
@@ -107,6 +130,14 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'meal'} onClose={closeSheet} title="Add meal">
         <MealForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'activity'} onClose={closeSheet} title="Log activity">
+        <ActivityForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'workout'} onClose={closeSheet} title="Log workout">
+        <WorkoutForm onSaved={onSaved} />
       </Sheet>
 
       <Sheet open={activeSheet === 'profile'} onClose={closeSheet} title="Your profile">

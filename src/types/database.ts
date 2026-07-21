@@ -32,3 +32,17 @@ export type FoodLog = {
   carbs_g: number | null;
   fat_g: number | null;
 };
+
+export type ExerciseSet = {
+  exercise: string;
+  reps: number;
+  weight: number;
+};
+
+export type WorkoutLog = {
+  id: string;
+  user_id: string;
+  session_timestamp: string;
+  routine_name: string | null;
+  exercise_data: ExerciseSet[];
+};
