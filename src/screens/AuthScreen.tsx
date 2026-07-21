@@ -33,7 +33,7 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="app-bg flex min-h-screen flex-col items-center justify-center px-6">
+    <div className="app-bg flex min-h-dvh flex-col items-center justify-center px-6">
       <form
         onSubmit={handleSubmit}
         className="glass-card anim-fade-rise w-full max-w-sm p-6 shadow-2xl"

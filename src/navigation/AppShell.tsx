@@ -35,7 +35,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-bg flex h-screen flex-col pt-[env(safe-area-inset-top)]">
+    <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       <div className="hide-scrollbar relative flex-1 overflow-y-auto">
         {activeTab === 'home' && (
           <HomeScreen
