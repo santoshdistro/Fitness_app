@@ -5,9 +5,10 @@ import { errorTextClass, inputClass, labelClass, submitButtonClass } from './for
 
 type Props = {
   onSaved: () => void;
+  onOpenGoals: () => void;
 };
 
-export function ProfileForm({ onSaved }: Props) {
+export function ProfileForm({ onSaved, onOpenGoals }: Props) {
   const { profile, saveProfile } = useProfile();
   const [height, setHeight] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -117,6 +118,15 @@ export function ProfileForm({ onSaved }: Props) {
         className={submitButtonClass}
       >
         {saving ? 'Saving...' : 'Save profile'}
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenGoals}
+        className="mt-4 w-full text-center text-xs font-semibold"
+        style={{ color: 'var(--accent)' }}
+      >
+        Edit calorie & macro goals
       </button>
     </form>
   );

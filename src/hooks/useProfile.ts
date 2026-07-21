@@ -9,6 +9,10 @@ export type Profile = {
   birth_date: string | null;
   gender: Gender | null;
   equipment_preference: string | null;
+  calorie_deficit_kcal: number;
+  protein_target_g: number | null;
+  fiber_target_g: number | null;
+  sodium_target_mg: number | null;
 };
 
 export function useProfile() {
@@ -37,7 +41,7 @@ export function useProfile() {
   }, [refresh]);
 
   const saveProfile = useCallback(
-    async (fields: Omit<Profile, 'user_id'>) => {
+    async (fields: Partial<Omit<Profile, 'user_id'>>) => {
       if (!session?.user) return { error: new Error('Not signed in') };
       const { error } = await supabase
         .from('profiles')

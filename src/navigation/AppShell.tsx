@@ -11,6 +11,7 @@ import { MealForm } from '../components/forms/MealForm';
 import { ProfileForm } from '../components/forms/ProfileForm';
 import { ActivityForm } from '../components/forms/ActivityForm';
 import { WorkoutForm } from '../components/forms/WorkoutForm';
+import { GoalsForm } from '../components/forms/GoalsForm';
 
 type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
 type ActiveSheet =
@@ -21,6 +22,7 @@ type ActiveSheet =
   | 'profile'
   | 'activity'
   | 'workout'
+  | 'goals'
   | null;
 
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
@@ -141,7 +143,11 @@ export function AppShell() {
       </Sheet>
 
       <Sheet open={activeSheet === 'profile'} onClose={closeSheet} title="Your profile">
-        <ProfileForm onSaved={onSaved} />
+        <ProfileForm onSaved={onSaved} onOpenGoals={() => setActiveSheet('goals')} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'goals'} onClose={closeSheet} title="Calorie & macro goals">
+        <GoalsForm onSaved={onSaved} />
       </Sheet>
     </div>
   );

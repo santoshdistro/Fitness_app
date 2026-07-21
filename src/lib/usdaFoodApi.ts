@@ -5,6 +5,8 @@ const NUTRIENT_ID = {
   PROTEIN_G: 1003,
   FAT_G: 1004,
   CARBS_G: 1005,
+  FIBER_G: 1079,
+  SODIUM_MG: 1093,
 };
 
 type UsdaFoodNutrient = {
@@ -17,6 +19,8 @@ type UsdaLabelNutrients = {
   protein?: { value: number };
   fat?: { value: number };
   carbohydrates?: { value: number };
+  fiber?: { value: number };
+  sodium?: { value: number };
 };
 
 type UsdaFood = {
@@ -37,6 +41,8 @@ export type FoodSearchResult = {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sodium: number;
   /** true: values are for one serving (servingSize/servingSizeUnit). false: values are per 100g. */
   isPerServing: boolean;
   servingSize?: number;
@@ -57,6 +63,8 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
       protein: Math.round(food.labelNutrients.protein?.value ?? 0),
       carbs: Math.round(food.labelNutrients.carbohydrates?.value ?? 0),
       fat: Math.round(food.labelNutrients.fat?.value ?? 0),
+      fiber: Math.round(food.labelNutrients.fiber?.value ?? 0),
+      sodium: Math.round(food.labelNutrients.sodium?.value ?? 0),
       isPerServing: true,
       servingSize: food.servingSize,
       servingSizeUnit: food.servingSizeUnit,
@@ -71,6 +79,8 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
     protein: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.PROTEIN_G)),
     carbs: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.CARBS_G)),
     fat: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.FAT_G)),
+    fiber: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.FIBER_G)),
+    sodium: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.SODIUM_MG)),
     isPerServing: false,
   };
 }

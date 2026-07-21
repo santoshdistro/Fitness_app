@@ -33,6 +33,7 @@ export function StatsScreen() {
   const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
 
+  const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
   const calorieTarget = canComputeTarget
     ? computeDailyCalorieTarget({
@@ -43,8 +44,15 @@ export function StatsScreen() {
           ageYears: ageFromBirthDate(profile!.birth_date!),
         }),
         activeCalories: todayLog?.active_calories_burned ?? 0,
+        deficitKcal,
       })
     : REFERENCE_CALORIE_TARGET;
+
+  const macroGoals = [
+    { label: 'Protein', value: totals.protein_g, target: profile?.protein_target_g, unit: 'g' },
+    { label: 'Fiber', value: totals.fiber_g, target: profile?.fiber_target_g, unit: 'g' },
+    { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg' },
+  ].filter((goal): goal is typeof goal & { target: number } => goal.target != null);
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
@@ -87,10 +95,37 @@ export function StatsScreen() {
         />
         <p className="-mt-2 text-center text-[10px] text-[var(--muted)]">
           {canComputeTarget
-            ? `${calorieTarget} kcal target · BMR + activity − 500 kcal deficit`
+            ? `${calorieTarget} kcal target · BMR + activity ${deficitKcal >= 0 ? '−' : '+'} ${Math.abs(deficitKcal)} kcal ${deficitKcal >= 0 ? 'deficit' : 'surplus'}`
             : `vs ${REFERENCE_CALORIE_TARGET} kcal reference · complete your profile and log weight for a personalized target`}
         </p>
       </div>
+
+      {/* Macro goals */}
+      {macroGoals.length > 0 ? (
+        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.12s' }}>
+          <p className="text-sm font-semibold text-[var(--text)]">Today's Goals</p>
+          {macroGoals.map(goal => {
+            const percent = Math.min(100, (goal.value / goal.target) * 100);
+            return (
+              <div key={goal.label}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-[var(--text)]">{goal.label}</span>
+                  <span className="text-[var(--muted)]">
+                    {Math.round(goal.value)} / {goal.target}
+                    {goal.unit}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg)]">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${percent}%`, background: 'var(--accent)' }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       {/* Today's meals */}
       <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>

@@ -14,6 +14,8 @@ type PerGramMacros = {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sodium: number;
 };
 
 export function MealForm({ onSaved }: Props) {
@@ -33,6 +35,8 @@ export function MealForm({ onSaved }: Props) {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [fiber, setFiber] = useState('');
+  const [sodium, setSodium] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +64,8 @@ export function MealForm({ onSaved }: Props) {
       setProtein(String(result.protein));
       setCarbs(String(result.carbs));
       setFat(String(result.fat));
+      setFiber(String(result.fiber));
+      setSodium(String(result.sodium));
       setServingNote(
         result.servingSize ? `Per serving (${result.servingSize}${result.servingSizeUnit ?? ''})` : 'Per serving',
       );
@@ -71,12 +77,16 @@ export function MealForm({ onSaved }: Props) {
       protein: result.protein / 100,
       carbs: result.carbs / 100,
       fat: result.fat / 100,
+      fiber: result.fiber / 100,
+      sodium: result.sodium / 100,
     });
     setGrams('100');
     setCalories(String(result.calories));
     setProtein(String(result.protein));
     setCarbs(String(result.carbs));
     setFat(String(result.fat));
+    setFiber(String(result.fiber));
+    setSodium(String(result.sodium));
     setServingNote('Per 100g');
   }
 
@@ -88,6 +98,8 @@ export function MealForm({ onSaved }: Props) {
     setProtein(String(Math.round(perGram.protein * gramsNum)));
     setCarbs(String(Math.round(perGram.carbs * gramsNum)));
     setFat(String(Math.round(perGram.fat * gramsNum)));
+    setFiber(String(Math.round(perGram.fiber * gramsNum)));
+    setSodium(String(Math.round(perGram.sodium * gramsNum)));
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -103,6 +115,8 @@ export function MealForm({ onSaved }: Props) {
       protein_g: protein ? Number(protein) : null,
       carbs_g: carbs ? Number(carbs) : null,
       fat_g: fat ? Number(fat) : null,
+      fiber_g: fiber ? Number(fiber) : null,
+      sodium_mg: sodium ? Number(sodium) : null,
     });
 
     setSaving(false);
@@ -258,6 +272,34 @@ export function MealForm({ onSaved }: Props) {
               min="0"
               value={fat}
               onChange={e => setFat(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="fiber-input">
+              Fiber (g) - optional
+            </label>
+            <input
+              id="fiber-input"
+              className={inputClass}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={fiber}
+              onChange={e => setFiber(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="sodium-input">
+              Sodium (mg) - optional
+            </label>
+            <input
+              id="sodium-input"
+              className={inputClass}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={sodium}
+              onChange={e => setSodium(e.target.value)}
             />
           </div>
         </div>
