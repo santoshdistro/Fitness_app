@@ -22,7 +22,13 @@ export type Measurement = {
   calculated_body_fat: number | null;
 };
 
-export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealCategory =
+  | 'breakfast'
+  | 'lunch'
+  | 'dinner'
+  | 'snack'
+  | 'supplement'
+  | 'other';
 
 export type FoodLog = {
   id: string;

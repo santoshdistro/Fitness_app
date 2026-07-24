@@ -26,6 +26,8 @@ const MEAL_CATEGORIES: { key: MealCategory; label: string }[] = [
   { key: 'lunch', label: 'Lunch' },
   { key: 'dinner', label: 'Dinner' },
   { key: 'snack', label: 'Snacks' },
+  { key: 'supplement', label: 'Supplements' },
+  { key: 'other', label: 'Other' },
 ];
 
 function formatMealTime(iso: string): string {

@@ -8,6 +8,7 @@ const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   food_scan: 'Food photo scans',
   body_scan: 'Physique scans',
   workout_plan: 'AI workout plans',
+  nutrition_coach: 'Nutrition coach plans',
 };
 
 type AnthropicState =

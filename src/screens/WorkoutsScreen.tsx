@@ -13,6 +13,8 @@ import {
   type ProgramExercise,
 } from '../data/workoutPrograms';
 import { GOAL_PROGRAMS, type GoalProgram } from '../data/goalPrograms';
+import { GOAL_PROGRAM_IMAGES, HERO_IMAGE } from '../data/gymImagery';
+import { PhotoBackdrop } from '../components/PhotoBackdrop';
 
 type SelectedExercise = { name: string; exerciseId?: string; sets: number; reps: string };
 
@@ -56,6 +58,24 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         </button>
       </div>
 
+      {/* Motivational hero */}
+      <div
+        className="anim-fade-rise relative mt-4 flex h-32 flex-col justify-end overflow-hidden p-4"
+        style={{ borderRadius: 'var(--radius-card)', animationDelay: '0.02s' }}
+      >
+        <PhotoBackdrop
+          src={HERO_IMAGE}
+          gradient="linear-gradient(135deg, #4b3fe0, #6c63ff)"
+          photoOpacity={0.7}
+        />
+        <p className="relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/80">
+          Today is a good day
+        </p>
+        <p className="relative z-10 text-lg font-black leading-tight text-white drop-shadow">
+          Show up. Lift. Repeat.
+        </p>
+      </div>
+
       {/* Predefined goal programs */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Choose a program</p>
@@ -68,13 +88,20 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
               className="relative flex h-28 flex-col justify-end overflow-hidden p-3 text-left"
               style={{
                 borderRadius: 'var(--radius-card)',
-                background: `linear-gradient(150deg, ${program.gradient[0]}, ${program.gradient[1]})`,
                 boxShadow: '0 10px 22px -12px rgba(20,20,43,0.5)',
               }}
             >
-              <span className="absolute right-2 top-2 text-2xl">{program.emoji}</span>
-              <span className="text-sm font-bold leading-tight text-white">{program.name}</span>
-              <span className="text-[10px] font-medium text-white/80">{program.focus}</span>
+              <PhotoBackdrop
+                src={GOAL_PROGRAM_IMAGES[program.id]}
+                gradient={`linear-gradient(150deg, ${program.gradient[0]}, ${program.gradient[1]})`}
+              />
+              <span className="relative z-10 self-end text-2xl drop-shadow">{program.emoji}</span>
+              <span className="relative z-10 mt-auto text-sm font-bold leading-tight text-white drop-shadow">
+                {program.name}
+              </span>
+              <span className="relative z-10 text-[10px] font-medium text-white/90 drop-shadow">
+                {program.focus}
+              </span>
             </button>
           ))}
         </div>

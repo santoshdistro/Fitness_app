@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Barcode, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
 import { DiscoverScreen } from '../screens/DiscoverScreen';
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { HandbookScreen } from '../screens/HandbookScreen';
 import { OnboardingFlow } from '../screens/OnboardingFlow';
 import { useProfile } from '../hooks/useProfile';
 import { Sheet } from '../components/Sheet';
@@ -24,7 +24,7 @@ import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
-type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
+type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
 type ActiveSheet =
   | 'quickAdd'
   | 'weight'
@@ -47,7 +47,7 @@ const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Home', icon: Home },
   { key: 'stats', label: 'Stats', icon: BarChart3 },
   { key: 'discover', label: 'Discover', icon: Compass },
-  { key: 'community', label: 'Community', icon: Users },
+  { key: 'handbook', label: 'Handbook', icon: BookOpen },
   { key: 'workouts', label: 'Workouts', icon: Dumbbell },
 ];
 
@@ -97,7 +97,7 @@ export function AppShell() {
           <StatsScreen key={refreshKey} onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
         )}
         {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
-        {activeTab === 'community' && <PlaceholderScreen title="Community" />}
+        {activeTab === 'handbook' && <HandbookScreen key={refreshKey} />}
         {activeTab === 'workouts' && (
           <WorkoutsScreen
             key={refreshKey}

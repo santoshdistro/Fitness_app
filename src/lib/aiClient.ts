@@ -23,6 +23,26 @@ export type WorkoutPlanExercise = { name: string; sets: number; reps: string };
 export type WorkoutPlanDay = { day: string; focus: string; exercises: WorkoutPlanExercise[] };
 export type WorkoutPlanResult = { name: string; description: string; days: WorkoutPlanDay[] };
 
+export type NutritionMeal = { meal: string; idea: string; approxCalories: number; protein_g: number };
+export type NutritionRecipe = { name: string; why: string; ingredients: string[]; steps: string[] };
+export type NutritionPlanResult = {
+  summary: string;
+  foods: string[];
+  avoid: string[];
+  dayPlan: NutritionMeal[];
+  recipes: NutritionRecipe[];
+};
+
+export type NutritionPreferences = {
+  goal: string;
+  diet: string;
+  likes?: string;
+  dislikes?: string;
+  mealsPerDay?: number;
+  calorieTarget?: number;
+  proteinTarget?: number;
+};
+
 type ApiResponse<T> = { result?: T; usage?: AiUsage; error?: string };
 
 async function postJson<T>(url: string, payload: unknown): Promise<{ result: T; usage?: AiUsage }> {
@@ -72,5 +92,14 @@ export async function generateWorkoutPlan(
 ): Promise<WorkoutPlanResult> {
   const { result, usage } = await postJson<WorkoutPlanResult>('/api/workout-plan', input);
   if (usage) void logAiUsage(userId, 'workout_plan', usage);
+  return result;
+}
+
+export async function generateNutritionPlan(
+  userId: string,
+  input: NutritionPreferences,
+): Promise<NutritionPlanResult> {
+  const { result, usage } = await postJson<NutritionPlanResult>('/api/nutrition-coach', input);
+  if (usage) void logAiUsage(userId, 'nutrition_coach', usage);
   return result;
 }

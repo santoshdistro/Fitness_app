@@ -5,6 +5,8 @@ export const MEAL_CATEGORY_OPTIONS: { value: MealCategory; label: string }[] = [
   { value: 'lunch', label: 'Lunch' },
   { value: 'dinner', label: 'Dinner' },
   { value: 'snack', label: 'Snack' },
+  { value: 'supplement', label: 'Supplement' },
+  { value: 'other', label: 'Other' },
 ];
 
 /** Best-guess meal category from the current time of day, as a sensible form default. */

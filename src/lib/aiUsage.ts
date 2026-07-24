@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import { costUsd } from '../utils/aiPricing';
 
 export type AiUsage = { model: string; input_tokens: number; output_tokens: number };
-export type AiFeature = 'coach' | 'food_scan' | 'body_scan' | 'workout_plan';
+export type AiFeature = 'coach' | 'food_scan' | 'body_scan' | 'workout_plan' | 'nutrition_coach';
 
 /**
  * Records one AI call's token usage + estimated cost for the in-app spend

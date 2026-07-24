@@ -11,7 +11,7 @@ import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
 import { DateNavigator } from '../components/DateNavigator';
-import { isToday, todayDateString } from '../utils/date';
+import { addDays, isToday, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -29,9 +29,14 @@ function formatSleepDuration(hours: number | null): string {
   return `${String(wholeHours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
 }
 
-function shortDayLabel(dateStr: string): string {
+function weekdayLetter(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString(undefined, { day: '2-digit' });
+  return date.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3);
+}
+
+function dayNumber(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00`);
+  return String(date.getDate());
 }
 
 type Props = {
@@ -60,11 +65,19 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   };
 
   const waterLiters = dayLog?.water_ml ? (dayLog.water_ml / 1000).toFixed(2) : '--';
-  const sleepEntries = recentLogs.slice(-6).map(entry => ({
-    label: shortDayLabel(entry.log_date),
-    hours: entry.sleep_hours,
-  }));
-  const latestSleepHours = recentLogs[recentLogs.length - 1]?.sleep_hours ?? null;
+
+  // Continuous 7-day window ending on the selected date, so every day shows on
+  // the axis whether or not sleep was logged.
+  const sleepByDate = new Map(recentLogs.map(l => [l.log_date, l.sleep_hours]));
+  const sleepEntries = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(selectedDate, i - 6);
+    return {
+      weekday: weekdayLetter(date),
+      day: dayNumber(date),
+      hours: sleepByDate.get(date) ?? null,
+    };
+  });
+  const latestSleepHours = sleepByDate.get(selectedDate) ?? null;
 
   const weightEntries = recentLogs.filter(
     (l): l is typeof l & { weight: number } => l.weight != null,

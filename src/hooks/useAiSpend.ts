@@ -7,7 +7,13 @@ export type FeatureSpend = { feature: AiFeature; calls: number; costUsd: number 
 
 type Row = { feature: AiFeature; cost_usd: number };
 
-const FEATURE_ORDER: AiFeature[] = ['coach', 'food_scan', 'body_scan', 'workout_plan'];
+const FEATURE_ORDER: AiFeature[] = [
+  'coach',
+  'food_scan',
+  'body_scan',
+  'workout_plan',
+  'nutrition_coach',
+];
 
 function monthStartIso(): string {
   const d = new Date();
