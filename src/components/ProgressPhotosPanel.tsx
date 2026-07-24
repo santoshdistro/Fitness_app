@@ -1,0 +1,291 @@
+import { useRef, useState } from 'react';
+import { Camera, Check, GitCompare, Trash2, X } from 'lucide-react';
+import { useProgressPhotos, type ProgressPhotoWithUrl } from '../hooks/useProgressPhotos';
+import { todayDateString } from '../utils/date';
+import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
+
+function formatDate(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function ProgressPhotosPanel() {
+  const { photos, loading, addPhoto, removePhoto } = useProgressPhotos();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [takenOn, setTakenOn] = useState(todayDateString());
+  const [weight, setWeight] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [compareMode, setCompareMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+
+  function onPick(file: File | undefined) {
+    if (!file) return;
+    setPendingFile(file);
+    setPendingPreview(URL.createObjectURL(file));
+    setTakenOn(todayDateString());
+    setWeight('');
+    setNote('');
+    setError(null);
+  }
+
+  function cancelPending() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+  }
+
+  async function savePending() {
+    if (!pendingFile) return;
+    setSaving(true);
+    setError(null);
+    const { error: saveError } = await addPhoto(pendingFile, {
+      takenOn,
+      weightKg: weight ? Number(weight) : null,
+      note,
+    });
+    setSaving(false);
+    if (saveError) {
+      setError(saveError.message);
+      return;
+    }
+    cancelPending();
+  }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id);
+      if (prev.length >= 2) return [prev[1], id]; // keep the two most recent taps
+      return [...prev, id];
+    });
+  }
+
+  const comparePair = compareMode
+    ? (selected
+        .map(id => photos.find(p => p.id === id))
+        .filter(Boolean) as ProgressPhotoWithUrl[])
+    : [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={e => onPick(e.target.files?.[0])}
+      />
+
+      {/* Pending add form */}
+      {pendingFile ? (
+        <div className="glass-card flex flex-col gap-3 p-4">
+          {pendingPreview ? (
+            <img
+              src={pendingPreview}
+              alt="New progress photo preview"
+              className="mx-auto max-h-56 rounded-2xl object-contain"
+            />
+          ) : null}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass} htmlFor="pp-date">
+                Date
+              </label>
+              <input
+                id="pp-date"
+                type="date"
+                className={inputClass}
+                value={takenOn}
+                max={todayDateString()}
+                onChange={e => setTakenOn(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="pp-weight">
+                Weight (kg) — optional
+              </label>
+              <input
+                id="pp-weight"
+                type="number"
+                inputMode="decimal"
+                className={inputClass}
+                value={weight}
+                onChange={e => setWeight(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="pp-note">
+              Note — optional
+            </label>
+            <input
+              id="pp-note"
+              type="text"
+              className={inputClass}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="e.g. front, week 1"
+            />
+          </div>
+          {error ? <p className={errorTextClass}>{error}</p> : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={cancelPending}
+              className="flex-1 rounded-2xl border border-[var(--card-border)] py-3 text-sm font-semibold text-[var(--text)]"
+            >
+              Cancel
+            </button>
+            <button type="button" onClick={savePending} disabled={saving} className={`${submitButtonClass} flex-1`}>
+              {saving ? 'Saving…' : 'Save photo'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`${submitButtonClass} flex-1`}
+          >
+            <Camera size={16} className="mr-2" />
+            Add photo
+          </button>
+          {photos.length >= 2 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCompareMode(m => !m);
+                setSelected([]);
+              }}
+              className="flex items-center gap-1.5 rounded-2xl border px-4 py-3 text-sm font-semibold"
+              style={
+                compareMode
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+                  : { borderColor: 'var(--card-border)', color: 'var(--text)' }
+              }
+            >
+              <GitCompare size={16} />
+              Compare
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {compareMode ? (
+        <p className="text-[11px] text-[var(--muted)]">
+          Tap two photos to compare them side by side.
+        </p>
+      ) : null}
+
+      {/* Compare view */}
+      {comparePair.length === 2 ? (
+        <div className="glass-card p-3">
+          <div className="grid grid-cols-2 gap-2">
+            {comparePair.map(p => (
+              <div key={p.id}>
+                {p.url ? (
+                  <img src={p.url} alt={`Progress ${p.taken_on}`} className="w-full rounded-xl object-cover" />
+                ) : null}
+                <p className="mt-1 text-center text-[11px] font-semibold text-[var(--text)]">
+                  {formatDate(p.taken_on)}
+                </p>
+                {p.weight_kg != null ? (
+                  <p className="text-center text-[10px] text-[var(--muted)]">{p.weight_kg} kg</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Timeline grid */}
+      {loading ? (
+        <p className="text-xs text-[var(--muted)]">Loading…</p>
+      ) : photos.length === 0 ? (
+        <div className="glass-card p-6 text-center">
+          <p className="text-sm font-semibold text-[var(--text)]">No photos yet</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Snap a front/side/back photo today, then again each week — the visual change is the best
+            motivation there is.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          {photos
+            .slice()
+            .reverse()
+            .map(p => {
+              const isSelected = selected.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => (compareMode ? toggleSelect(p.id) : undefined)}
+                  className="relative overflow-hidden rounded-xl"
+                  style={{ aspectRatio: '3 / 4', background: 'var(--bg)' }}
+                >
+                  {p.url ? (
+                    <img src={p.url} alt={`Progress ${p.taken_on}`} className="h-full w-full object-cover" />
+                  ) : null}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-4">
+                    <p className="text-[9px] font-bold text-white">{formatDate(p.taken_on)}</p>
+                    {p.weight_kg != null ? (
+                      <p className="text-[8px] text-white/80">{p.weight_kg} kg</p>
+                    ) : null}
+                  </div>
+                  {compareMode ? (
+                    <div
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full"
+                      style={
+                        isSelected
+                          ? { background: 'var(--accent)', color: '#fff' }
+                          : { background: 'rgba(255,255,255,0.8)' }
+                      }
+                    >
+                      {isSelected ? <Check size={12} strokeWidth={3} /> : null}
+                    </div>
+                  ) : (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={e => {
+                        e.stopPropagation();
+                        void removePhoto(p);
+                      }}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
+                      aria-label="Delete photo"
+                    >
+                      <Trash2 size={12} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+        </div>
+      )}
+
+      {compareMode && comparePair.length < 2 ? (
+        <button
+          type="button"
+          onClick={() => {
+            setCompareMode(false);
+            setSelected([]);
+          }}
+          className="flex items-center justify-center gap-1 text-xs font-semibold text-[var(--muted)]"
+        >
+          <X size={13} /> Exit compare
+        </button>
+      ) : null}
+    </div>
+  );
+}

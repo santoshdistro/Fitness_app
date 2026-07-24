@@ -41,3 +41,30 @@ export async function fileToDownscaledBase64(
   const dataUrl = canvas.toDataURL('image/jpeg', quality);
   return { data: dataUrl.split(',')[1] ?? '', mediaType: 'image/jpeg' };
 }
+
+/** Downscales an image file to a max dimension and returns a JPEG Blob for upload. */
+export async function fileToDownscaledBlob(
+  file: File,
+  maxDim = 1280,
+  quality = 0.82,
+): Promise<Blob> {
+  const img = await loadImage(file);
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const width = Math.max(1, Math.round(img.width * scale));
+  const height = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas not supported');
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => (blob ? resolve(blob) : reject(new Error('Could not encode image'))),
+      'image/jpeg',
+      quality,
+    );
+  });
+}

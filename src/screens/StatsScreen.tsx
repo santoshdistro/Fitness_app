@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
+import { Activity, Camera, ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
@@ -49,9 +49,10 @@ function dateLabel(dateStr: string): string {
 
 type Props = {
   onQuickAddCalories: () => void;
+  onOpenProgressPhotos: () => void;
 };
 
-export function StatsScreen({ onQuickAddCalories }: Props) {
+export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { session } = useAuth();
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
@@ -376,6 +377,25 @@ export function StatsScreen({ onQuickAddCalories }: Props) {
             ))}
         </div>
       ) : null}
+
+      {/* Progress photos */}
+      <button
+        type="button"
+        onClick={onOpenProgressPhotos}
+        className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
+        style={{ animationDelay: '0.24s' }}
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/10">
+          <Camera size={16} style={{ color: 'var(--accent)' }} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-[var(--text)]">Progress photos</p>
+          <p className="text-[10px] text-[var(--muted)]">
+            Snap weekly photos and compare before / after
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-[var(--muted)]" />
+      </button>
 
       {/* Body fat */}
       <div

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Images, Plus, Ruler, ScanLine, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -22,6 +22,7 @@ import { BodyScanForm } from '../components/forms/BodyScanForm';
 import { WorkoutPlanForm } from '../components/forms/WorkoutPlanForm';
 import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
+import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -34,6 +35,7 @@ type ActiveSheet =
   | 'foodScan'
   | 'barcodeScan'
   | 'bodyScan'
+  | 'progressPhotos'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -94,7 +96,11 @@ export function AppShell() {
           />
         )}
         {activeTab === 'stats' && (
-          <StatsScreen key={refreshKey} onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
+          <StatsScreen
+            key={refreshKey}
+            onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
+            onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
+          />
         )}
         {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
         {activeTab === 'handbook' && <HandbookScreen key={refreshKey} />}
@@ -176,6 +182,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('bodyScan')}
           />
           <QuickAddOption
+            icon={Images}
+            label="Add progress photo"
+            onClick={() => setActiveSheet('progressPhotos')}
+          />
+          <QuickAddOption
             icon={Activity}
             label="Log steps, water & sleep"
             onClick={() => setActiveSheet('activity')}
@@ -214,6 +225,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'bodyScan'} onClose={closeSheet} title="Physique scan">
         <BodyScanForm />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'progressPhotos'} onClose={closeSheet} title="Progress photos">
+        <ProgressPhotosPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'workoutPlan'} onClose={closeSheet} title="Generate AI workout plan">

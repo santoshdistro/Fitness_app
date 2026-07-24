@@ -44,6 +44,16 @@ export type FoodLog = {
   sodium_mg: number | null;
 };
 
+export type ProgressPhoto = {
+  id: string;
+  user_id: string;
+  storage_path: string;
+  taken_on: string;
+  weight_kg: number | null;
+  note: string | null;
+  created_at: string;
+};
+
 export type ExerciseSet = {
   exercise: string;
   reps: number;
