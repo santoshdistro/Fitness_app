@@ -27,6 +27,11 @@ export function exerciseImageUrl(exerciseId: string): string {
   return `${EXERCISE_IMAGE_BASE}/${exerciseId}/0.jpg`;
 }
 
+/** Full URL for an image path like "Barbell_Curl/1.jpg" from the exercise DB. */
+export function exerciseDbImageUrl(imagePath: string): string {
+  return `${EXERCISE_IMAGE_BASE}/${imagePath}`;
+}
+
 export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
   {
     equipment: 'full_gym',

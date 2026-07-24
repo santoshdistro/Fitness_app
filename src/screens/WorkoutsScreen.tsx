@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Dumbbell, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronRight, Dumbbell, Sparkles, Trash2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useProfile } from '../hooks/useProfile';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
+import { Sheet } from '../components/Sheet';
+import { ExerciseDetail } from '../components/ExerciseDetail';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -10,6 +12,8 @@ import {
   type EquipmentPreference,
   type ProgramExercise,
 } from '../data/workoutPrograms';
+
+type SelectedExercise = { name: string; exerciseId?: string; sets: number; reps: string };
 
 function formatWorkoutDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -33,6 +37,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentPreference | null>(
     recommended?.equipment ?? null,
   );
+  const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
   return (
@@ -168,15 +173,25 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 </p>
                 <div className="mt-1.5 flex flex-col gap-2">
                   {day.exercises.map(ex => (
-                    <div key={ex.name} className="flex items-center gap-2.5">
+                    <button
+                      key={ex.name}
+                      type="button"
+                      onClick={() =>
+                        setSelectedExercise({ name: ex.name, exerciseId: ex.exerciseId, sets: ex.sets, reps: ex.reps })
+                      }
+                      className="flex items-center gap-2.5 text-left"
+                    >
                       <ExerciseThumbnail exercise={ex} />
                       <div className="flex flex-1 items-center justify-between">
                         <p className="text-xs text-[var(--text)]">{ex.name}</p>
-                        <p className="text-[10px] text-[var(--muted)]">
-                          {ex.sets} × {ex.reps}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] text-[var(--muted)]">
+                            {ex.sets} × {ex.reps}
+                          </p>
+                          <ChevronRight size={13} className="text-[var(--muted)]" />
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -233,6 +248,21 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           ))}
         </div>
       )}
+
+      <Sheet
+        open={selectedExercise != null}
+        onClose={() => setSelectedExercise(null)}
+        title="Exercise"
+      >
+        {selectedExercise ? (
+          <ExerciseDetail
+            name={selectedExercise.name}
+            exerciseId={selectedExercise.exerciseId}
+            sets={selectedExercise.sets}
+            reps={selectedExercise.reps}
+          />
+        ) : null}
+      </Sheet>
     </div>
   );
 }
