@@ -17,6 +17,7 @@ import {
   computeBMR,
   computeDailyCalorieTarget,
   computeSuggestedMacros,
+  computeTDEE,
 } from '../utils/calculations';
 
 const REFERENCE_CALORIE_TARGET = 2000;
@@ -82,13 +83,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   );
   const calorieTarget = canComputeTarget
     ? computeDailyCalorieTarget({
-        bmr: computeBMR({
-          gender: profile!.gender!,
-          weightKg: latestWeight!,
-          heightCm: profile!.height!,
-          ageYears: ageFromBirthDate(profile!.birth_date!),
-        }),
-        activeCalories: dayLog?.active_calories_burned ?? 0,
+        tdee: computeTDEE(
+          computeBMR({
+            gender: profile!.gender!,
+            weightKg: latestWeight!,
+            heightCm: profile!.height!,
+            ageYears: ageFromBirthDate(profile!.birth_date!),
+          }),
+          profile!.activity_level,
+        ),
         deficitKcal,
       })
     : REFERENCE_CALORIE_TARGET;

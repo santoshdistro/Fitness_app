@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import type { Gender } from '../utils/calculations';
+import type { ActivityLevel, Gender, GoalType } from '../utils/calculations';
 
 export type Profile = {
   user_id: string;
@@ -13,6 +13,9 @@ export type Profile = {
   protein_target_g: number | null;
   fiber_target_g: number | null;
   sodium_target_mg: number | null;
+  goal_type: GoalType | null;
+  activity_level: ActivityLevel | null;
+  weekly_rate_kg: number | null;
 };
 
 export function useProfile() {

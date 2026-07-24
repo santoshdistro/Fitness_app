@@ -14,6 +14,7 @@ import {
   computeBMR,
   computeDailyCalorieTarget,
   computeSuggestedMacros,
+  computeTDEE,
 } from '../utils/calculations';
 import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
 import type { FoodLog, MealCategory } from '../types/database';
@@ -54,7 +55,6 @@ export function StatsScreen({ onQuickAddCalories }: Props) {
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
   const { logs: weightLogs, clearWeight } = useRecentDailyLogs(14);
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
-  const { log: dailyLog } = useTodayLog(selectedDate);
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
   const [copying, setCopying] = useState(false);
@@ -68,13 +68,15 @@ export function StatsScreen({ onQuickAddCalories }: Props) {
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
   const calorieTarget = canComputeTarget
     ? computeDailyCalorieTarget({
-        bmr: computeBMR({
-          gender: profile!.gender!,
-          weightKg: latestWeight!,
-          heightCm: profile!.height!,
-          ageYears: ageFromBirthDate(profile!.birth_date!),
-        }),
-        activeCalories: dailyLog?.active_calories_burned ?? 0,
+        tdee: computeTDEE(
+          computeBMR({
+            gender: profile!.gender!,
+            weightKg: latestWeight!,
+            heightCm: profile!.height!,
+            ageYears: ageFromBirthDate(profile!.birth_date!),
+          }),
+          profile!.activity_level,
+        ),
         deficitKcal,
       })
     : REFERENCE_CALORIE_TARGET;

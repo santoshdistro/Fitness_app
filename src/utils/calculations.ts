@@ -54,16 +54,56 @@ export function ageFromBirthDate(birthDate: string, today = new Date()): number 
   return age;
 }
 
-const DEFAULT_DEFICIT_KCAL = 500;
+export type GoalType = 'lose' | 'maintain' | 'gain';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very_active';
 
-/** Daily Calorie Target = BMR + Active Calories - Deficit. */
-export function computeDailyCalorieTarget(params: {
-  bmr: number;
-  activeCalories: number;
-  deficitKcal?: number;
-}): number {
-  const { bmr, activeCalories, deficitKcal = DEFAULT_DEFICIT_KCAL } = params;
-  return Math.round(bmr + activeCalories - deficitKcal);
+/** Standard Mifflin-St Jeor activity multipliers applied to BMR to get TDEE. */
+const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  very_active: 1.725,
+};
+
+export const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
+  { value: 'sedentary', label: 'Sedentary', hint: 'Little or no exercise, desk job' },
+  { value: 'light', label: 'Lightly active', hint: 'Light exercise 1-3 days/week' },
+  { value: 'moderate', label: 'Moderately active', hint: 'Exercise 3-5 days/week' },
+  { value: 'very_active', label: 'Very active', hint: 'Hard exercise 6-7 days/week' },
+];
+
+export const GOAL_OPTIONS: { value: GoalType; label: string }[] = [
+  { value: 'lose', label: 'Lose fat' },
+  { value: 'maintain', label: 'Maintain' },
+  { value: 'gain', label: 'Build muscle' },
+];
+
+const KCAL_PER_KG = 7700;
+
+export function activityMultiplier(level: ActivityLevel | null | undefined): number {
+  return level ? ACTIVITY_MULTIPLIERS[level] : ACTIVITY_MULTIPLIERS.light;
+}
+
+/** Total Daily Energy Expenditure = BMR x activity multiplier. */
+export function computeTDEE(bmr: number, level: ActivityLevel | null | undefined): number {
+  return bmr * activityMultiplier(level);
+}
+
+/**
+ * Daily calorie deficit (positive = eat below TDEE to lose, negative = surplus
+ * to gain, 0 = maintain), derived from the goal and target weekly weight change.
+ * 1 kg of body weight ~ 7700 kcal.
+ */
+export function deficitFromGoal(goalType: GoalType, weeklyRateKg: number): number {
+  const perDay = (Math.abs(weeklyRateKg) * KCAL_PER_KG) / 7;
+  if (goalType === 'lose') return Math.round(perDay);
+  if (goalType === 'gain') return -Math.round(perDay);
+  return 0;
+}
+
+/** Daily Calorie Target = TDEE - Deficit. */
+export function computeDailyCalorieTarget(params: { tdee: number; deficitKcal: number }): number {
+  return Math.round(params.tdee - params.deficitKcal);
 }
 
 const FAT_CALORIE_SHARE = 0.25;

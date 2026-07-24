@@ -4,6 +4,8 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { OnboardingFlow } from '../screens/OnboardingFlow';
+import { useProfile } from '../hooks/useProfile';
 import { Sheet } from '../components/Sheet';
 import { WeightForm } from '../components/forms/WeightForm';
 import { MeasurementsForm } from '../components/forms/MeasurementsForm';
@@ -53,6 +55,7 @@ export function AppShell() {
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const { savePlan } = useAiWorkoutPlan();
+  const { profile, loading: profileLoading, refresh: refreshProfile } = useProfile();
 
   function closeSheet() {
     setActiveSheet(null);
@@ -61,6 +64,21 @@ export function AppShell() {
   function onSaved() {
     setRefreshKey(key => key + 1);
     closeSheet();
+  }
+
+  if (profileLoading) {
+    return (
+      <div className="app-bg flex min-h-dvh items-center justify-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
+      </div>
+    );
+  }
+
+  const needsOnboarding =
+    !profile || !profile.gender || !profile.height || !profile.birth_date || !profile.goal_type;
+
+  if (needsOnboarding) {
+    return <OnboardingFlow onComplete={() => refreshProfile()} />;
   }
 
   return (
