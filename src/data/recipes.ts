@@ -16,7 +16,18 @@ export type Recipe = {
   goalTags: GoalTag[];
   ingredients: string[];
   steps: string[];
+  /** Optional stock photo (degrades to the emoji tile if it fails to load). */
+  image?: string;
 };
+
+function foodImg(id: string): string {
+  return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=70`;
+}
+
+/** A YouTube search link for a recipe — always valid, opens relevant how-to videos. */
+export function recipeYoutubeUrl(name: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} recipe how to make`)}`;
+}
 
 export type FoodGroup = {
   title: string;
@@ -77,6 +88,7 @@ export const RECIPES: Recipe[] = [
     name: 'Protein overnight oats',
     emoji: '🥣',
     blurb: 'Prep tonight, grab-and-go high-protein breakfast.',
+    image: foodImg('1517673400267-0251440c45dc'),
     minutes: 5,
     servings: 1,
     perServing: { calories: 420, protein_g: 34, carbs_g: 48, fat_g: 10 },
@@ -101,6 +113,7 @@ export const RECIPES: Recipe[] = [
     name: 'Chicken & rice power bowl',
     emoji: '🍚',
     blurb: 'The classic muscle-building meal-prep bowl.',
+    image: foodImg('1512058564366-18510be2db19'),
     minutes: 25,
     servings: 2,
     perServing: { calories: 540, protein_g: 45, carbs_g: 55, fat_g: 14 },
@@ -126,6 +139,7 @@ export const RECIPES: Recipe[] = [
     name: 'Veggie egg scramble',
     emoji: '🍳',
     blurb: 'Fast, filling, low-carb start to the day.',
+    image: foodImg('1482049016688-2d3e1b311543'),
     minutes: 10,
     servings: 1,
     perServing: { calories: 300, protein_g: 22, carbs_g: 8, fat_g: 20 },
@@ -150,6 +164,7 @@ export const RECIPES: Recipe[] = [
     name: 'Salmon & sweet potato',
     emoji: '🐟',
     blurb: 'Omega-3s, quality carbs, restaurant-easy.',
+    image: foodImg('1519708227418-c8fd9a32b7a2'),
     minutes: 30,
     servings: 1,
     perServing: { calories: 520, protein_g: 38, carbs_g: 40, fat_g: 22 },
@@ -175,6 +190,7 @@ export const RECIPES: Recipe[] = [
     name: 'Red lentil curry',
     emoji: '🍛',
     blurb: 'Plant-based, high-fibre, big-batch friendly.',
+    image: foodImg('1585937421612-70a008356fbe'),
     minutes: 30,
     servings: 4,
     perServing: { calories: 380, protein_g: 18, carbs_g: 52, fat_g: 10 },
@@ -201,6 +217,7 @@ export const RECIPES: Recipe[] = [
     name: 'High-protein yogurt bowl',
     emoji: '🍧',
     blurb: 'Dessert that hits your protein target.',
+    image: foodImg('1488477181946-6428a0291777'),
     minutes: 3,
     servings: 1,
     perServing: { calories: 260, protein_g: 24, carbs_g: 24, fat_g: 6 },
@@ -216,6 +233,155 @@ export const RECIPES: Recipe[] = [
       'Spoon the yogurt into a bowl.',
       'Top with berries and chia seeds.',
       'Add a small drizzle of honey if you want it sweeter.',
+    ],
+  },
+  {
+    id: 'protein_pancakes',
+    name: 'Protein pancakes',
+    emoji: '🥞',
+    blurb: 'Weekend-worthy but macro-friendly.',
+    image: foodImg('1567620905732-2d1ec7ab7445'),
+    minutes: 15,
+    servings: 1,
+    perServing: { calories: 380, protein_g: 32, carbs_g: 40, fat_g: 9 },
+    dietTags: ['high_protein', 'vegetarian', 'quick'],
+    goalTags: ['muscle_gain', 'maintenance'],
+    ingredients: [
+      '1 scoop vanilla protein powder',
+      '1 ripe banana',
+      '2 eggs',
+      '40g oats',
+      '1/2 tsp baking powder',
+    ],
+    steps: [
+      'Blend all ingredients into a smooth batter.',
+      'Heat a non-stick pan over medium and lightly grease it.',
+      'Pour small pancakes and cook 1–2 min until bubbles form, then flip.',
+      'Stack and top with berries or a little honey.',
+    ],
+  },
+  {
+    id: 'chicken_burrito_bowl',
+    name: 'Chicken burrito bowl',
+    emoji: '🌯',
+    blurb: 'Big, satisfying, and high protein.',
+    image: foodImg('1543339308-43e59d6b73a6'),
+    minutes: 20,
+    servings: 2,
+    perServing: { calories: 560, protein_g: 46, carbs_g: 58, fat_g: 15 },
+    dietTags: ['high_protein', 'budget'],
+    goalTags: ['muscle_gain', 'maintenance'],
+    ingredients: [
+      '2 chicken breasts (~300g)',
+      '150g rice (dry)',
+      '1 can black beans, drained',
+      '1 cup sweetcorn',
+      'Salsa, lime, cumin, paprika',
+    ],
+    steps: [
+      'Cook the rice; warm the beans and corn.',
+      'Season diced chicken with cumin and paprika, then pan-fry until cooked.',
+      'Build bowls with rice, beans, corn and chicken.',
+      'Top with salsa and a squeeze of lime.',
+    ],
+  },
+  {
+    id: 'tuna_pasta',
+    name: 'Tuna & sweetcorn pasta',
+    emoji: '🍝',
+    blurb: 'Store-cupboard dinner in 15 minutes.',
+    image: foodImg('1473093295043-cdd812d0e601'),
+    minutes: 15,
+    servings: 2,
+    perServing: { calories: 480, protein_g: 35, carbs_g: 62, fat_g: 9 },
+    dietTags: ['high_protein', 'budget', 'quick'],
+    goalTags: ['muscle_gain', 'maintenance'],
+    ingredients: [
+      '160g wholewheat pasta (dry)',
+      '2 cans tuna in spring water, drained',
+      '1 cup sweetcorn',
+      '3 tbsp light mayo or Greek yogurt',
+      'Black pepper, squeeze of lemon',
+    ],
+    steps: [
+      'Cook the pasta per packet, then drain.',
+      'Mix tuna, sweetcorn and mayo/yogurt in a bowl.',
+      'Fold through the warm pasta.',
+      'Season with pepper and lemon; eat warm or chilled.',
+    ],
+  },
+  {
+    id: 'beef_broccoli',
+    name: 'Beef & broccoli stir-fry',
+    emoji: '🥩',
+    blurb: 'Takeaway flavour, lean and quick.',
+    image: foodImg('1603133872878-684f208fb84b'),
+    minutes: 20,
+    servings: 2,
+    perServing: { calories: 430, protein_g: 40, carbs_g: 22, fat_g: 20 },
+    dietTags: ['high_protein', 'low_carb'],
+    goalTags: ['muscle_gain', 'weight_loss'],
+    ingredients: [
+      '300g lean beef strips',
+      '1 large head broccoli',
+      '2 tbsp soy sauce',
+      '1 tsp honey, 1 garlic clove, ginger',
+      '1 tsp sesame oil',
+    ],
+    steps: [
+      'Sear the beef in a hot pan for 2–3 min, then set aside.',
+      'Stir-fry broccoli with garlic and ginger for 3–4 min.',
+      'Return beef, add soy sauce and honey, toss 1 min.',
+      'Finish with a drizzle of sesame oil.',
+    ],
+  },
+  {
+    id: 'berry_protein_smoothie',
+    name: 'Berry protein smoothie',
+    emoji: '🥤',
+    blurb: 'Two-minute breakfast or post-workout hit.',
+    image: foodImg('1553530666-ba11a7da3888'),
+    minutes: 2,
+    servings: 1,
+    perServing: { calories: 300, protein_g: 30, carbs_g: 35, fat_g: 4 },
+    dietTags: ['high_protein', 'vegetarian', 'quick'],
+    goalTags: ['muscle_gain', 'maintenance', 'weight_loss'],
+    ingredients: [
+      '1 scoop protein powder',
+      '1 cup frozen mixed berries',
+      '1 banana',
+      '250ml milk of choice',
+      '1 tbsp oats (optional)',
+    ],
+    steps: [
+      'Add everything to a blender.',
+      'Blend 30–45 seconds until smooth.',
+      'Add a splash more milk if it is too thick.',
+    ],
+  },
+  {
+    id: 'veggie_omelette',
+    name: 'Loaded veggie omelette',
+    emoji: '🧀',
+    blurb: 'High protein, low carb, any time of day.',
+    image: foodImg('1510693206972-df098062cb71'),
+    minutes: 10,
+    servings: 1,
+    perServing: { calories: 320, protein_g: 26, carbs_g: 6, fat_g: 21 },
+    dietTags: ['high_protein', 'low_carb', 'vegetarian', 'quick'],
+    goalTags: ['weight_loss', 'maintenance'],
+    ingredients: [
+      '3 eggs',
+      '30g grated cheese',
+      '1/2 pepper, mushrooms, spinach',
+      '1 tsp olive oil',
+      'Salt & pepper',
+    ],
+    steps: [
+      'Whisk the eggs with salt and pepper.',
+      'Soften the chopped veg in olive oil for 2–3 min.',
+      'Pour in the eggs, swirl, and cook until nearly set.',
+      'Add cheese, fold over, and slide onto a plate.',
     ],
   },
 ];

@@ -12,6 +12,7 @@ type Props = {
 
 export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
   const { profile, saveProfile } = useProfile();
+  const [name, setName] = useState('');
   const [height, setHeight] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
@@ -21,6 +22,7 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
 
   useEffect(() => {
     if (!profile) return;
+    if (profile.name) setName(profile.name);
     if (profile.height != null) setHeight(String(profile.height));
     if (profile.birth_date) setBirthDate(profile.birth_date);
     if (profile.gender) setGender(profile.gender);
@@ -34,6 +36,7 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
     setError(null);
 
     const { error: saveError } = await saveProfile({
+      name: name.trim() || null,
       height: height ? Number(height) : null,
       birth_date: birthDate || null,
       gender,
@@ -50,6 +53,20 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="name-input">
+          Name
+        </label>
+        <input
+          id="name-input"
+          className={inputClass}
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Your name"
+        />
+      </div>
+
       <div className="mb-3">
         <label className={labelClass} htmlFor="height-input">
           Height (cm)

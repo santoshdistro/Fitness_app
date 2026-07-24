@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ChevronRight, Clock, Sparkles, Utensils } from 'lucide-react';
+import { ChevronRight, Clock, Play, Sparkles, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useNutritionCoach } from '../hooks/useNutritionCoach';
@@ -11,6 +11,7 @@ import {
   DIET_TAG_LABEL,
   HEALTHY_FOODS,
   RECIPES,
+  recipeYoutubeUrl,
   type DietTag,
   type Recipe,
 } from '../data/recipes';
@@ -242,9 +243,7 @@ export function HandbookScreen() {
               onClick={() => setSelectedRecipe(recipe)}
               className="glass-card flex items-center gap-3 p-4 text-left"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg)] text-2xl">
-                {recipe.emoji}
-              </div>
+              <RecipeImage recipe={recipe} className="h-12 w-12 shrink-0 rounded-2xl" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-[var(--text)]">{recipe.name}</p>
                 <p className="text-[11px] text-[var(--muted)]">{recipe.blurb}</p>
@@ -311,27 +310,55 @@ export function HandbookScreen() {
   );
 }
 
+function RecipeImage({ recipe, className }: { recipe: Recipe; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!recipe.image || failed) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-[var(--bg)] text-3xl ${className ?? ''}`}
+      >
+        {recipe.emoji}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={recipe.image}
+      alt={recipe.name}
+      onError={() => setFailed(true)}
+      className={`object-cover ${className ?? ''}`}
+    />
+  );
+}
+
 function RecipeDetail({ recipe }: { recipe: Recipe }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg)] text-3xl">
-          {recipe.emoji}
-        </div>
-        <div>
-          <p className="text-[11px] text-[var(--muted)]">{recipe.blurb}</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {recipe.dietTags.map(tag => (
-              <span
-                key={tag}
-                className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-semibold text-[var(--accent)]"
-              >
-                {DIET_TAG_LABEL[tag]}
-              </span>
-            ))}
-          </div>
+      <RecipeImage recipe={recipe} className="h-40 w-full rounded-2xl" />
+      <div>
+        <p className="text-[11px] text-[var(--muted)]">{recipe.blurb}</p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {recipe.dietTags.map(tag => (
+            <span
+              key={tag}
+              className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-semibold text-[var(--accent)]"
+            >
+              {DIET_TAG_LABEL[tag]}
+            </span>
+          ))}
         </div>
       </div>
+
+      <a
+        href={recipeYoutubeUrl(recipe.name)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-white"
+        style={{ background: 'linear-gradient(135deg, #ef4444, #b91c1c)' }}
+      >
+        <Play size={15} fill="currentColor" />
+        Watch how-to on YouTube
+      </a>
 
       <div className="grid grid-cols-4 gap-2">
         {[

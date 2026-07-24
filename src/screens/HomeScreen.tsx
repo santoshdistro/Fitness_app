@@ -18,6 +18,7 @@ import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
+import { initialsFromName } from '../utils/name';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -221,7 +222,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
             aria-label="Edit profile"
             className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)]"
           >
-            <span className="text-sm font-bold text-white">U</span>
+            <span className="text-sm font-bold text-white">{initialsFromName(profile?.name)}</span>
           </button>
           {streak > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">

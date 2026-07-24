@@ -15,7 +15,7 @@ export const GOAL_PROGRAM_IMAGES: Record<string, string> = {
   chest: unsplash('1571019614242-c5c5dee9f50b'),
   arms: unsplash('1581009146145-b5ef050c2e1e'),
   back: unsplash('1541534741688-6078c6bfb5c5'),
-  shoulders: unsplash('1534368786749-b63e05c92392'),
+  shoulders: unsplash('1532029837206-abbe2b7620e3'),
   legs: unsplash('1434608519344-49d77a699e1d'),
   weight_loss: unsplash('1571019613454-1cb2f99b2d8b'),
   six_pack: unsplash('1571731956672-f2b94d7dd0cb'),

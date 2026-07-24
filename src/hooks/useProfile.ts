@@ -5,6 +5,7 @@ import type { ActivityLevel, Gender, GoalType } from '../utils/calculations';
 
 export type Profile = {
   user_id: string;
+  name: string | null;
   height: number | null;
   birth_date: string | null;
   gender: Gender | null;
