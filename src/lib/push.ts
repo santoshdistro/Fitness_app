@@ -93,13 +93,28 @@ export async function unsubscribeFromPush(): Promise<void> {
 }
 
 export async function sendTestPush(subscription: PushSubscription): Promise<void> {
-  const res = await fetch('/api/push-test', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subscription: subscription.toJSON() }),
-  });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(data?.error ?? 'Could not send a test notification.');
+  let res: Response;
+  try {
+    res = await fetch('/api/push-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: subscription.toJSON() }),
+    });
+  } catch (e) {
+    throw new Error(
+      `Network error reaching the server: ${e instanceof Error ? e.message : 'unknown'}`,
+      { cause: e },
+    );
+  }
+  const text = await res.text();
+  let data: { ok?: boolean; error?: string } | null = null;
+  try {
+    data = JSON.parse(text) as { ok?: boolean; error?: string };
+  } catch {
+    /* non-JSON response (e.g. a crash page) */
+  }
+  if (!res.ok || !data?.ok) {
+    if (data?.error) throw new Error(data.error);
+    throw new Error(`HTTP ${res.status} from /api/push-test: ${text.slice(0, 160) || '(empty body)'}`);
   }
 }
