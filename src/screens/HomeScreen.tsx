@@ -1,6 +1,7 @@
-import { Bell, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { Bell, ChevronDown, ChevronRight, Flame, RefreshCw } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
+import { useLoggingStreak } from '../hooks/useLoggingStreak';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { PhotoCard } from '../components/PhotoCard';
 
@@ -28,6 +29,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
   const { log: todayLog, loading: todayLoading, refresh: refreshToday } = useTodayLog();
   const { logs: recentLogs, loading: recentLoading, refresh: refreshRecent } =
     useRecentDailyLogs(6);
+  const { streak } = useLoggingStreak();
 
   const refreshing = todayLoading || recentLoading;
   const onRefresh = () => {
@@ -57,6 +59,12 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
             <span className="text-xs font-medium text-[var(--text)]">Today</span>
             <ChevronDown size={14} className="text-[var(--muted)]" />
           </div>
+          {streak > 0 ? (
+            <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
+              <Flame size={13} className="text-orange-500" />
+              <span className="text-xs font-bold text-orange-500">{streak}</span>
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button

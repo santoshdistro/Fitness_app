@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { startOfTodayIso } from '../utils/date';
+import { endOfDateIso, startOfDateIso, todayDateString } from '../utils/date';
 import type { FoodLog } from '../types/database';
 
 export type NutritionTotals = {
@@ -39,7 +39,7 @@ function computeTotals(meals: FoodLog[]): NutritionTotals {
   );
 }
 
-export function useTodayNutrition() {
+export function useTodayNutrition(dateStr: string = todayDateString()) {
   const { session } = useAuth();
   const [meals, setMeals] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,12 +55,13 @@ export function useTodayNutrition() {
       .from('food_logs')
       .select('*')
       .eq('user_id', session.user.id)
-      .gte('meal_timestamp', startOfTodayIso())
+      .gte('meal_timestamp', startOfDateIso(dateStr))
+      .lt('meal_timestamp', endOfDateIso(dateStr))
       .order('meal_timestamp', { ascending: false });
 
     setMeals((data as FoodLog[]) ?? []);
     setLoading(false);
-  }, [session?.user]);
+  }, [session?.user, dateStr]);
 
   useEffect(() => {
     refresh();

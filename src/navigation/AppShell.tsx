@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight } from 'lucide-react';
+import { Activity, BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -12,6 +12,7 @@ import { ProfileForm } from '../components/forms/ProfileForm';
 import { ActivityForm } from '../components/forms/ActivityForm';
 import { WorkoutForm } from '../components/forms/WorkoutForm';
 import { GoalsForm } from '../components/forms/GoalsForm';
+import { QuickAddCaloriesForm } from '../components/forms/QuickAddCaloriesForm';
 
 type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
 type ActiveSheet =
@@ -19,6 +20,7 @@ type ActiveSheet =
   | 'weight'
   | 'measurements'
   | 'meal'
+  | 'quickAddCalories'
   | 'profile'
   | 'activity'
   | 'workout'
@@ -57,7 +59,9 @@ export function AppShell() {
             onOpenProfile={() => setActiveSheet('profile')}
           />
         )}
-        {activeTab === 'stats' && <StatsScreen key={refreshKey} />}
+        {activeTab === 'stats' && (
+          <StatsScreen key={refreshKey} onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
+        )}
         {activeTab === 'discover' && <PlaceholderScreen title="Discover" />}
         {activeTab === 'community' && <PlaceholderScreen title="Community" />}
         {activeTab === 'workouts' && (
@@ -110,6 +114,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('meal')}
           />
           <QuickAddOption
+            icon={Zap}
+            label="Quick add calories"
+            onClick={() => setActiveSheet('quickAddCalories')}
+          />
+          <QuickAddOption
             icon={Activity}
             label="Log steps, water & sleep"
             onClick={() => setActiveSheet('activity')}
@@ -132,6 +141,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'meal'} onClose={closeSheet} title="Add meal">
         <MealForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'quickAddCalories'} onClose={closeSheet} title="Quick add calories">
+        <QuickAddCaloriesForm onSaved={onSaved} />
       </Sheet>
 
       <Sheet open={activeSheet === 'activity'} onClose={closeSheet} title="Log activity">

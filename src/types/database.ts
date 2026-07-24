@@ -22,11 +22,14 @@ export type Measurement = {
   calculated_body_fat: number | null;
 };
 
+export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
 export type FoodLog = {
   id: string;
   user_id: string;
   meal_timestamp: string;
   meal_name: string;
+  meal_category: MealCategory;
   calories: number | null;
   protein_g: number | null;
   carbs_g: number | null;

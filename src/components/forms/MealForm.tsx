@@ -3,6 +3,9 @@ import { Search } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
+import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
+import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/mealCategory';
+import type { MealCategory } from '../../types/database';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -20,6 +23,7 @@ type PerGramMacros = {
 
 export function MealForm({ onSaved }: Props) {
   const { session } = useAuth();
+  const { recent, frequent } = useFoodSuggestions();
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodSearchResult[]>([]);
@@ -31,6 +35,7 @@ export function MealForm({ onSaved }: Props) {
   const [grams, setGrams] = useState('100');
 
   const [mealName, setMealName] = useState('');
+  const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
@@ -90,6 +95,21 @@ export function MealForm({ onSaved }: Props) {
     setServingNote('Per 100g');
   }
 
+  function selectSuggestion(suggestion: FoodSuggestion) {
+    setMealName(suggestion.mealName);
+    setCategory(suggestion.category);
+    setPerGram(null);
+    setServingNote(null);
+    setResults([]);
+    setQuery('');
+    setCalories(suggestion.calories != null ? String(suggestion.calories) : '');
+    setProtein(suggestion.protein_g != null ? String(suggestion.protein_g) : '');
+    setCarbs(suggestion.carbs_g != null ? String(suggestion.carbs_g) : '');
+    setFat(suggestion.fat_g != null ? String(suggestion.fat_g) : '');
+    setFiber(suggestion.fiber_g != null ? String(suggestion.fiber_g) : '');
+    setSodium(suggestion.sodium_mg != null ? String(suggestion.sodium_mg) : '');
+  }
+
   function handleGramsChange(value: string) {
     setGrams(value);
     if (!perGram) return;
@@ -111,6 +131,7 @@ export function MealForm({ onSaved }: Props) {
     const { error: saveError } = await supabase.from('food_logs').insert({
       user_id: session.user.id,
       meal_name: mealName,
+      meal_category: category,
       calories: calories ? Number(calories) : null,
       protein_g: protein ? Number(protein) : null,
       carbs_g: carbs ? Number(carbs) : null,
@@ -129,6 +150,42 @@ export function MealForm({ onSaved }: Props) {
 
   return (
     <div>
+      {frequent.length > 0 ? (
+        <div className="mb-3">
+          <p className={labelClass}>Frequent</p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {frequent.map(suggestion => (
+              <button
+                key={suggestion.key}
+                type="button"
+                onClick={() => selectSuggestion(suggestion)}
+                className="shrink-0 rounded-full bg-[var(--bg)] px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap text-[var(--text)]"
+              >
+                {suggestion.mealName}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {recent.length > 0 ? (
+        <div className="mb-4">
+          <p className={labelClass}>Recent</p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {recent.map(suggestion => (
+              <button
+                key={suggestion.key}
+                type="button"
+                onClick={() => selectSuggestion(suggestion)}
+                className="shrink-0 rounded-full bg-[var(--bg)] px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap text-[var(--text)]"
+              >
+                {suggestion.mealName}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-4">
         <label className={labelClass} htmlFor="food-search-input">
           Search food database
@@ -193,6 +250,24 @@ export function MealForm({ onSaved }: Props) {
           placeholder="e.g. Chicken & rice"
           required
         />
+
+        <div className="mb-3">
+          <label className={labelClass} htmlFor="meal-category-input">
+            Meal
+          </label>
+          <select
+            id="meal-category-input"
+            className={inputClass}
+            value={category}
+            onChange={e => setCategory(e.target.value as MealCategory)}
+          >
+            {MEAL_CATEGORY_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {servingNote ? (
           <p className="mb-3 text-xs text-[var(--muted)]">{servingNote}</p>

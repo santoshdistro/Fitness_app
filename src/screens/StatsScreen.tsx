@@ -1,9 +1,12 @@
-import { Activity, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
 import {
@@ -12,8 +15,17 @@ import {
   computeDailyCalorieTarget,
   computeSuggestedMacros,
 } from '../utils/calculations';
+import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
+import type { FoodLog, MealCategory } from '../types/database';
 
 const REFERENCE_CALORIE_TARGET = 2000;
+
+const MEAL_CATEGORIES: { key: MealCategory; label: string }[] = [
+  { key: 'breakfast', label: 'Breakfast' },
+  { key: 'lunch', label: 'Lunch' },
+  { key: 'dinner', label: 'Dinner' },
+  { key: 'snack', label: 'Snacks' },
+];
 
 function formatMealTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -26,12 +38,26 @@ function formatShortDate(dateStr: string): string {
   });
 }
 
-export function StatsScreen() {
-  const { totals, meals, deleteMeal } = useTodayNutrition();
+function dateLabel(dateStr: string): string {
+  if (isToday(dateStr)) return 'Today';
+  if (dateStr === addDays(todayDateString(), -1)) return 'Yesterday';
+  return formatShortDate(dateStr);
+}
+
+type Props = {
+  onQuickAddCalories: () => void;
+};
+
+export function StatsScreen({ onQuickAddCalories }: Props) {
+  const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const { session } = useAuth();
+  const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
   const { logs: weightLogs, clearWeight } = useRecentDailyLogs(14);
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
+  const { log: dailyLog } = useTodayLog(selectedDate);
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
+  const [copying, setCopying] = useState(false);
 
   const measurement = measurements[0];
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -48,7 +74,7 @@ export function StatsScreen() {
           heightCm: profile!.height!,
           ageYears: ageFromBirthDate(profile!.birth_date!),
         }),
-        activeCalories: todayLog?.active_calories_burned ?? 0,
+        activeCalories: dailyLog?.active_calories_burned ?? 0,
         deficitKcal,
       })
     : REFERENCE_CALORIE_TARGET;
@@ -69,10 +95,65 @@ export function StatsScreen() {
     { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg', suggested: false },
   ].filter((goal): goal is typeof goal & { target: number } => goal.target != null);
 
+  const mealsByCategory = MEAL_CATEGORIES.map(category => ({
+    ...category,
+    meals: meals.filter(meal => meal.meal_category === category.key),
+  }));
+
+  async function copyYesterdaysMeals() {
+    if (!session?.user) return;
+    setCopying(true);
+    const yesterday = addDays(selectedDate, -1);
+    const { data } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .gte('meal_timestamp', startOfDateIso(yesterday))
+      .lt('meal_timestamp', endOfDateIso(yesterday));
+
+    const previousMeals = (data as FoodLog[]) ?? [];
+    if (previousMeals.length > 0) {
+      await supabase.from('food_logs').insert(
+        previousMeals.map(meal => ({
+          user_id: session.user!.id,
+          meal_name: meal.meal_name,
+          meal_category: meal.meal_category,
+          calories: meal.calories,
+          protein_g: meal.protein_g,
+          carbs_g: meal.carbs_g,
+          fat_g: meal.fat_g,
+          fiber_g: meal.fiber_g,
+          sodium_mg: meal.sodium_mg,
+        })),
+      );
+      await refreshMeals();
+    }
+    setCopying(false);
+  }
+
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
-      <div className="anim-drop-in mt-2 flex items-center justify-center">
-        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Statistics</h1>
+      <div className="anim-drop-in mt-2 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSelectedDate(current => addDays(current, -1))}
+          aria-label="Previous day"
+          className="glass flex h-7 w-7 items-center justify-center rounded-full"
+        >
+          <ChevronLeft size={14} className="text-[var(--muted)]" />
+        </button>
+        <h1 className="w-28 text-center text-sm font-bold tracking-wide text-[var(--text)]">
+          {dateLabel(selectedDate)}
+        </h1>
+        <button
+          type="button"
+          onClick={() => setSelectedDate(current => addDays(current, 1))}
+          disabled={isToday(selectedDate)}
+          aria-label="Next day"
+          className="glass flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
+        >
+          <ChevronRight size={14} className="text-[var(--muted)]" />
+        </button>
       </div>
 
       {/* Calories */}
@@ -88,7 +169,7 @@ export function StatsScreen() {
             <div>
               <p className="text-sm font-semibold text-[var(--text)]">Calories</p>
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                Logged today
+                Logged
               </p>
             </div>
           </div>
@@ -165,34 +246,72 @@ export function StatsScreen() {
         </div>
       ) : null}
 
-      {/* Today's meals */}
+      {/* Diary */}
       <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>
-        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's Meals</p>
-        {meals.length === 0 ? (
-          <p className="text-xs text-[var(--muted)]">No meals logged yet today.</p>
+        <div className="mb-1 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--text)]">Diary</p>
+          <button
+            type="button"
+            onClick={onQuickAddCalories}
+            className="text-xs font-semibold"
+            style={{ color: 'var(--accent)' }}
+          >
+            + Quick add
+          </button>
+        </div>
+
+        {totals.mealCount === 0 && isToday(selectedDate) ? (
+          <button
+            type="button"
+            onClick={copyYesterdaysMeals}
+            disabled={copying}
+            className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
+            style={{ color: 'var(--accent)' }}
+          >
+            <Copy size={13} />
+            {copying ? 'Copying...' : "Copy yesterday's meals"}
+          </button>
+        ) : null}
+
+        {totals.mealCount === 0 ? (
+          <p className="text-xs text-[var(--muted)]">No meals logged for this day.</p>
         ) : (
-          meals.map(meal => (
-            <div
-              key={meal.id}
-              className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-            >
-              <div>
-                <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
-                <p className="text-[10px] text-[var(--muted)]">
-                  {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
-                  {meal.protein_g ?? 0}g protein
-                </p>
+          mealsByCategory.map(category =>
+            category.meals.length > 0 ? (
+              <div key={category.key} className="mb-3 last:mb-0">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                    {category.label}
+                  </p>
+                  <p className="text-[10px] font-semibold text-[var(--muted)]">
+                    {Math.round(category.meals.reduce((sum, m) => sum + (m.calories ?? 0), 0))} kcal
+                  </p>
+                </div>
+                {category.meals.map(meal => (
+                  <div
+                    key={meal.id}
+                    className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
+                      <p className="text-[10px] text-[var(--muted)]">
+                        {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
+                        {meal.protein_g ?? 0}g protein
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteMeal(meal.id)}
+                      aria-label={`Delete ${meal.meal_name}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={() => deleteMeal(meal.id)}
-                aria-label={`Delete ${meal.meal_name}`}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))
+            ) : null,
+          )
         )}
       </div>
 

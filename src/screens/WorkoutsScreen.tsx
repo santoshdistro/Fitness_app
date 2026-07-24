@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Dumbbell, Trash2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useProfile } from '../hooks/useProfile';
-import { EQUIPMENT_OPTIONS, getProgram, type EquipmentPreference } from '../data/workoutPrograms';
+import {
+  EQUIPMENT_OPTIONS,
+  exerciseImageUrl,
+  getProgram,
+  type EquipmentPreference,
+  type ProgramExercise,
+} from '../data/workoutPrograms';
 
 function formatWorkoutDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -82,13 +88,16 @@ export function WorkoutsScreen({ onLogWorkout }: Props) {
                 <p className="text-xs font-bold text-[var(--text)]">
                   {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
                 </p>
-                <div className="mt-1.5 flex flex-col gap-1">
+                <div className="mt-1.5 flex flex-col gap-2">
                   {day.exercises.map(ex => (
-                    <div key={ex.name} className="flex items-center justify-between">
-                      <p className="text-xs text-[var(--text)]">{ex.name}</p>
-                      <p className="text-[10px] text-[var(--muted)]">
-                        {ex.sets} × {ex.reps}
-                      </p>
+                    <div key={ex.name} className="flex items-center gap-2.5">
+                      <ExerciseThumbnail exercise={ex} />
+                      <div className="flex flex-1 items-center justify-between">
+                        <p className="text-xs text-[var(--text)]">{ex.name}</p>
+                        <p className="text-[10px] text-[var(--muted)]">
+                          {ex.sets} × {ex.reps}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -147,5 +156,26 @@ export function WorkoutsScreen({ onLogWorkout }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function ExerciseThumbnail({ exercise }: { exercise: ProgramExercise }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!exercise.exerciseId || failed) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--card)]">
+        <Dumbbell size={14} className="text-[var(--muted)]" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={exerciseImageUrl(exercise.exerciseId)}
+      alt={exercise.name}
+      onError={() => setFailed(true)}
+      className="h-10 w-10 shrink-0 rounded-xl object-cover"
+    />
   );
 }
