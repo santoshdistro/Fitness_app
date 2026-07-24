@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -14,8 +14,10 @@ import { WorkoutForm } from '../components/forms/WorkoutForm';
 import { GoalsForm } from '../components/forms/GoalsForm';
 import { QuickAddCaloriesForm } from '../components/forms/QuickAddCaloriesForm';
 import { FoodScanForm } from '../components/forms/FoodScanForm';
+import { BarcodeScanForm } from '../components/forms/BarcodeScanForm';
 import { BodyScanForm } from '../components/forms/BodyScanForm';
 import { WorkoutPlanForm } from '../components/forms/WorkoutPlanForm';
+import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
@@ -27,6 +29,7 @@ type ActiveSheet =
   | 'meal'
   | 'quickAddCalories'
   | 'foodScan'
+  | 'barcodeScan'
   | 'bodyScan'
   | 'workoutPlan'
   | 'profile'
@@ -34,6 +37,7 @@ type ActiveSheet =
   | 'workout'
   | 'goals'
   | 'spend'
+  | 'settings'
   | null;
 
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
@@ -67,6 +71,7 @@ export function AppShell() {
             key={refreshKey}
             onNavigateStats={() => setActiveTab('stats')}
             onOpenProfile={() => setActiveSheet('profile')}
+            onOpenSettings={() => setActiveSheet('settings')}
           />
         )}
         {activeTab === 'stats' && (
@@ -123,6 +128,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('measurements')}
           />
           <QuickAddOption
+            icon={Barcode}
+            label="Scan barcode"
+            onClick={() => setActiveSheet('barcodeScan')}
+          />
+          <QuickAddOption
             icon={Camera}
             label="Scan food photo (AI)"
             onClick={() => setActiveSheet('foodScan')}
@@ -171,6 +181,10 @@ export function AppShell() {
         <QuickAddCaloriesForm onSaved={onSaved} />
       </Sheet>
 
+      <Sheet open={activeSheet === 'barcodeScan'} onClose={closeSheet} title="Scan barcode">
+        <BarcodeScanForm onSaved={onSaved} />
+      </Sheet>
+
       <Sheet open={activeSheet === 'foodScan'} onClose={closeSheet} title="Scan food photo">
         <FoodScanForm onSaved={onSaved} />
       </Sheet>
@@ -210,6 +224,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'spend'} onClose={closeSheet} title="AI usage & spending">
         <SpendPanel />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">
+        <SettingsForm onSaved={closeSheet} />
       </Sheet>
     </div>
   );

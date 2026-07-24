@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Bell, ChevronRight, Flame, RefreshCw } from 'lucide-react';
+import { Bell, ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useLoggingStreak } from '../hooks/useLoggingStreak';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
+import { useSettings } from '../hooks/useSettings';
 import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
+import { DateNavigator } from '../components/DateNavigator';
+import { isToday, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -17,7 +20,6 @@ import {
 } from '../utils/calculations';
 
 const REFERENCE_CALORIE_TARGET = 2000;
-const STEP_GOAL = 10000;
 
 function formatSleepDuration(hours: number | null): string {
   if (!hours) return '--';
@@ -31,53 +33,49 @@ function shortDayLabel(dateStr: string): string {
   return date.toLocaleDateString(undefined, { day: '2-digit' });
 }
 
-function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
 type Props = {
   onNavigateStats: () => void;
   onOpenProfile: () => void;
+  onOpenSettings: () => void;
 };
 
-export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
-  const { log: todayLog, loading: todayLoading, refresh: refreshToday } = useTodayLog();
+export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: Props) {
+  const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const viewingToday = isToday(selectedDate);
+
+  const { log: dayLog, loading: dayLoading, refresh: refreshDay } = useTodayLog(selectedDate);
   const { logs: recentLogs, loading: recentLoading, refresh: refreshRecent } =
     useRecentDailyLogs(14);
   const { streak } = useLoggingStreak();
-  const { totals, refresh: refreshNutrition } = useTodayNutrition();
+  const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
+  const { settings } = useSettings();
   const [coachKey, setCoachKey] = useState(0);
 
-  const refreshing = todayLoading || recentLoading;
+  const refreshing = dayLoading || recentLoading;
   const onRefresh = () => {
-    refreshToday();
+    refreshDay();
     refreshRecent();
     refreshNutrition();
     setCoachKey(k => k + 1);
   };
 
-  const waterLiters = todayLog?.water_ml ? (todayLog.water_ml / 1000).toFixed(2) : '--';
+  const waterLiters = dayLog?.water_ml ? (dayLog.water_ml / 1000).toFixed(2) : '--';
   const sleepEntries = recentLogs.slice(-6).map(entry => ({
     label: shortDayLabel(entry.log_date),
     hours: entry.sleep_hours,
   }));
   const latestSleepHours = recentLogs[recentLogs.length - 1]?.sleep_hours ?? null;
 
-  // Weight trend for the coach payload.
   const weightEntries = recentLogs.filter(
     (l): l is typeof l & { weight: number } => l.weight != null,
   );
-  const latestWeight = todayLog?.weight ?? weightEntries[weightEntries.length - 1]?.weight ?? null;
+  const latestWeight = dayLog?.weight ?? weightEntries[weightEntries.length - 1]?.weight ?? null;
   const weightTrend =
     weightEntries.length >= 2
       ? `${(weightEntries[weightEntries.length - 1].weight - weightEntries[0].weight).toFixed(1)}kg over last ${weightEntries.length} entries`
       : null;
 
-  // Personalized calorie + macro targets (mirrors the Stats screen).
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
   const canComputeTarget = Boolean(
     profile?.gender && profile?.height && profile?.birth_date && latestWeight,
@@ -90,7 +88,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
           heightCm: profile!.height!,
           ageYears: ageFromBirthDate(profile!.birth_date!),
         }),
-        activeCalories: todayLog?.active_calories_burned ?? 0,
+        activeCalories: dayLog?.active_calories_burned ?? 0,
         deficitKcal,
       })
     : REFERENCE_CALORIE_TARGET;
@@ -108,13 +106,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
       color: '#22c55e',
       unit: 'g',
     },
-    { label: 'Steps', value: todayLog?.steps ?? 0, target: STEP_GOAL, color: '#f97316' },
+    { label: 'Steps', value: dayLog?.steps ?? 0, target: settings.stepGoal, color: '#f97316' },
   ];
 
   const hasAnyData =
     totals.mealCount > 0 ||
-    todayLog?.steps != null ||
-    todayLog?.water_ml != null ||
+    dayLog?.steps != null ||
+    dayLog?.water_ml != null ||
     latestWeight != null;
 
   const coachPayload: CoachPayload = {
@@ -125,17 +123,21 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
     proteinTarget,
     carbsLogged: Math.round(totals.carbs_g),
     fatLogged: Math.round(totals.fat_g),
-    steps: todayLog?.steps ?? null,
-    waterMl: todayLog?.water_ml ?? null,
+    steps: dayLog?.steps ?? null,
+    waterMl: dayLog?.water_ml ?? null,
     latestWeight,
     weightTrend,
     streak,
     mealCount: totals.mealCount,
   };
-  const coach = useCoachInsight(coachPayload, hasAnyData, coachKey);
+  // Only coach for today — a past day's "calories left" would be nonsensical.
+  const coach = useCoachInsight(coachPayload, hasAnyData && viewingToday, coachKey);
+
+  const waterGoalLiters = (settings.waterGoalMl / 1000).toFixed(1);
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
+      {/* Top bar */}
       <div className="anim-drop-in mt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
@@ -145,14 +147,8 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
           >
             <span className="text-sm font-bold text-white">U</span>
           </button>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
-              {greeting()}
-            </p>
-            <p className="text-sm font-bold text-[var(--text)]">Today</p>
-          </div>
           {streak > 0 ? (
-            <div className="ml-1 flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
+            <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
               <Flame size={13} className="text-orange-500" />
               <span className="text-xs font-bold text-orange-500">{streak}</span>
             </div>
@@ -169,15 +165,27 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
               className={`text-[var(--muted)] ${refreshing ? 'animate-spin' : ''}`}
             />
           </button>
+          <button
+            onClick={onOpenSettings}
+            aria-label="Settings"
+            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+          >
+            <Settings size={16} className="text-[var(--muted)]" />
+          </button>
           <div className="glass flex h-10 w-10 items-center justify-center rounded-full">
             <Bell size={16} className="text-[var(--muted)]" />
           </div>
         </div>
       </div>
 
+      {/* Date navigator: title + calendar + week strip */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
+      </div>
+
       {/* Activity rings dashboard */}
       <div
-        className="glass-card anim-fade-rise mt-5 flex items-center gap-5 p-5"
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-5 p-5"
         style={{ animationDelay: '0.1s' }}
       >
         <ActivityRings rings={rings} />
@@ -194,27 +202,29 @@ export function HomeScreen({ onNavigateStats, onOpenProfile }: Props) {
         </div>
       </div>
 
-      {/* AI coach */}
-      <div className="mt-4">
-        <CoachCard
-          status={coach.status}
-          insight={coach.status === 'ready' ? coach.insight : undefined}
-          message={coach.status === 'error' ? coach.message : undefined}
-          onRetry={() => setCoachKey(k => k + 1)}
-        />
-      </div>
+      {/* AI coach (today only) */}
+      {viewingToday ? (
+        <div className="mt-4">
+          <CoachCard
+            status={coach.status}
+            insight={coach.status === 'ready' ? coach.insight : undefined}
+            message={coach.status === 'error' ? coach.message : undefined}
+            onRetry={() => setCoachKey(k => k + 1)}
+          />
+        </div>
+      ) : null}
 
-      {/* Water quick glance */}
+      {/* Water + active kcal */}
       <div className="anim-fade-rise mt-4 flex gap-3" style={{ animationDelay: '0.28s' }}>
         <div className="glass-card flex-1 p-4">
           <p className="text-2xl font-bold tracking-tight text-[var(--text)]">{waterLiters}</p>
           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Water (L)
+            Water / {waterGoalLiters}L
           </p>
         </div>
         <div className="glass-card flex-1 p-4">
           <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            {todayLog?.active_calories_burned ?? '--'}
+            {dayLog?.active_calories_burned ?? '--'}
           </p>
           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
             Active kcal
