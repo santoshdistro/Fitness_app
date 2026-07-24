@@ -11,7 +11,7 @@ import {
   unsubscribeFromPush,
   updatePrefs,
 } from '../lib/push';
-import { defaultReminderPrefs, type ReminderPrefs } from '../data/reminders';
+import { defaultReminderPrefs, mergeReminderPrefs, type ReminderPrefs } from '../data/reminders';
 
 export type PushStatus = 'unsupported' | 'unconfigured' | 'off' | 'on';
 
@@ -42,8 +42,8 @@ export function usePushReminders() {
           .select('prefs')
           .eq('endpoint', sub.endpoint)
           .maybeSingle();
-        const savedPrefs = (data as { prefs?: ReminderPrefs } | null)?.prefs;
-        if (savedPrefs) setPrefs({ ...defaultReminderPrefs(), ...savedPrefs });
+        const savedPrefs = (data as { prefs?: Partial<ReminderPrefs> } | null)?.prefs;
+        setPrefs(mergeReminderPrefs(savedPrefs));
         setStatus('on');
       } else {
         setStatus('off');
