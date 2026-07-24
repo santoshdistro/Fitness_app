@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import type { Gender } from '../../utils/calculations';
+import { EQUIPMENT_OPTIONS } from '../../data/workoutPrograms';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -101,14 +102,19 @@ export function ProfileForm({ onSaved, onOpenGoals }: Props) {
         <label className={labelClass} htmlFor="equipment-input">
           Equipment preference - optional
         </label>
-        <input
+        <select
           id="equipment-input"
           className={inputClass}
-          type="text"
           value={equipment}
           onChange={e => setEquipment(e.target.value)}
-          placeholder="e.g. Home gym, dumbbells only"
-        />
+        >
+          <option value="">Not set</option>
+          {EQUIPMENT_OPTIONS.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error ? <p className={errorTextClass}>{error}</p> : null}
