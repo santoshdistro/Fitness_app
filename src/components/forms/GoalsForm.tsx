@@ -22,6 +22,7 @@ export function GoalsForm({ onSaved }: Props) {
   const [activity, setActivity] = useState<ActivityLevel>('light');
   const [rate, setRate] = useState(0.5);
   const [targetWeight, setTargetWeight] = useState('');
+  const [calorieOverride, setCalorieOverride] = useState('');
   const [protein, setProtein] = useState('');
   const [fiber, setFiber] = useState('');
   const [sodium, setSodium] = useState('');
@@ -34,6 +35,7 @@ export function GoalsForm({ onSaved }: Props) {
     if (profile.activity_level) setActivity(profile.activity_level);
     if (profile.weekly_rate_kg != null && profile.weekly_rate_kg > 0) setRate(profile.weekly_rate_kg);
     if (profile.target_weight_kg != null) setTargetWeight(String(profile.target_weight_kg));
+    if (profile.calorie_target_override != null) setCalorieOverride(String(profile.calorie_target_override));
     if (profile.protein_target_g != null) setProtein(String(profile.protein_target_g));
     if (profile.fiber_target_g != null) setFiber(String(profile.fiber_target_g));
     if (profile.sodium_target_mg != null) setSodium(String(profile.sodium_target_mg));
@@ -51,6 +53,7 @@ export function GoalsForm({ onSaved }: Props) {
       weekly_rate_kg: effectiveRate,
       calorie_deficit_kcal: deficitFromGoal(goal, effectiveRate),
       target_weight_kg: goal === 'maintain' ? null : targetWeight ? Number(targetWeight) : null,
+      calorie_target_override: calorieOverride ? Number(calorieOverride) : null,
       protein_target_g: protein ? Number(protein) : null,
       fiber_target_g: fiber ? Number(fiber) : null,
       sodium_target_mg: sodium ? Number(sodium) : null,
@@ -155,6 +158,25 @@ export function GoalsForm({ onSaved }: Props) {
         Your calorie target and macros are calculated from this. The fields below are optional
         manual overrides.
       </p>
+
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="calorie-override-input">
+          Daily calorie goal (kcal) - optional override
+        </label>
+        <input
+          id="calorie-override-input"
+          className={inputClass}
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={calorieOverride}
+          onChange={e => setCalorieOverride(e.target.value)}
+          placeholder="Leave blank to use the calculated target"
+        />
+        <p className="mt-1 text-[11px] text-[var(--muted)]">
+          Set your own number to override the calculated calorie target everywhere.
+        </p>
+      </div>
 
       <div className="mb-3">
         <label className={labelClass} htmlFor="protein-target-input">

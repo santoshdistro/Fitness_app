@@ -28,6 +28,9 @@ type Macros = {
   sodium: number;
   sugar: number;
   satFat: number;
+  transFat: number;
+  polyFat: number;
+  monoFat: number;
 };
 
 type Item = Macros & {
@@ -49,6 +52,9 @@ function scaled(per: Macros, grams: number): Macros {
     sodium: Math.round(per.sodium * grams),
     sugar: Math.round(per.sugar * grams),
     satFat: Math.round(per.satFat * grams),
+    transFat: Math.round(per.transFat * grams),
+    polyFat: Math.round(per.polyFat * grams),
+    monoFat: Math.round(per.monoFat * grams),
   };
 }
 
@@ -77,20 +83,22 @@ export function DiscoverScreen() {
   const canComputeTarget = Boolean(
     profile?.gender && profile?.height && profile?.birth_date && latestWeight,
   );
-  const calorieTarget = canComputeTarget
-    ? computeDailyCalorieTarget({
-        tdee: computeTDEE(
-          computeBMR({
-            gender: profile!.gender!,
-            weightKg: latestWeight!,
-            heightCm: profile!.height!,
-            ageYears: ageFromBirthDate(profile!.birth_date!),
-          }),
-          profile!.activity_level,
-        ),
-        deficitKcal,
-      })
-    : REFERENCE_CALORIE_TARGET;
+  const calorieTarget =
+    profile?.calorie_target_override ??
+    (canComputeTarget
+      ? computeDailyCalorieTarget({
+          tdee: computeTDEE(
+            computeBMR({
+              gender: profile!.gender!,
+              weightKg: latestWeight!,
+              heightCm: profile!.height!,
+              ageYears: ageFromBirthDate(profile!.birth_date!),
+            }),
+            profile!.activity_level,
+          ),
+          deficitKcal,
+        })
+      : REFERENCE_CALORIE_TARGET);
   const suggestedMacros = canComputeTarget
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
     : null;
@@ -98,7 +106,7 @@ export function DiscoverScreen() {
 
   const totals = useMemo(
     () =>
-      items.reduce(
+      items.reduce<Macros>(
         (acc, i) => ({
           calories: acc.calories + i.calories,
           protein: acc.protein + i.protein,
@@ -106,8 +114,13 @@ export function DiscoverScreen() {
           fat: acc.fat + i.fat,
           fiber: acc.fiber + i.fiber,
           sodium: acc.sodium + i.sodium,
+          sugar: acc.sugar + i.sugar,
+          satFat: acc.satFat + i.satFat,
+          transFat: acc.transFat + i.transFat,
+          polyFat: acc.polyFat + i.polyFat,
+          monoFat: acc.monoFat + i.monoFat,
         }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0 },
+        { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0, transFat: 0, polyFat: 0, monoFat: 0 },
       ),
     [items],
   );
@@ -137,6 +150,9 @@ export function DiscoverScreen() {
       sodium: r.sodium / base,
       sugar: r.sugar / base,
       satFat: r.satFat / base,
+      transFat: r.transFat / base,
+      polyFat: r.polyFat / base,
+      monoFat: r.monoFat / base,
     };
     setItems(prev => [
       ...prev,
@@ -170,6 +186,9 @@ export function DiscoverScreen() {
         sodium_mg: i.sodium,
         sugar_g: i.sugar,
         saturated_fat_g: i.satFat,
+        trans_fat_g: i.transFat,
+        poly_fat_g: i.polyFat,
+        mono_fat_g: i.monoFat,
       })),
     );
     setSaving(false);
@@ -224,6 +243,7 @@ export function DiscoverScreen() {
           totals={totals}
           saving={saving}
           logMeal={logMeal}
+          loggedMeals={meals}
         />
       ) : tab === 'nutrition' ? (
         <NutritionTab
@@ -255,9 +275,10 @@ type AddMealProps = {
   items: Item[];
   updateGrams: (key: string, grams: number) => void;
   removeItem: (key: string) => void;
-  totals: { calories: number; protein: number; carbs: number; fat: number; fiber: number; sodium: number };
+  totals: Macros;
   saving: boolean;
   logMeal: () => void;
+  loggedMeals: FoodLog[];
 };
 
 function AddMealTab(p: AddMealProps) {
@@ -401,6 +422,36 @@ function AddMealTab(p: AddMealProps) {
           </button>
         </div>
       ) : null}
+
+      {/* Today's log, grouped by meal */}
+      {p.loggedMeals.length > 0 ? (
+        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
+          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's log</p>
+          {MEAL_CATEGORY_OPTIONS.map(o => o.value)
+            .map(cat => ({ cat, list: p.loggedMeals.filter(m => m.meal_category === cat) }))
+            .filter(g => g.list.length > 0)
+            .map(g => (
+              <div key={g.cat} className="mb-3 last:mb-0">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                    {MEAL_LABELS[g.cat]}
+                  </p>
+                  <p className="text-[10px] font-semibold text-[var(--muted)]">
+                    {Math.round(g.list.reduce((s, m) => s + (m.calories ?? 0), 0))} kcal
+                  </p>
+                </div>
+                {g.list.map(m => (
+                  <div key={m.id} className="flex items-center justify-between py-1">
+                    <p className="text-xs text-[var(--text)]">{m.meal_name}</p>
+                    <p className="text-[10px] text-[var(--muted)]">
+                      {m.calories ?? 0} kcal · {m.protein_g ?? 0}g P
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ))}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -471,6 +522,9 @@ function NutritionTab({
     { label: 'Fiber', value: totals.fiber_g, target: fiberTarget, unit: 'g' },
     { label: 'Fat', value: totals.fat_g, target: suggestedMacros?.fatG ?? null, unit: 'g' },
     { label: '  Saturated', value: totals.saturated_fat_g, target: null, unit: 'g' },
+    { label: '  Monounsaturated', value: totals.mono_fat_g, target: null, unit: 'g' },
+    { label: '  Polyunsaturated', value: totals.poly_fat_g, target: null, unit: 'g' },
+    { label: '  Trans', value: totals.trans_fat_g, target: null, unit: 'g' },
     { label: 'Sodium', value: totals.sodium_mg, target: sodiumTarget, unit: 'mg' },
   ];
 

@@ -44,6 +44,9 @@ export type FoodLog = {
   sodium_mg: number | null;
   sugar_g: number | null;
   saturated_fat_g: number | null;
+  trans_fat_g: number | null;
+  poly_fat_g: number | null;
+  mono_fat_g: number | null;
 };
 
 export type ProgressPhoto = {

@@ -54,14 +54,7 @@ export function BodyScanForm() {
 
   return (
     <div className="flex flex-col gap-4 py-1">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={onFile}
-        className="hidden"
-      />
+      <input ref={inputRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
 
       {stage.step === 'pick' ? (
         <div className="flex flex-col items-center gap-4 py-2">

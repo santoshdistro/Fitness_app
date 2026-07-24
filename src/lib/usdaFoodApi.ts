@@ -9,6 +9,9 @@ const NUTRIENT_ID = {
   SODIUM_MG: 1093,
   SUGAR_G: 2000,
   SAT_FAT_G: 1258,
+  TRANS_FAT_G: 1257,
+  POLY_FAT_G: 1293,
+  MONO_FAT_G: 1292,
 };
 
 type UsdaFoodNutrient = {
@@ -25,6 +28,9 @@ type UsdaLabelNutrients = {
   sodium?: { value: number };
   sugars?: { value: number };
   saturatedFat?: { value: number };
+  transFat?: { value: number };
+  polyunsaturatedFat?: { value: number };
+  monounsaturatedFat?: { value: number };
 };
 
 type UsdaFood = {
@@ -49,6 +55,9 @@ export type FoodSearchResult = {
   sodium: number;
   sugar: number;
   satFat: number;
+  transFat: number;
+  polyFat: number;
+  monoFat: number;
   /** true: values are for one serving (servingSize/servingSizeUnit). false: values are per 100g. */
   isPerServing: boolean;
   servingSize?: number;
@@ -73,6 +82,9 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
       sodium: Math.round(food.labelNutrients.sodium?.value ?? 0),
       sugar: Math.round(food.labelNutrients.sugars?.value ?? 0),
       satFat: Math.round(food.labelNutrients.saturatedFat?.value ?? 0),
+      transFat: Math.round(food.labelNutrients.transFat?.value ?? 0),
+      polyFat: Math.round(food.labelNutrients.polyunsaturatedFat?.value ?? 0),
+      monoFat: Math.round(food.labelNutrients.monounsaturatedFat?.value ?? 0),
       isPerServing: true,
       servingSize: food.servingSize,
       servingSizeUnit: food.servingSizeUnit,
@@ -91,6 +103,9 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
     sodium: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.SODIUM_MG)),
     sugar: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.SUGAR_G)),
     satFat: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.SAT_FAT_G)),
+    transFat: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.TRANS_FAT_G)),
+    polyFat: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.POLY_FAT_G)),
+    monoFat: Math.round(extractNutrient(food.foodNutrients, NUTRIENT_ID.MONO_FAT_G)),
     isPerServing: false,
   };
 }

@@ -18,6 +18,7 @@ export type Profile = {
   activity_level: ActivityLevel | null;
   weekly_rate_kg: number | null;
   target_weight_kg: number | null;
+  calorie_target_override: number | null;
 };
 
 export function useProfile() {

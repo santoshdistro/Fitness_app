@@ -102,20 +102,22 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const canComputeTarget = Boolean(
     profile?.gender && profile?.height && profile?.birth_date && latestWeight,
   );
-  const calorieTarget = canComputeTarget
-    ? computeDailyCalorieTarget({
-        tdee: computeTDEE(
-          computeBMR({
-            gender: profile!.gender!,
-            weightKg: latestWeight!,
-            heightCm: profile!.height!,
-            ageYears: ageFromBirthDate(profile!.birth_date!),
-          }),
-          profile!.activity_level,
-        ),
-        deficitKcal,
-      })
-    : REFERENCE_CALORIE_TARGET;
+  const calorieTarget =
+    profile?.calorie_target_override ??
+    (canComputeTarget
+      ? computeDailyCalorieTarget({
+          tdee: computeTDEE(
+            computeBMR({
+              gender: profile!.gender!,
+              weightKg: latestWeight!,
+              heightCm: profile!.height!,
+              ageYears: ageFromBirthDate(profile!.birth_date!),
+            }),
+            profile!.activity_level,
+          ),
+          deficitKcal,
+        })
+      : REFERENCE_CALORIE_TARGET);
   const suggestedMacros = canComputeTarget
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
     : null;

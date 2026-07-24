@@ -34,6 +34,19 @@ type PerGramMacros = {
   sodium: number;
 };
 
+/** The per-single-portion macros, used to scale by a quantity multiplier. */
+function baseFromInitial(initial?: MealInitial): PerGramMacros | null {
+  if (!initial?.calories) return null;
+  return {
+    calories: Number(initial.calories) || 0,
+    protein: Number(initial.protein) || 0,
+    carbs: Number(initial.carbs) || 0,
+    fat: Number(initial.fat) || 0,
+    fiber: Number(initial.fiber) || 0,
+    sodium: Number(initial.sodium) || 0,
+  };
+}
+
 export function MealForm({ onSaved, initial }: Props) {
   const { session } = useAuth();
   const { recent, frequent } = useFoodSuggestions();
@@ -46,6 +59,9 @@ export function MealForm({ onSaved, initial }: Props) {
   const [servingNote, setServingNote] = useState<string | null>(initial?.servingNote ?? null);
   const [perGram, setPerGram] = useState<PerGramMacros | null>(null);
   const [grams, setGrams] = useState('100');
+  // Per-portion base (a single serving / scanned plate) + a quantity multiplier.
+  const [perServing, setPerServing] = useState<PerGramMacros | null>(() => baseFromInitial(initial));
+  const [servings, setServings] = useState('1');
 
   const [mealName, setMealName] = useState(initial?.mealName ?? '');
   const [category, setCategory] = useState<MealCategory>(initial?.category ?? defaultMealCategoryForNow());
@@ -78,6 +94,15 @@ export function MealForm({ onSaved, initial }: Props) {
 
     if (result.isPerServing) {
       setPerGram(null);
+      setPerServing({
+        calories: result.calories,
+        protein: result.protein,
+        carbs: result.carbs,
+        fat: result.fat,
+        fiber: result.fiber,
+        sodium: result.sodium,
+      });
+      setServings('1');
       setCalories(String(result.calories));
       setProtein(String(result.protein));
       setCarbs(String(result.carbs));
@@ -90,6 +115,7 @@ export function MealForm({ onSaved, initial }: Props) {
       return;
     }
 
+    setPerServing(null);
     setPerGram({
       calories: result.calories / 100,
       protein: result.protein / 100,
@@ -112,6 +138,7 @@ export function MealForm({ onSaved, initial }: Props) {
     setMealName(suggestion.mealName);
     setCategory(suggestion.category);
     setPerGram(null);
+    setPerServing(null);
     setServingNote(null);
     setResults([]);
     setQuery('');
@@ -133,6 +160,18 @@ export function MealForm({ onSaved, initial }: Props) {
     setFat(String(Math.round(perGram.fat * gramsNum)));
     setFiber(String(Math.round(perGram.fiber * gramsNum)));
     setSodium(String(Math.round(perGram.sodium * gramsNum)));
+  }
+
+  function handleServingsChange(value: string) {
+    setServings(value);
+    if (!perServing) return;
+    const q = Number(value) || 0;
+    setCalories(String(Math.round(perServing.calories * q)));
+    setProtein(String(Math.round(perServing.protein * q)));
+    setCarbs(String(Math.round(perServing.carbs * q)));
+    setFat(String(Math.round(perServing.fat * q)));
+    setFiber(String(Math.round(perServing.fiber * q)));
+    setSodium(String(Math.round(perServing.sodium * q)));
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -300,6 +339,25 @@ export function MealForm({ onSaved, initial }: Props) {
               value={grams}
               onChange={e => handleGramsChange(e.target.value)}
             />
+          </div>
+        ) : perServing ? (
+          <div className="mb-3">
+            <label className={labelClass} htmlFor="servings-input">
+              Quantity / portions
+            </label>
+            <input
+              id="servings-input"
+              className={inputClass}
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.5"
+              value={servings}
+              onChange={e => handleServingsChange(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              e.g. 2 for two bowls / scoops / pieces, 0.5 for half a portion.
+            </p>
           </div>
         ) : null}
 
