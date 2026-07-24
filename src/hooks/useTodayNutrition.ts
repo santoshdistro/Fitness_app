@@ -11,6 +11,8 @@ export type NutritionTotals = {
   fat_g: number;
   fiber_g: number;
   sodium_mg: number;
+  sugar_g: number;
+  saturated_fat_g: number;
   mealCount: number;
 };
 
@@ -21,6 +23,8 @@ const EMPTY_TOTALS: NutritionTotals = {
   fat_g: 0,
   fiber_g: 0,
   sodium_mg: 0,
+  sugar_g: 0,
+  saturated_fat_g: 0,
   mealCount: 0,
 };
 
@@ -33,6 +37,8 @@ function computeTotals(meals: FoodLog[]): NutritionTotals {
       fat_g: acc.fat_g + (meal.fat_g ?? 0),
       fiber_g: acc.fiber_g + (meal.fiber_g ?? 0),
       sodium_mg: acc.sodium_mg + (meal.sodium_mg ?? 0),
+      sugar_g: acc.sugar_g + (meal.sugar_g ?? 0),
+      saturated_fat_g: acc.saturated_fat_g + (meal.saturated_fat_g ?? 0),
       mealCount: acc.mealCount + 1,
     }),
     { ...EMPTY_TOTALS },

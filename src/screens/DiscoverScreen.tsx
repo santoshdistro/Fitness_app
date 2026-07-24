@@ -7,6 +7,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
+import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
@@ -15,25 +16,30 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import type { MealCategory } from '../types/database';
+import type { FoodLog, MealCategory } from '../types/database';
 import { inputClass, labelClass } from '../components/forms/formStyles';
 
-type Item = {
-  key: string;
-  name: string;
-  grams: number;
+type Macros = {
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
   fiber: number;
   sodium: number;
-  per: { calories: number; protein: number; carbs: number; fat: number; fiber: number; sodium: number };
+  sugar: number;
+  satFat: number;
+};
+
+type Item = Macros & {
+  key: string;
+  name: string;
+  grams: number;
+  per: Macros;
 };
 
 type Tab = 'add' | 'nutrition' | 'macros';
 
-function scaled(per: Item['per'], grams: number) {
+function scaled(per: Macros, grams: number): Macros {
   return {
     calories: Math.round(per.calories * grams),
     protein: Math.round(per.protein * grams),
@@ -41,6 +47,8 @@ function scaled(per: Item['per'], grams: number) {
     fat: Math.round(per.fat * grams),
     fiber: Math.round(per.fiber * grams),
     sodium: Math.round(per.sodium * grams),
+    sugar: Math.round(per.sugar * grams),
+    satFat: Math.round(per.satFat * grams),
   };
 }
 
@@ -120,13 +128,15 @@ export function DiscoverScreen() {
   function addResult(r: FoodSearchResult) {
     const grams = r.isPerServing && r.servingSize ? r.servingSize : 100;
     const base = r.isPerServing && r.servingSize ? r.servingSize : 100;
-    const per = {
+    const per: Macros = {
       calories: r.calories / base,
       protein: r.protein / base,
       carbs: r.carbs / base,
       fat: r.fat / base,
       fiber: r.fiber / base,
       sodium: r.sodium / base,
+      sugar: r.sugar / base,
+      satFat: r.satFat / base,
     };
     setItems(prev => [
       ...prev,
@@ -158,6 +168,8 @@ export function DiscoverScreen() {
         fat_g: i.fat,
         fiber_g: i.fiber,
         sodium_mg: i.sodium,
+        sugar_g: i.sugar,
+        saturated_fat_g: i.satFat,
       })),
     );
     setSaving(false);
@@ -215,19 +227,16 @@ export function DiscoverScreen() {
         />
       ) : tab === 'nutrition' ? (
         <NutritionTab
-          calories={Math.round(dayTotals.calories)}
-          calorieTarget={calorieTarget}
-          mealCount={dayTotals.mealCount}
-          meals={meals}
-        />
-      ) : (
-        <MacrosTab
           totals={dayTotals}
+          meals={meals}
+          calorieTarget={calorieTarget}
           proteinTarget={proteinTarget}
           suggestedMacros={suggestedMacros}
           fiberTarget={profile?.fiber_target_g ?? null}
           sodiumTarget={profile?.sodium_target_mg ?? null}
         />
+      ) : (
+        <MacrosTab totals={dayTotals} meals={meals} />
       )}
     </div>
   );
@@ -396,114 +405,248 @@ function AddMealTab(p: AddMealProps) {
   );
 }
 
+const MEAL_COLORS: Record<MealCategory, string> = {
+  breakfast: '#6c63ff',
+  lunch: '#22c55e',
+  dinner: '#f59e0b',
+  snack: '#0ea5e9',
+  supplement: '#a855f7',
+  other: '#94a3b8',
+};
+
+const MEAL_LABELS: Record<MealCategory, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snacks',
+  supplement: 'Supplements',
+  other: 'Other',
+};
+
 function NutritionTab({
-  calories,
-  calorieTarget,
-  mealCount,
+  totals,
   meals,
+  calorieTarget,
+  proteinTarget,
+  suggestedMacros,
+  fiberTarget,
+  sodiumTarget,
 }: {
-  calories: number;
+  totals: NutritionTotals;
+  meals: FoodLog[];
   calorieTarget: number;
-  mealCount: number;
-  meals: { id: string; meal_name: string; calories: number | null; protein_g: number | null }[];
+  proteinTarget: number | null;
+  suggestedMacros: { proteinG: number; carbsG: number; fatG: number } | null;
+  fiberTarget: number | null;
+  sodiumTarget: number | null;
 }) {
+  const calories = Math.round(totals.calories);
   const remaining = Math.max(0, calorieTarget - calories);
   const percent = Math.min(100, calorieTarget > 0 ? (calories / calorieTarget) * 100 : 0);
 
+  // Calorie share by meal category (for the donut + legend).
+  const byCategory = MEAL_CATEGORY_OPTIONS.map(o => o.value)
+    .map(cat => ({
+      cat,
+      calories: meals.filter(m => m.meal_category === cat).reduce((s, m) => s + (m.calories ?? 0), 0),
+    }))
+    .filter(c => c.calories > 0);
+  const catTotal = byCategory.reduce((s, c) => s + c.calories, 0) || 1;
+
+  // Build the conic-gradient donut.
+  let acc = 0;
+  const stops = byCategory
+    .map(c => {
+      const start = (acc / catTotal) * 100;
+      acc += c.calories;
+      const end = (acc / catTotal) * 100;
+      return `${MEAL_COLORS[c.cat]} ${start}% ${end}%`;
+    })
+    .join(', ');
+
+  const nutrientRows = [
+    { label: 'Protein', value: totals.protein_g, target: proteinTarget, unit: 'g' },
+    { label: 'Carbohydrates', value: totals.carbs_g, target: suggestedMacros?.carbsG ?? null, unit: 'g' },
+    { label: '  Sugar', value: totals.sugar_g, target: null, unit: 'g' },
+    { label: 'Fiber', value: totals.fiber_g, target: fiberTarget, unit: 'g' },
+    { label: 'Fat', value: totals.fat_g, target: suggestedMacros?.fatG ?? null, unit: 'g' },
+    { label: '  Saturated', value: totals.saturated_fat_g, target: null, unit: 'g' },
+    { label: 'Sodium', value: totals.sodium_mg, target: sodiumTarget, unit: 'mg' },
+  ];
+
   return (
     <div className="anim-fade-rise mt-4 flex flex-col gap-4" style={{ animationDelay: '0.06s' }}>
-      <div className="glass-card p-5 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-          Eaten today
-        </p>
-        <p className="text-4xl font-black tracking-tight text-[var(--text)]">
-          {calories} <span className="text-base font-semibold text-[var(--muted)]">kcal</span>
-        </p>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg)]">
+      {/* Calories + meal donut */}
+      <div className="glass-card p-5">
+        <div className="flex items-center gap-4">
           <div
-            className="h-full rounded-full"
-            style={{ width: `${percent}%`, background: 'var(--accent)' }}
-          />
+            className="relative h-24 w-24 shrink-0 rounded-full"
+            style={{ background: byCategory.length ? `conic-gradient(${stops})` : 'var(--bg)' }}
+          >
+            <div className="absolute inset-[14px] flex flex-col items-center justify-center rounded-full bg-[var(--card)]">
+              <span className="text-lg font-black leading-none text-[var(--text)]">{calories}</span>
+              <span className="text-[8px] font-bold uppercase text-[var(--muted)]">kcal</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            {byCategory.length === 0 ? (
+              <p className="text-xs text-[var(--muted)]">Log a meal to see the breakdown.</p>
+            ) : (
+              byCategory.map(c => (
+                <div key={c.cat} className="mb-1 flex items-center gap-2 text-xs last:mb-0">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: MEAL_COLORS[c.cat] }} />
+                  <span className="flex-1 text-[var(--text)]">{MEAL_LABELS[c.cat]}</span>
+                  <span className="text-[var(--muted)]">
+                    {Math.round((c.calories / catTotal) * 100)}% · {c.calories}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          {remaining} kcal left of {calorieTarget} · {mealCount} item{mealCount === 1 ? '' : 's'} logged
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg)]">
+          <div className="h-full rounded-full" style={{ width: `${percent}%`, background: 'var(--accent)' }} />
+        </div>
+        <p className="mt-2 text-center text-xs text-[var(--muted)]">
+          {remaining} kcal left of {calorieTarget}
         </p>
       </div>
 
+      {/* Goal / Left nutrient table */}
       <div className="glass-card p-5">
-        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's food</p>
-        {meals.length === 0 ? (
-          <p className="text-xs text-[var(--muted)]">Nothing logged yet. Add a meal to see it here.</p>
-        ) : (
-          meals.map(m => (
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Nutrients</p>
+        <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+          <span>Nutrient</span>
+          <span className="flex gap-4">
+            <span className="w-12 text-right">Total</span>
+            <span className="w-12 text-right">Goal</span>
+            <span className="w-12 text-right">Left</span>
+          </span>
+        </div>
+        {nutrientRows.map(r => {
+          const value = Math.round(r.value);
+          const left = r.target != null ? Math.round(r.target - value) : null;
+          const indented = r.label.startsWith('  ');
+          return (
             <div
-              key={m.id}
-              className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+              key={r.label}
+              className="flex items-center justify-between border-b border-[var(--card-border)] py-2 text-xs last:border-b-0"
             >
-              <p className="text-sm text-[var(--text)]">{m.meal_name}</p>
-              <p className="text-[11px] text-[var(--muted)]">
-                {m.calories ?? 0} kcal · {m.protein_g ?? 0}g P
-              </p>
+              <span className={indented ? 'pl-3 text-[var(--muted)]' : 'text-[var(--text)]'}>
+                {r.label.trim()}
+              </span>
+              <span className="flex gap-4 tabular-nums">
+                <span className="w-12 text-right font-semibold text-[var(--text)]">
+                  {value}
+                  {r.unit}
+                </span>
+                <span className="w-12 text-right text-[var(--muted)]">{r.target != null ? r.target + r.unit : '—'}</span>
+                <span className="w-12 text-right text-[var(--muted)]">{left != null ? left + r.unit : '—'}</span>
+              </span>
             </div>
-          ))
+          );
+        })}
+      </div>
+
+      {/* Foods sorted by calories */}
+      <div className="glass-card p-5">
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Foods by calories</p>
+        {meals.length === 0 ? (
+          <p className="text-xs text-[var(--muted)]">Nothing logged yet.</p>
+        ) : (
+          meals
+            .slice()
+            .sort((a, b) => (b.calories ?? 0) - (a.calories ?? 0))
+            .map((m, idx) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+              >
+                <p className="flex-1 text-sm text-[var(--text)]">
+                  {idx === 0 ? '🔥 ' : ''}
+                  {m.meal_name}
+                  <span className="text-[10px] text-[var(--muted)]"> · {MEAL_LABELS[m.meal_category]}</span>
+                </p>
+                <p className="text-[11px] font-semibold text-[var(--text)]">{m.calories ?? 0} kcal</p>
+              </div>
+            ))
         )}
       </div>
     </div>
   );
 }
 
-function MacrosTab({
-  totals,
-  proteinTarget,
-  suggestedMacros,
-  fiberTarget,
-  sodiumTarget,
-}: {
-  totals: { protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sodium_mg: number };
-  proteinTarget: number | null;
-  suggestedMacros: { proteinG: number; carbsG: number; fatG: number } | null;
-  fiberTarget: number | null;
-  sodiumTarget: number | null;
-}) {
-  const rows = [
-    { label: 'Protein', value: Math.round(totals.protein_g), target: proteinTarget, unit: 'g', color: '#22c55e' },
-    { label: 'Carbs', value: Math.round(totals.carbs_g), target: suggestedMacros?.carbsG ?? null, unit: 'g', color: '#6c63ff' },
-    { label: 'Fat', value: Math.round(totals.fat_g), target: suggestedMacros?.fatG ?? null, unit: 'g', color: '#f59e0b' },
-    { label: 'Fiber', value: Math.round(totals.fiber_g), target: fiberTarget, unit: 'g', color: '#14b8a6' },
-    { label: 'Sodium', value: Math.round(totals.sodium_mg), target: sodiumTarget, unit: 'mg', color: '#ef4444' },
+function MacrosTab({ totals, meals }: { totals: NutritionTotals; meals: FoodLog[] }) {
+  const macroTotal = totals.protein_g + totals.carbs_g + totals.fat_g || 1;
+  const split = [
+    { label: 'Protein', grams: Math.round(totals.protein_g), color: '#22c55e', key: 'protein_g' as const },
+    { label: 'Carbs', grams: Math.round(totals.carbs_g), color: '#6c63ff', key: 'carbs_g' as const },
+    { label: 'Fat', grams: Math.round(totals.fat_g), color: '#f59e0b', key: 'fat_g' as const },
   ];
+
+  // Top contributing food for each macro.
+  function topFor(key: 'protein_g' | 'carbs_g' | 'fat_g'): FoodLog | null {
+    let best: FoodLog | null = null;
+    for (const m of meals) {
+      if ((m[key] ?? 0) > (best?.[key] ?? 0)) best = m;
+    }
+    return best && (best[key] ?? 0) > 0 ? best : null;
+  }
 
   return (
     <div className="anim-fade-rise mt-4 flex flex-col gap-4" style={{ animationDelay: '0.06s' }}>
-      <div className="glass-card flex flex-col gap-3 p-5">
-        <p className="text-sm font-semibold text-[var(--text)]">Today's macros</p>
-        {rows.map(r => {
-          const percent = r.target ? Math.min(100, (r.value / r.target) * 100) : 0;
-          return (
-            <div key={r.label}>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-[var(--text)]">{r.label}</span>
-                <span className="text-[var(--muted)]">
-                  {r.value}
-                  {r.target ? ` / ${r.target}` : ''}
-                  {r.unit}
+      {/* Macro split bar */}
+      <div className="glass-card p-5">
+        <p className="mb-3 text-sm font-semibold text-[var(--text)]">Macro split (by grams)</p>
+        <div className="flex h-3 overflow-hidden rounded-full bg-[var(--bg)]">
+          {split.map(s => (
+            <div key={s.label} style={{ width: `${(s.grams / macroTotal) * 100}%`, background: s.color }} />
+          ))}
+        </div>
+        <div className="mt-3 flex justify-between">
+          {split.map(s => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+              <span className="text-xs text-[var(--text)]">
+                {s.label} <span className="text-[var(--muted)]">{s.grams}g</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top sources */}
+      <div className="glass-card p-5">
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Top sources today</p>
+        {meals.length === 0 ? (
+          <p className="text-xs text-[var(--muted)]">Log a meal to see which foods drive each macro.</p>
+        ) : (
+          split.map(s => {
+            const top = topFor(s.key);
+            return (
+              <div
+                key={s.label}
+                className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
+              >
+                <span className="flex items-center gap-2 text-xs">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                  <span className="text-[var(--muted)]">Most {s.label.toLowerCase()}</span>
+                </span>
+                <span className="text-right text-xs text-[var(--text)]">
+                  {top ? (
+                    <>
+                      {top.meal_name}{' '}
+                      <span className="font-semibold">{Math.round(top[s.key] ?? 0)}g</span>
+                    </>
+                  ) : (
+                    '—'
+                  )}
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg)]">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${r.target ? percent : 0}%`, background: r.color }}
-                />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
-      {!proteinTarget ? (
-        <p className="text-[11px] text-[var(--muted)]">
-          Complete your profile and log your weight for personalised macro targets.
-        </p>
-      ) : null}
     </div>
   );
 }
