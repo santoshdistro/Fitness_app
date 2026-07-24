@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Dumbbell, Trash2 } from 'lucide-react';
+import { Dumbbell, Sparkles, Trash2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useProfile } from '../hooks/useProfile';
+import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -21,11 +22,13 @@ function formatWorkoutDate(iso: string): string {
 
 type Props = {
   onLogWorkout: () => void;
+  onGeneratePlan: () => void;
 };
 
-export function WorkoutsScreen({ onLogWorkout }: Props) {
+export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout } = useRecentWorkouts(20);
   const { profile } = useProfile();
+  const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
   const recommended = getProgram(profile?.equipment_preference);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentPreference | null>(
     recommended?.equipment ?? null,
@@ -45,6 +48,81 @@ export function WorkoutsScreen({ onLogWorkout }: Props) {
           + Log workout
         </button>
       </div>
+
+      {/* AI plan */}
+      {aiPlan ? (
+        <div
+          className="anim-fade-rise mt-4 overflow-hidden p-5"
+          style={{
+            borderRadius: 'var(--radius-card)',
+            background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+            boxShadow: '0 12px 28px -10px rgba(108,99,255,0.6)',
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="mb-1 flex items-center gap-1.5">
+                <Sparkles size={13} className="text-white" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Your AI plan</p>
+              </div>
+              <p className="text-sm font-bold text-white">{aiPlan.name}</p>
+              <p className="text-[11px] text-white/80">{aiPlan.description}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onGeneratePlan}
+              className="shrink-0 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-semibold text-white"
+            >
+              Regenerate
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2">
+            {aiPlan.days.map(day => (
+              <div key={day.day} className="rounded-2xl bg-white/12 p-3">
+                <p className="text-xs font-bold text-white">
+                  {day.day} <span className="font-medium text-white/75">· {day.focus}</span>
+                </p>
+                <div className="mt-1.5 flex flex-col gap-1">
+                  {day.exercises.map(ex => (
+                    <div key={ex.name} className="flex items-center justify-between">
+                      <p className="text-xs text-white/95">{ex.name}</p>
+                      <p className="text-[10px] text-white/70">
+                        {ex.sets} × {ex.reps}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={clearPlan}
+            className="mt-3 w-full rounded-2xl border border-white/25 py-2 text-[11px] font-semibold text-white/90"
+          >
+            Remove plan
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onGeneratePlan}
+          className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
+          style={{ animationDelay: '0.06s' }}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)]/10">
+            <Sparkles size={18} style={{ color: 'var(--accent)' }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Generate an AI plan</p>
+            <p className="text-[11px] text-[var(--muted)]">
+              Personalized to your equipment, goal, and level.
+            </p>
+          </div>
+        </button>
+      )}
 
       {/* Workout programs */}
       <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.08s' }}>

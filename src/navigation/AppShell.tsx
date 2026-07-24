@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Compass, Dumbbell, Home, Plus, Ruler, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Camera, Compass, Dumbbell, Home, Plus, Ruler, ScanLine, Users, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -13,6 +13,11 @@ import { ActivityForm } from '../components/forms/ActivityForm';
 import { WorkoutForm } from '../components/forms/WorkoutForm';
 import { GoalsForm } from '../components/forms/GoalsForm';
 import { QuickAddCaloriesForm } from '../components/forms/QuickAddCaloriesForm';
+import { FoodScanForm } from '../components/forms/FoodScanForm';
+import { BodyScanForm } from '../components/forms/BodyScanForm';
+import { WorkoutPlanForm } from '../components/forms/WorkoutPlanForm';
+import { SpendPanel } from '../components/SpendPanel';
+import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'community' | 'workouts';
 type ActiveSheet =
@@ -21,10 +26,14 @@ type ActiveSheet =
   | 'measurements'
   | 'meal'
   | 'quickAddCalories'
+  | 'foodScan'
+  | 'bodyScan'
+  | 'workoutPlan'
   | 'profile'
   | 'activity'
   | 'workout'
   | 'goals'
+  | 'spend'
   | null;
 
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
@@ -39,6 +48,7 @@ export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { savePlan } = useAiWorkoutPlan();
 
   function closeSheet() {
     setActiveSheet(null);
@@ -65,7 +75,11 @@ export function AppShell() {
         {activeTab === 'discover' && <PlaceholderScreen title="Discover" />}
         {activeTab === 'community' && <PlaceholderScreen title="Community" />}
         {activeTab === 'workouts' && (
-          <WorkoutsScreen key={refreshKey} onLogWorkout={() => setActiveSheet('workout')} />
+          <WorkoutsScreen
+            key={refreshKey}
+            onLogWorkout={() => setActiveSheet('workout')}
+            onGeneratePlan={() => setActiveSheet('workoutPlan')}
+          />
         )}
 
         <button
@@ -109,6 +123,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('measurements')}
           />
           <QuickAddOption
+            icon={Camera}
+            label="Scan food photo (AI)"
+            onClick={() => setActiveSheet('foodScan')}
+          />
+          <QuickAddOption
             icon={UtensilsCrossed}
             label="Add meal"
             onClick={() => setActiveSheet('meal')}
@@ -117,6 +136,11 @@ export function AppShell() {
             icon={Zap}
             label="Quick add calories"
             onClick={() => setActiveSheet('quickAddCalories')}
+          />
+          <QuickAddOption
+            icon={ScanLine}
+            label="Scan my physique (AI)"
+            onClick={() => setActiveSheet('bodyScan')}
           />
           <QuickAddOption
             icon={Activity}
@@ -147,6 +171,23 @@ export function AppShell() {
         <QuickAddCaloriesForm onSaved={onSaved} />
       </Sheet>
 
+      <Sheet open={activeSheet === 'foodScan'} onClose={closeSheet} title="Scan food photo">
+        <FoodScanForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'bodyScan'} onClose={closeSheet} title="Physique scan">
+        <BodyScanForm />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'workoutPlan'} onClose={closeSheet} title="Generate AI workout plan">
+        <WorkoutPlanForm
+          onGenerated={plan => {
+            savePlan(plan);
+            onSaved();
+          }}
+        />
+      </Sheet>
+
       <Sheet open={activeSheet === 'activity'} onClose={closeSheet} title="Log activity">
         <ActivityForm onSaved={onSaved} />
       </Sheet>
@@ -156,11 +197,19 @@ export function AppShell() {
       </Sheet>
 
       <Sheet open={activeSheet === 'profile'} onClose={closeSheet} title="Your profile">
-        <ProfileForm onSaved={onSaved} onOpenGoals={() => setActiveSheet('goals')} />
+        <ProfileForm
+          onSaved={onSaved}
+          onOpenGoals={() => setActiveSheet('goals')}
+          onOpenSpend={() => setActiveSheet('spend')}
+        />
       </Sheet>
 
       <Sheet open={activeSheet === 'goals'} onClose={closeSheet} title="Calorie & macro goals">
         <GoalsForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'spend'} onClose={closeSheet} title="AI usage & spending">
+        <SpendPanel />
       </Sheet>
     </div>
   );

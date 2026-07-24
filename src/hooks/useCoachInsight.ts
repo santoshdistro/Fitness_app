@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { logAiUsage, type AiUsage } from '../lib/aiUsage';
 
 export type CoachPayload = {
   goal?: 'deficit' | 'surplus' | 'maintenance';
@@ -27,6 +29,8 @@ type State =
  * `refreshKey` lets callers re-fetch after logging something new.
  */
 export function useCoachInsight(payload: CoachPayload, ready: boolean, refreshKey: number) {
+  const { session } = useAuth();
+  const userId = session?.user?.id;
   const [state, setState] = useState<State>({ status: 'idle' });
   const body = JSON.stringify(payload);
 
@@ -46,7 +50,7 @@ export function useCoachInsight(payload: CoachPayload, ready: boolean, refreshKe
     })
       .then(async res => {
         const data = (await res.json().catch(() => null)) as
-          | { insight?: string; error?: string }
+          | { insight?: string; error?: string; usage?: AiUsage }
           | null;
         if (cancelled) return;
         if (!res.ok || !data?.insight) {
@@ -56,6 +60,7 @@ export function useCoachInsight(payload: CoachPayload, ready: boolean, refreshKe
           });
           return;
         }
+        if (data.usage && userId) void logAiUsage(userId, 'coach', data.usage);
         setState({ status: 'ready', insight: data.insight });
       })
       .catch(() => {
@@ -68,7 +73,7 @@ export function useCoachInsight(payload: CoachPayload, ready: boolean, refreshKe
       cancelled = true;
     };
     // body captures every payload field; refreshKey forces manual re-fetch.
-  }, [body, ready, refreshKey]);
+  }, [body, ready, refreshKey, userId]);
 
   return state;
 }

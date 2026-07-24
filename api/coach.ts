@@ -105,7 +105,14 @@ export default async function handler(
       .join('')
       .trim();
 
-    res.status(200).json({ insight });
+    res.status(200).json({
+      insight,
+      usage: {
+        model: 'claude-haiku-4-5',
+        input_tokens: message.usage.input_tokens,
+        output_tokens: message.usage.output_tokens,
+      },
+    });
   } catch (error) {
     const status = error instanceof Anthropic.APIError ? error.status ?? 502 : 502;
     res.status(status).json({ error: 'Could not generate a coaching insight right now.' });

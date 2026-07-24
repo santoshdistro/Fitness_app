@@ -8,8 +8,21 @@ import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/me
 import type { MealCategory } from '../../types/database';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
+export type MealInitial = {
+  mealName?: string;
+  category?: MealCategory;
+  calories?: string;
+  protein?: string;
+  carbs?: string;
+  fat?: string;
+  fiber?: string;
+  sodium?: string;
+  servingNote?: string;
+};
+
 type Props = {
   onSaved: () => void;
+  initial?: MealInitial;
 };
 
 type PerGramMacros = {
@@ -21,7 +34,7 @@ type PerGramMacros = {
   sodium: number;
 };
 
-export function MealForm({ onSaved }: Props) {
+export function MealForm({ onSaved, initial }: Props) {
   const { session } = useAuth();
   const { recent, frequent } = useFoodSuggestions();
 
@@ -30,18 +43,18 @@ export function MealForm({ onSaved }: Props) {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const [servingNote, setServingNote] = useState<string | null>(null);
+  const [servingNote, setServingNote] = useState<string | null>(initial?.servingNote ?? null);
   const [perGram, setPerGram] = useState<PerGramMacros | null>(null);
   const [grams, setGrams] = useState('100');
 
-  const [mealName, setMealName] = useState('');
-  const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
-  const [fiber, setFiber] = useState('');
-  const [sodium, setSodium] = useState('');
+  const [mealName, setMealName] = useState(initial?.mealName ?? '');
+  const [category, setCategory] = useState<MealCategory>(initial?.category ?? defaultMealCategoryForNow());
+  const [calories, setCalories] = useState(initial?.calories ?? '');
+  const [protein, setProtein] = useState(initial?.protein ?? '');
+  const [carbs, setCarbs] = useState(initial?.carbs ?? '');
+  const [fat, setFat] = useState(initial?.fat ?? '');
+  const [fiber, setFiber] = useState(initial?.fiber ?? '');
+  const [sodium, setSodium] = useState(initial?.sodium ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
