@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { RemindersForm } from './RemindersForm';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -74,6 +75,11 @@ export function SettingsForm({ onSaved }: Props) {
       <button type="button" onClick={handleSave} className={submitButtonClass}>
         Save settings
       </button>
+
+      <div className="mt-6">
+        <p className={labelClass}>Reminders</p>
+        <RemindersForm />
+      </div>
     </div>
   );
 }
