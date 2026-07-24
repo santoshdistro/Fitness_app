@@ -3,6 +3,7 @@ import { Activity, BarChart3, Barcode, Camera, Compass, Dumbbell, Home, Plus, Ru
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
+import { DiscoverScreen } from '../screens/DiscoverScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { OnboardingFlow } from '../screens/OnboardingFlow';
 import { useProfile } from '../hooks/useProfile';
@@ -95,7 +96,7 @@ export function AppShell() {
         {activeTab === 'stats' && (
           <StatsScreen key={refreshKey} onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
         )}
-        {activeTab === 'discover' && <PlaceholderScreen title="Discover" />}
+        {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
         {activeTab === 'community' && <PlaceholderScreen title="Community" />}
         {activeTab === 'workouts' && (
           <WorkoutsScreen

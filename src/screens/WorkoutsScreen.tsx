@@ -12,6 +12,7 @@ import {
   type EquipmentPreference,
   type ProgramExercise,
 } from '../data/workoutPrograms';
+import { GOAL_PROGRAMS, type GoalProgram } from '../data/goalPrograms';
 
 type SelectedExercise = { name: string; exerciseId?: string; sets: number; reps: string };
 
@@ -38,6 +39,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
     recommended?.equipment ?? null,
   );
   const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
+  const [selectedGoalProgram, setSelectedGoalProgram] = useState<GoalProgram | null>(null);
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
   return (
@@ -52,6 +54,30 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         >
           + Log workout
         </button>
+      </div>
+
+      {/* Predefined goal programs */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Choose a program</p>
+        <div className="grid grid-cols-2 gap-3">
+          {GOAL_PROGRAMS.map(program => (
+            <button
+              key={program.id}
+              type="button"
+              onClick={() => setSelectedGoalProgram(program)}
+              className="relative flex h-28 flex-col justify-end overflow-hidden p-3 text-left"
+              style={{
+                borderRadius: 'var(--radius-card)',
+                background: `linear-gradient(150deg, ${program.gradient[0]}, ${program.gradient[1]})`,
+                boxShadow: '0 10px 22px -12px rgba(20,20,43,0.5)',
+              }}
+            >
+              <span className="absolute right-2 top-2 text-2xl">{program.emoji}</span>
+              <span className="text-sm font-bold leading-tight text-white">{program.name}</span>
+              <span className="text-[10px] font-medium text-white/80">{program.focus}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* AI plan */}
@@ -248,6 +274,46 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           ))}
         </div>
       )}
+
+      <Sheet
+        open={selectedGoalProgram != null}
+        onClose={() => setSelectedGoalProgram(null)}
+        title={selectedGoalProgram?.name ?? 'Program'}
+      >
+        {selectedGoalProgram ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-[var(--muted)]">{selectedGoalProgram.focus}</p>
+            {selectedGoalProgram.days.map(day => (
+              <div key={day.day} className="rounded-2xl bg-[var(--bg)] p-3">
+                <p className="text-xs font-bold text-[var(--text)]">
+                  {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
+                </p>
+                <div className="mt-1.5 flex flex-col gap-1">
+                  {day.exercises.map(ex => (
+                    <button
+                      key={ex.name}
+                      type="button"
+                      onClick={() =>
+                        setSelectedExercise({ name: ex.name, exerciseId: ex.exerciseId, sets: ex.sets, reps: ex.reps })
+                      }
+                      className="flex items-center justify-between gap-2 py-1 text-left"
+                    >
+                      <span className="text-xs text-[var(--text)]">{ex.name}</span>
+                      <span className="flex items-center gap-1">
+                        <span className="text-[10px] text-[var(--muted)]">
+                          {ex.sets} × {ex.reps}
+                        </span>
+                        <ChevronRight size={13} className="text-[var(--muted)]" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-[var(--muted)]">Tap any exercise for a step-by-step how-to.</p>
+          </div>
+        ) : null}
+      </Sheet>
 
       <Sheet
         open={selectedExercise != null}
