@@ -8,7 +8,7 @@ import {
   usageOf,
   type ApiReq,
   type ApiRes,
-} from './_anthropic';
+} from './_anthropic.js';
 
 type Body = {
   equipment?: string;

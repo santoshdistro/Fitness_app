@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { configureWebPush, webpush, type PushReq, type PushRes } from './_push';
+import { configureWebPush, webpush, type PushReq, type PushRes } from './_push.js';
 
 // Cron-triggered: for every stored subscription, works out the user's local time
 // and sends any reminders due in the current window (deduped via last_sent).

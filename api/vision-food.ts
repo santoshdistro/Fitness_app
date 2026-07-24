@@ -9,7 +9,7 @@ import {
   type ApiReq,
   type ApiRes,
   type ImageMediaType,
-} from './_anthropic';
+} from './_anthropic.js';
 
 type Body = { imageBase64?: string; mediaType?: ImageMediaType; note?: string };
 

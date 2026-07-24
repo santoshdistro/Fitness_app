@@ -1,4 +1,4 @@
-import type { ApiReq, ApiRes } from './_anthropic';
+import type { ApiReq, ApiRes } from './_anthropic.js';
 
 // Pulls this-month-to-date spend from Anthropic's organization Cost API.
 // Requires an ADMIN key (sk-ant-admin01-...), which only ORGANIZATION accounts

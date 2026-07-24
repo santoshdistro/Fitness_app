@@ -1,4 +1,4 @@
-import { configureWebPush, webpush, type PushReq, type PushRes } from './_push';
+import { configureWebPush, webpush, type PushReq, type PushRes } from './_push.js';
 
 // Sends a single test notification to the subscription in the request body, so
 // the user can confirm reminders reach their device. Surfaces the underlying
