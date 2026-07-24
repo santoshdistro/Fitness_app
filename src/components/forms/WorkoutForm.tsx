@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { WORKOUT_TEMPLATES, type WorkoutTemplate } from '../../data/workoutTemplates';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Row = { exercise: string; reps: string; weight: string };
@@ -33,6 +34,11 @@ export function WorkoutForm({ onSaved }: Props) {
     setRows(current => current.filter((_, i) => i !== index));
   }
 
+  function loadTemplate(template: WorkoutTemplate) {
+    setRoutineName(template.name);
+    setRows(template.exercises.map(e => ({ exercise: e.exercise, reps: String(e.reps), weight: '' })));
+  }
+
   const validRows = rows.filter(row => row.exercise.trim());
 
   async function handleSubmit(event: FormEvent) {
@@ -61,6 +67,20 @@ export function WorkoutForm({ onSaved }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <label className={labelClass}>Quick start — tap to fill a routine</label>
+      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+        {WORKOUT_TEMPLATES.map(t => (
+          <button
+            key={t.name}
+            type="button"
+            onClick={() => loadTemplate(t)}
+            className="shrink-0 rounded-full bg-[var(--bg)] px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap text-[var(--text)]"
+          >
+            {t.emoji} {t.name}
+          </button>
+        ))}
+      </div>
+
       <label className={labelClass} htmlFor="routine-name-input">
         Routine name - optional
       </label>

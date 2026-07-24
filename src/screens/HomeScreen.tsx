@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
+import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
@@ -251,9 +251,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           >
             <Settings size={16} className="text-[var(--muted)]" />
           </button>
-          <div className="glass flex h-10 w-10 items-center justify-center rounded-full">
-            <Bell size={16} className="text-[var(--muted)]" />
-          </div>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ export function ActivityForm({ onSaved }: Props) {
   const [steps, setSteps] = useState('');
   const [water, setWater] = useState('');
   const [sleep, setSleep] = useState('');
+  const [activeKcal, setActiveKcal] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +24,7 @@ export function ActivityForm({ onSaved }: Props) {
     if (todayLog.steps != null) setSteps(String(todayLog.steps));
     if (todayLog.water_ml != null) setWater(String(todayLog.water_ml / 1000));
     if (todayLog.sleep_hours != null) setSleep(String(todayLog.sleep_hours));
+    if (todayLog.active_calories_burned != null) setActiveKcal(String(todayLog.active_calories_burned));
   }, [todayLog]);
 
   async function handleSubmit(event: FormEvent) {
@@ -38,6 +40,7 @@ export function ActivityForm({ onSaved }: Props) {
     if (steps) payload.steps = Number(steps);
     if (water) payload.water_ml = Math.round(Number(water) * 1000);
     if (sleep) payload.sleep_hours = Number(sleep);
+    if (activeKcal) payload.active_calories_burned = Number(activeKcal);
 
     const { error: saveError } = await supabase
       .from('daily_logs')
@@ -104,10 +107,26 @@ export function ActivityForm({ onSaved }: Props) {
         />
       </div>
 
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="active-kcal-input">
+          Active calories burned (kcal)
+        </label>
+        <input
+          id="active-kcal-input"
+          className={inputClass}
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={activeKcal}
+          onChange={e => setActiveKcal(e.target.value)}
+          placeholder="e.g. 450 — from your watch / phone"
+        />
+      </div>
+
       {error ? <p className={errorTextClass}>{error}</p> : null}
       <button
         type="submit"
-        disabled={saving || (!steps && !water && !sleep)}
+        disabled={saving || (!steps && !water && !sleep && !activeKcal)}
         className={submitButtonClass}
       >
         {saving ? 'Saving...' : 'Save activity'}
