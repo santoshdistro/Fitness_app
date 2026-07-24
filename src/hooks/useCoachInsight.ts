@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { logAiUsage, type AiUsage } from '../lib/aiUsage';
+import { useMemo } from 'react';
+import { generateCoachInsight } from '../utils/coachInsights';
 
 export type CoachPayload = {
   goal?: 'deficit' | 'surplus' | 'maintenance';
@@ -18,62 +17,18 @@ export type CoachPayload = {
   mealCount?: number;
 };
 
-type State =
-  | { status: 'idle' | 'loading' }
-  | { status: 'ready'; insight: string }
-  | { status: 'error'; message: string };
+type State = { status: 'idle' } | { status: 'ready'; insight: string };
 
 /**
- * Fetches a coaching insight from the serverless /api/coach endpoint.
- * `ready` gates the request so we don't call before the day's data exists.
- * `refreshKey` lets callers re-fetch after logging something new.
+ * Produces the Home coaching line locally from the day's numbers — no API call,
+ * no credit used. `ready` gates it so it only shows once there's data to coach on.
  */
-export function useCoachInsight(payload: CoachPayload, ready: boolean, refreshKey: number) {
-  const { session } = useAuth();
-  const userId = session?.user?.id;
-  const [state, setState] = useState<State>({ status: 'idle' });
+export function useCoachInsight(payload: CoachPayload, ready: boolean): State {
   const body = JSON.stringify(payload);
-
-  useEffect(() => {
-    if (!ready) {
-      setState({ status: 'idle' });
-      return;
-    }
-
-    let cancelled = false;
-    setState({ status: 'loading' });
-
-    fetch('/api/coach', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    })
-      .then(async res => {
-        const data = (await res.json().catch(() => null)) as
-          | { insight?: string; error?: string; usage?: AiUsage }
-          | null;
-        if (cancelled) return;
-        if (!res.ok || !data?.insight) {
-          setState({
-            status: 'error',
-            message: data?.error ?? 'Coaching is unavailable right now.',
-          });
-          return;
-        }
-        if (data.usage && userId) void logAiUsage(userId, 'coach', data.usage);
-        setState({ status: 'ready', insight: data.insight });
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setState({ status: 'error', message: 'Coaching is unavailable right now.' });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // body captures every payload field; refreshKey forces manual re-fetch.
-  }, [body, ready, refreshKey, userId]);
-
-  return state;
+  return useMemo<State>(() => {
+    if (!ready) return { status: 'idle' };
+    return { status: 'ready', insight: generateCoachInsight(payload) };
+    // body captures every payload field for memoisation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, ready]);
 }

@@ -51,14 +51,12 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { settings } = useSettings();
-  const [coachKey, setCoachKey] = useState(0);
 
   const refreshing = dayLoading || recentLoading;
   const onRefresh = () => {
     refreshDay();
     refreshRecent();
     refreshNutrition();
-    setCoachKey(k => k + 1);
   };
 
   const waterLiters = dayLog?.water_ml ? (dayLog.water_ml / 1000).toFixed(2) : '--';
@@ -134,7 +132,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     mealCount: totals.mealCount,
   };
   // Only coach for today — a past day's "calories left" would be nonsensical.
-  const coach = useCoachInsight(coachPayload, hasAnyData && viewingToday, coachKey);
+  const coach = useCoachInsight(coachPayload, hasAnyData && viewingToday);
 
   const waterGoalLiters = (settings.waterGoalMl / 1000).toFixed(1);
 
@@ -205,14 +203,12 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         </div>
       </div>
 
-      {/* AI coach (today only) */}
+      {/* Coach (today only) */}
       {viewingToday ? (
         <div className="mt-4">
           <CoachCard
             status={coach.status}
             insight={coach.status === 'ready' ? coach.insight : undefined}
-            message={coach.status === 'error' ? coach.message : undefined}
-            onRetry={() => setCoachKey(k => k + 1)}
           />
         </div>
       ) : null}

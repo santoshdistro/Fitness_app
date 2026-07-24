@@ -98,14 +98,6 @@ export function SpendPanel() {
             <span className="text-[var(--muted)]">billed month-to-date ({anthropic.month})</span>
           </p>
         </div>
-      ) : anthropic.status === 'error' ? (
-        <p className="text-[11px] text-[var(--muted)]">{anthropic.message}</p>
-      ) : anthropic.status === 'unconfigured' ? (
-        <p className="text-[11px] text-[var(--muted)]">
-          The number above is your spend. Optionally, if you have an Anthropic <em>organization</em>{' '}
-          account, you can add an Admin key in Vercel to also show Anthropic's official invoice total
-          here — not needed for a personal account.
-        </p>
       ) : null}
     </div>
   );
