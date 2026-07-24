@@ -65,3 +65,39 @@ export function computeDailyCalorieTarget(params: {
   const { bmr, activeCalories, deficitKcal = DEFAULT_DEFICIT_KCAL } = params;
   return Math.round(bmr + activeCalories - deficitKcal);
 }
+
+const FAT_CALORIE_SHARE = 0.25;
+const KCAL_PER_G_PROTEIN = 4;
+const KCAL_PER_G_CARB = 4;
+const KCAL_PER_G_FAT = 9;
+
+export type MacroTargets = {
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+};
+
+/**
+ * Suggested macro split from bodyweight, calorie target, and goal (deficit vs
+ * surplus). Protein scales with the goal to protect muscle in a cut and
+ * support growth in a bulk; fat is a fixed share of calories; carbs fill the
+ * remainder. Not stored — recomputed whenever inputs change.
+ */
+export function computeSuggestedMacros(params: {
+  weightKg: number;
+  calorieTarget: number;
+  deficitKcal: number;
+}): MacroTargets {
+  const { weightKg, calorieTarget, deficitKcal } = params;
+
+  const proteinPerKg = deficitKcal > 0 ? 2.0 : deficitKcal < 0 ? 1.6 : 1.8;
+  const proteinG = Math.round(weightKg * proteinPerKg);
+  const fatG = Math.round((calorieTarget * FAT_CALORIE_SHARE) / KCAL_PER_G_FAT);
+  const remainingKcal = Math.max(
+    0,
+    calorieTarget - proteinG * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT,
+  );
+  const carbsG = Math.round(remainingKcal / KCAL_PER_G_CARB);
+
+  return { proteinG, fatG, carbsG };
+}

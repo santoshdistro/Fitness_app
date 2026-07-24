@@ -6,7 +6,12 @@ import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
-import { ageFromBirthDate, computeBMR, computeDailyCalorieTarget } from '../utils/calculations';
+import {
+  ageFromBirthDate,
+  computeBMR,
+  computeDailyCalorieTarget,
+  computeSuggestedMacros,
+} from '../utils/calculations';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -48,10 +53,20 @@ export function StatsScreen() {
       })
     : REFERENCE_CALORIE_TARGET;
 
+  const suggestedMacros = canComputeTarget
+    ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
+    : null;
+
   const macroGoals = [
-    { label: 'Protein', value: totals.protein_g, target: profile?.protein_target_g, unit: 'g' },
-    { label: 'Fiber', value: totals.fiber_g, target: profile?.fiber_target_g, unit: 'g' },
-    { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg' },
+    {
+      label: 'Protein',
+      value: totals.protein_g,
+      target: profile?.protein_target_g ?? suggestedMacros?.proteinG,
+      unit: 'g',
+      suggested: profile?.protein_target_g == null && suggestedMacros != null,
+    },
+    { label: 'Fiber', value: totals.fiber_g, target: profile?.fiber_target_g, unit: 'g', suggested: false },
+    { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg', suggested: false },
   ].filter((goal): goal is typeof goal & { target: number } => goal.target != null);
 
   return (
@@ -84,9 +99,27 @@ export function StatsScreen() {
         </div>
 
         <div className="flex gap-2">
-          <MacroTile label="Carbs" value={`${Math.round(totals.carbs_g)}g`} />
-          <MacroTile label="Protein" value={`${Math.round(totals.protein_g)}g`} />
-          <MacroTile label="Fats" value={`${Math.round(totals.fat_g)}g`} />
+          <MacroTile
+            label="Carbs"
+            value={`${Math.round(totals.carbs_g)}g`}
+            target={suggestedMacros ? `${suggestedMacros.carbsG}g` : undefined}
+          />
+          <MacroTile
+            label="Protein"
+            value={`${Math.round(totals.protein_g)}g`}
+            target={
+              profile?.protein_target_g
+                ? `${profile.protein_target_g}g`
+                : suggestedMacros
+                  ? `${suggestedMacros.proteinG}g`
+                  : undefined
+            }
+          />
+          <MacroTile
+            label="Fats"
+            value={`${Math.round(totals.fat_g)}g`}
+            target={suggestedMacros ? `${suggestedMacros.fatG}g` : undefined}
+          />
         </div>
 
         <CalorieGauge
@@ -109,7 +142,12 @@ export function StatsScreen() {
             return (
               <div key={goal.label}>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text)]">{goal.label}</span>
+                  <span className="text-[var(--text)]">
+                    {goal.label}
+                    {goal.suggested ? (
+                      <span className="ml-1 text-[9px] font-medium text-[var(--muted)]">(suggested)</span>
+                    ) : null}
+                  </span>
                   <span className="text-[var(--muted)]">
                     {Math.round(goal.value)} / {goal.target}
                     {goal.unit}
@@ -274,10 +312,13 @@ export function StatsScreen() {
   );
 }
 
-function MacroTile({ label, value }: { label: string; value: string }) {
+function MacroTile({ label, value, target }: { label: string; value: string; target?: string }) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-2xl bg-[var(--bg)] p-2.5">
-      <p className="text-xs font-bold text-[var(--text)]">{value}</p>
+      <p className="text-xs font-bold text-[var(--text)]">
+        {value}
+        {target ? <span className="font-medium text-[var(--muted)]"> / {target}</span> : null}
+      </p>
       <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
