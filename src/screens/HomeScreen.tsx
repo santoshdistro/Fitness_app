@@ -7,15 +7,20 @@ import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
 import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
+import { useWeeklyReview } from '../hooks/useWeeklyReview';
+import { useStartWeight } from '../hooks/useStartWeight';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
+import { GoalProgressCard } from '../components/GoalProgressCard';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
   computeDailyCalorieTarget,
+  computeGoalProgress,
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
@@ -56,6 +61,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { settings } = useSettings();
+  const startWeight = useStartWeight();
 
   const refreshing = dayLoading || recentLoading;
   const onRefresh = () => {
@@ -110,6 +116,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
     : null;
   const proteinTarget = profile?.protein_target_g ?? suggestedMacros?.proteinG ?? null;
+
+  const goalProgress = computeGoalProgress({
+    goalType: profile?.goal_type,
+    startWeight,
+    currentWeight: latestWeight,
+    targetWeight: profile?.target_weight_kg,
+    weeklyRateKg: profile?.weekly_rate_kg,
+  });
+  const { review: weeklyReview } = useWeeklyReview({ calorieTarget, proteinTarget });
 
   const rings: Ring[] = [
     { label: 'Calories', value: totals.calories, target: calorieTarget, color: '#6c63ff' },
@@ -216,6 +231,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         </div>
       </div>
 
+      {/* Goal progress (today only) */}
+      {viewingToday && goalProgress ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
+          <GoalProgressCard progress={goalProgress} />
+        </div>
+      ) : null}
+
       {/* Coach (today only) */}
       {viewingToday ? (
         <div className="mt-4">
@@ -223,6 +245,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
             status={coach.status}
             insight={coach.status === 'ready' ? coach.insight : undefined}
           />
+        </div>
+      ) : null}
+
+      {/* Weekly review (today only) */}
+      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
+          <WeeklyReviewCard review={weeklyReview} />
         </div>
       ) : null}
 

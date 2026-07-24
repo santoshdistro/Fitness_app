@@ -30,6 +30,7 @@ type Draft = {
   activity: ActivityLevel | null;
   goal: GoalType | null;
   rate: number;
+  targetWeight: string;
 };
 
 const LOSE_RATES = [
@@ -63,12 +64,13 @@ export function OnboardingFlow({ onComplete }: Props) {
     activity: null,
     goal: null,
     rate: 0.5,
+    targetWeight: '',
   });
 
   const set = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
 
   // Build the ordered step list; skip the rate step when maintaining.
-  const steps: ('welcome' | 'gender' | 'age' | 'height' | 'weight' | 'activity' | 'goal' | 'rate' | 'review')[] = [
+  const steps: ('welcome' | 'gender' | 'age' | 'height' | 'weight' | 'activity' | 'goal' | 'rate' | 'target' | 'review')[] = [
     'welcome',
     'gender',
     'age',
@@ -76,7 +78,7 @@ export function OnboardingFlow({ onComplete }: Props) {
     'weight',
     'activity',
     'goal',
-    ...(draft.goal === 'maintain' ? [] : (['rate'] as const)),
+    ...(draft.goal === 'maintain' ? [] : (['rate', 'target'] as const)),
     'review',
   ];
   const current = steps[step];
@@ -95,6 +97,8 @@ export function OnboardingFlow({ onComplete }: Props) {
         return draft.activity != null;
       case 'goal':
         return draft.goal != null;
+      case 'target':
+        return Number(draft.targetWeight) > 0;
       default:
         return true;
     }
@@ -137,6 +141,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       goal_type: draft.goal,
       weekly_rate_kg: draft.goal === 'maintain' ? 0 : draft.rate,
       calorie_deficit_kcal: preview.deficitKcal,
+      target_weight_kg: draft.goal === 'maintain' ? null : Number(draft.targetWeight),
     });
     if (profileError) {
       setSaving(false);
@@ -298,6 +303,41 @@ export function OnboardingFlow({ onComplete }: Props) {
                 </ChoiceCard>
               ))}
             </div>
+          </Question>
+        )}
+
+        {current === 'target' && (
+          <Question
+            title={draft.goal === 'gain' ? "What's your goal weight?" : "What weight are you aiming for?"}
+            subtitle="We'll track how far you've come and project when you'll get there."
+          >
+            <div className="flex items-center gap-2">
+              <input
+                className={inputClass}
+                type="number"
+                inputMode="decimal"
+                autoFocus
+                value={draft.targetWeight}
+                onChange={e => set({ targetWeight: e.target.value })}
+                placeholder={draft.goal === 'gain' ? '82' : '72'}
+              />
+              <span className="text-sm font-semibold text-[var(--muted)]">kg</span>
+            </div>
+            {draft.weight && draft.targetWeight ? (
+              <p className="mt-3 text-xs text-[var(--muted)]">
+                {(() => {
+                  const diff = Number(draft.weight) - Number(draft.targetWeight);
+                  const abs = Math.abs(diff).toFixed(1);
+                  if (draft.goal === 'lose')
+                    return diff > 0
+                      ? `That's ${abs} kg to lose. Totally doable. 💪`
+                      : 'Tip: your target should be below your current weight to lose.';
+                  return diff < 0
+                    ? `That's ${abs} kg to gain. Let's build. 💪`
+                    : 'Tip: your target should be above your current weight to gain.';
+                })()}
+              </p>
+            ) : null}
           </Question>
         )}
 

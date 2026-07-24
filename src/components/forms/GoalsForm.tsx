@@ -21,6 +21,7 @@ export function GoalsForm({ onSaved }: Props) {
   const [goal, setGoal] = useState<GoalType>('lose');
   const [activity, setActivity] = useState<ActivityLevel>('light');
   const [rate, setRate] = useState(0.5);
+  const [targetWeight, setTargetWeight] = useState('');
   const [protein, setProtein] = useState('');
   const [fiber, setFiber] = useState('');
   const [sodium, setSodium] = useState('');
@@ -32,6 +33,7 @@ export function GoalsForm({ onSaved }: Props) {
     if (profile.goal_type) setGoal(profile.goal_type);
     if (profile.activity_level) setActivity(profile.activity_level);
     if (profile.weekly_rate_kg != null && profile.weekly_rate_kg > 0) setRate(profile.weekly_rate_kg);
+    if (profile.target_weight_kg != null) setTargetWeight(String(profile.target_weight_kg));
     if (profile.protein_target_g != null) setProtein(String(profile.protein_target_g));
     if (profile.fiber_target_g != null) setFiber(String(profile.fiber_target_g));
     if (profile.sodium_target_mg != null) setSodium(String(profile.sodium_target_mg));
@@ -48,6 +50,7 @@ export function GoalsForm({ onSaved }: Props) {
       activity_level: activity,
       weekly_rate_kg: effectiveRate,
       calorie_deficit_kcal: deficitFromGoal(goal, effectiveRate),
+      target_weight_kg: goal === 'maintain' ? null : targetWeight ? Number(targetWeight) : null,
       protein_target_g: protein ? Number(protein) : null,
       fiber_target_g: fiber ? Number(fiber) : null,
       sodium_target_mg: sodium ? Number(sodium) : null,
@@ -124,6 +127,27 @@ export function GoalsForm({ onSaved }: Props) {
               </button>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {goal !== 'maintain' ? (
+        <div className="mb-3">
+          <label className={labelClass} htmlFor="target-weight-input">
+            {goal === 'gain' ? 'Goal weight (kg)' : 'Target weight (kg)'}
+          </label>
+          <input
+            id="target-weight-input"
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={targetWeight}
+            onChange={e => setTargetWeight(e.target.value)}
+            placeholder={goal === 'gain' ? '82' : '72'}
+          />
+          <p className="mt-1 text-[11px] text-[var(--muted)]">
+            Powers your progress bar and projected finish date on Home.
+          </p>
         </div>
       ) : null}
 

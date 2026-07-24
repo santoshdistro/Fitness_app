@@ -106,6 +106,78 @@ export function computeDailyCalorieTarget(params: { tdee: number; deficitKcal: n
   return Math.round(params.tdee - params.deficitKcal);
 }
 
+export type GoalProgress = {
+  goalType: Exclude<GoalType, 'maintain'>;
+  startWeight: number;
+  currentWeight: number;
+  targetWeight: number;
+  /** kg moved in the goal direction so far (never negative — 0 if going backwards). */
+  achievedKg: number;
+  /** kg still to go to reach target (0 once hit). */
+  remainingKg: number;
+  /** 0–100 share of the journey completed. */
+  percent: number;
+  reached: boolean;
+  /** Projected date to hit target from the planned weekly rate, if computable. */
+  etaDate: Date | null;
+  weeksToGo: number | null;
+};
+
+/**
+ * Turns a start/current/target weight into a motivational progress picture:
+ * how far you've come, how far's left, and roughly when you'll get there at the
+ * planned pace. Returns null when there isn't enough to say anything useful.
+ */
+export function computeGoalProgress(params: {
+  goalType: GoalType | null | undefined;
+  startWeight: number | null | undefined;
+  currentWeight: number | null | undefined;
+  targetWeight: number | null | undefined;
+  weeklyRateKg: number | null | undefined;
+  today?: Date;
+}): GoalProgress | null {
+  const { goalType, startWeight, currentWeight, targetWeight, weeklyRateKg } = params;
+  if (
+    (goalType !== 'lose' && goalType !== 'gain') ||
+    startWeight == null ||
+    currentWeight == null ||
+    targetWeight == null
+  ) {
+    return null;
+  }
+
+  const totalJourney = Math.abs(startWeight - targetWeight);
+  if (totalJourney < 0.05) return null; // start already at target — nothing to chart
+
+  const sign = goalType === 'lose' ? 1 : -1;
+  const achievedKg = Math.max(0, sign * (startWeight - currentWeight));
+  const remainingKg = Math.max(0, sign * (currentWeight - targetWeight));
+  const reached = remainingKg < 0.05;
+  const percent = Math.max(0, Math.min(100, (achievedKg / totalJourney) * 100));
+
+  let weeksToGo: number | null = null;
+  let etaDate: Date | null = null;
+  if (!reached && weeklyRateKg && weeklyRateKg > 0) {
+    weeksToGo = remainingKg / weeklyRateKg;
+    const today = params.today ?? new Date();
+    etaDate = new Date(today.getTime());
+    etaDate.setDate(etaDate.getDate() + Math.round(weeksToGo * 7));
+  }
+
+  return {
+    goalType,
+    startWeight,
+    currentWeight,
+    targetWeight,
+    achievedKg: Math.round(achievedKg * 10) / 10,
+    remainingKg: Math.round(remainingKg * 10) / 10,
+    percent,
+    reached,
+    etaDate,
+    weeksToGo,
+  };
+}
+
 const FAT_CALORIE_SHARE = 0.25;
 const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARB = 4;
