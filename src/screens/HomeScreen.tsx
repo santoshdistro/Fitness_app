@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bell, ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
+import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useLoggingStreak } from '../hooks/useLoggingStreak';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
@@ -12,6 +13,7 @@ import { useStartWeight } from '../hooks/useStartWeight';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
+import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
@@ -62,6 +64,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const { profile } = useProfile();
   const { settings } = useSettings();
   const startWeight = useStartWeight();
+  const { workouts } = useRecentWorkouts(20);
 
   const refreshing = dayLoading || recentLoading;
   const onRefresh = () => {
@@ -125,6 +128,50 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     weeklyRateKg: profile?.weekly_rate_kg,
   });
   const { review: weeklyReview } = useWeeklyReview({ calorieTarget, proteinTarget });
+
+  const proteinGoal = proteinTarget ?? Math.round((calorieTarget * 0.3) / 4);
+  const workoutToday = workouts.some(
+    w => new Date(w.session_timestamp).toLocaleDateString('en-CA') === selectedDate,
+  );
+  const steps = dayLog?.steps ?? 0;
+  const waterMl = dayLog?.water_ml ?? 0;
+  const gamePlan: GamePlanItem[] = [
+    {
+      key: 'calories',
+      label: 'Eat around your target',
+      detail: `${Math.round(totals.calories)} / ${calorieTarget} kcal`,
+      done: totals.calories >= calorieTarget * 0.85 && totals.calories <= calorieTarget * 1.05,
+      progress: calorieTarget > 0 ? totals.calories / calorieTarget : 0,
+    },
+    {
+      key: 'protein',
+      label: 'Hit your protein',
+      detail: `${Math.round(totals.protein_g)} / ${proteinGoal} g`,
+      done: totals.protein_g >= proteinGoal * 0.95,
+      progress: proteinGoal > 0 ? totals.protein_g / proteinGoal : 0,
+    },
+    {
+      key: 'steps',
+      label: 'Get your steps in',
+      detail: `${steps.toLocaleString()} / ${settings.stepGoal.toLocaleString()}`,
+      done: steps >= settings.stepGoal,
+      progress: settings.stepGoal > 0 ? steps / settings.stepGoal : 0,
+    },
+    {
+      key: 'water',
+      label: 'Stay hydrated',
+      detail: `${(waterMl / 1000).toFixed(1)} / ${(settings.waterGoalMl / 1000).toFixed(1)} L`,
+      done: waterMl >= settings.waterGoalMl,
+      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
+    },
+    {
+      key: 'workout',
+      label: 'Move your body',
+      detail: workoutToday ? 'Workout logged' : 'Not yet',
+      done: workoutToday,
+      progress: workoutToday ? 1 : 0,
+    },
+  ];
 
   const rings: Ring[] = [
     { label: 'Calories', value: totals.calories, target: calorieTarget, color: '#6c63ff' },
@@ -211,6 +258,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
         <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
+
+      {/* Today's game plan (today only) */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
+          <TodayGamePlan items={gamePlan} />
+        </div>
+      ) : null}
 
       {/* Activity rings dashboard */}
       <div
