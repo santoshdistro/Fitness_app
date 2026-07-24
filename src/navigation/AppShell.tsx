@@ -105,16 +105,20 @@ export function AppShell() {
           />
         )}
 
-        <button
-          type="button"
-          onClick={() => setActiveSheet('quickAdd')}
-          aria-label="Quick add"
-          className="absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
-        >
-          <Plus size={24} strokeWidth={2.5} />
-        </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setActiveSheet('quickAdd')}
+        aria-label="Quick add"
+        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
+        style={{
+          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+          bottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
+        }}
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
 
       <nav className="glass-card flex shrink-0 justify-between rounded-none border-x-0 border-b-0 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {TABS.map(({ key, label, icon: Icon }) => {

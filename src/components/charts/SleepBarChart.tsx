@@ -20,17 +20,19 @@ export function SleepBarChart({
   const todayLabel = entries[entries.length - 1]?.label;
 
   return (
-    <div className="relative mt-2">
-      <div
-        className="absolute left-0 right-0 z-0 border-t border-dashed border-[var(--card-border)]"
-        style={{ top: `${goalOffsetPercent}%` }}
-      >
-        <span className="absolute -top-2.5 left-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-bold text-white">
+    <div className="mt-2">
+      <div className="mb-1 flex justify-end">
+        <span className="rounded bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-bold text-white">
           {`Goal ${goalHours}h`}
         </span>
       </div>
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute left-0 right-0 z-0 border-t border-dashed border-[var(--card-border)]"
+          style={{ top: `${goalOffsetPercent}%` }}
+        />
 
-      <div className="flex justify-between items-end relative z-10 pt-4 px-2">
+        <div className="flex justify-between items-end relative z-10 pt-4 px-2">
         {entries.map((entry, idx) => {
           const heightPercent = Math.min(
             100,
@@ -57,6 +59,7 @@ export function SleepBarChart({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

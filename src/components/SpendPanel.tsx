@@ -46,19 +46,32 @@ export function SpendPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* In-app tracked */}
-      <div>
-        <div className="mb-1 flex items-baseline justify-between">
-          <p className="text-sm font-semibold text-[var(--text)]">This month, in this app</p>
-          <p className="text-lg font-black text-[var(--text)]">{formatUsd(totalUsd)}</p>
-        </div>
-        <p className="text-[11px] text-[var(--muted)]">Estimated from each AI call's token usage.</p>
+      {/* Hero: your spend this month */}
+      <div
+        className="overflow-hidden p-5 text-center"
+        style={{
+          borderRadius: 'var(--radius-card)',
+          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+        }}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+          Your AI spend this month
+        </p>
+        <p className="text-4xl font-black tracking-tight text-white">{formatUsd(totalUsd)}</p>
+        <p className="mt-1 text-[11px] text-white/70">Adds up every AI call — this is what you've spent.</p>
+      </div>
 
-        <div className="mt-3 flex flex-col gap-2">
+      {/* Per-feature breakdown */}
+      <div>
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Breakdown</p>
+        <div className="flex flex-col gap-2">
           {loading ? (
             <p className="text-xs text-[var(--muted)]">Loading…</p>
           ) : byFeature.length === 0 ? (
-            <p className="text-xs text-[var(--muted)]">No AI features used yet this month.</p>
+            <p className="text-xs text-[var(--muted)]">
+              No AI features used yet this month. Use the coach, scans or plan generator and your
+              spend shows up here.
+            </p>
           ) : (
             byFeature.map(row => (
               <div key={row.feature} className="flex items-center justify-between text-xs">
@@ -73,29 +86,27 @@ export function SpendPanel() {
         </div>
       </div>
 
-      {/* Anthropic billing */}
-      <div className="rounded-2xl bg-[var(--bg)] p-4">
-        <div className="mb-1 flex items-center gap-2">
-          <Sparkles size={14} style={{ color: 'var(--accent)' }} />
-          <p className="text-sm font-semibold text-[var(--text)]">Anthropic billing</p>
-        </div>
-        {anthropic.status === 'loading' ? (
-          <p className="text-xs text-[var(--muted)]">Checking…</p>
-        ) : anthropic.status === 'ready' ? (
+      {/* Optional: official Anthropic total (only if an admin key is configured) */}
+      {anthropic.status === 'ready' ? (
+        <div className="rounded-2xl bg-[var(--bg)] p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+            <p className="text-sm font-semibold text-[var(--text)]">Anthropic official total</p>
+          </div>
           <p className="text-xs text-[var(--text)]">
             <span className="text-lg font-black">{formatUsd(anthropic.totalUsd)}</span>{' '}
             <span className="text-[var(--muted)]">billed month-to-date ({anthropic.month})</span>
           </p>
-        ) : anthropic.status === 'error' ? (
-          <p className="text-xs text-[var(--muted)]">{anthropic.message}</p>
-        ) : (
-          <p className="text-xs text-[var(--muted)]">
-            To show your real Anthropic total here, add an org Admin key
-            (<span className="font-mono">ANTHROPIC_ADMIN_KEY</span>) in Vercel. Individual accounts
-            don't have one — the in-app estimate above is your spend.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : anthropic.status === 'error' ? (
+        <p className="text-[11px] text-[var(--muted)]">{anthropic.message}</p>
+      ) : anthropic.status === 'unconfigured' ? (
+        <p className="text-[11px] text-[var(--muted)]">
+          The number above is your spend. Optionally, if you have an Anthropic <em>organization</em>{' '}
+          account, you can add an Admin key in Vercel to also show Anthropic's official invoice total
+          here — not needed for a personal account.
+        </p>
+      ) : null}
     </div>
   );
 }
