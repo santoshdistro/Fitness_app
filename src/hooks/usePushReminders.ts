@@ -48,7 +48,12 @@ export function usePushReminders() {
         // Self-heal: the browser is subscribed but there's no server row (e.g.
         // the table didn't exist yet when first enabled). Persist it now so the
         // scheduler can actually reach this device.
-        if (!data) await saveSubscription(userId, sub, merged);
+        if (!data) {
+          const { error: healError } = await saveSubscription(userId, sub, merged);
+          if (healError && !cancelled) {
+            setError(`Couldn't register this device for reminders: ${healError.message}`);
+          }
+        }
         setStatus('on');
       } else {
         setStatus('off');
