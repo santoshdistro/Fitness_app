@@ -23,3 +23,7 @@ create policy "push_subscriptions_owner" on public.push_subscriptions
   with check (user_id = auth.uid());
 
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
+
+-- The reminder scheduler reads/writes this table server-side with the
+-- service_role key, so it needs table privileges too.
+grant all on public.push_subscriptions to service_role;
