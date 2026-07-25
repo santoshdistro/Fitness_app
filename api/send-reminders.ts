@@ -63,11 +63,14 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     return;
   }
 
+  const debug = firstHeader(req.query?.debug) !== '';
+
   const admin = createClient(supabaseUrl, serviceKey);
   const { data } = await admin.from('push_subscriptions').select('*');
   const rows = (data as Row[]) ?? [];
 
   let sent = 0;
+  const diagnostics: unknown[] = [];
   for (const row of rows) {
     const nowLocal = new Date(Date.now() + (row.tz_offset_minutes || 0) * 60000);
     const minutesOfDay = nowLocal.getUTCHours() * 60 + nowLocal.getUTCMinutes();
@@ -108,18 +111,40 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
 
     // Interval water reminder within its daytime window.
     const water = prefs.water;
-    if (water?.enabled) {
-      const start = toMinutes(water.startTime);
-      const end = toMinutes(water.endTime);
-      const intervalMin = Math.max(1, Math.round((water.everyHours ?? 2) * 60));
-      if (start != null && end != null && minutesOfDay >= start && minutesOfDay <= end) {
-        const since = minutesOfDay - start;
-        const slot = Math.floor(since / intervalMin);
-        const intoSlot = since - slot * intervalMin;
-        if (intoSlot < WINDOW_MINUTES) {
-          await trySend('water', `${localDate}#${slot}`);
-        }
-      }
+    const start = toMinutes(water?.startTime);
+    const end = toMinutes(water?.endTime);
+    const intervalMin = Math.max(1, Math.round((water?.everyHours ?? 2) * 60));
+    const inRange = start != null && end != null && minutesOfDay >= start && minutesOfDay <= end;
+    const since = start != null ? minutesOfDay - start : null;
+    const slot = since != null ? Math.floor(since / intervalMin) : null;
+    const intoSlot = since != null && slot != null ? since - slot * intervalMin : null;
+    if (water?.enabled && inRange && intoSlot != null && intoSlot < WINDOW_MINUTES && slot != null) {
+      await trySend('water', `${localDate}#${slot}`);
+    }
+
+    if (debug) {
+      diagnostics.push({
+        localTime: `${String(nowLocal.getUTCHours()).padStart(2, '0')}:${String(nowLocal.getUTCMinutes()).padStart(2, '0')}`,
+        localDate,
+        tzOffsetMinutes: row.tz_offset_minutes,
+        hasWaterPref: Boolean(water),
+        water: water
+          ? {
+              enabled: Boolean(water.enabled),
+              everyHours: water.everyHours,
+              start: water.startTime,
+              end: water.endTime,
+              inRange,
+              intoSlot,
+              windowMinutes: WINDOW_MINUTES,
+              dedupKey: slot != null ? `${localDate}#${slot}` : null,
+              lastSentWater: lastSent.water ?? null,
+            }
+          : null,
+        enabledItems: Object.entries(prefs.items ?? {})
+          .filter(([, p]) => p?.enabled)
+          .map(([tag, p]) => ({ tag, time: p.time })),
+      });
     }
 
     if (changed) {
@@ -127,5 +152,5 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     }
   }
 
-  res.status(200).json({ ok: true, sent });
+  res.status(200).json({ ok: true, sent, subscriptions: rows.length, ...(debug ? { diagnostics } : {}) });
 }
