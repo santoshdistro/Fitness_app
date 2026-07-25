@@ -45,14 +45,12 @@ export function usePushReminders() {
         const savedPrefs = (data as { prefs?: Partial<ReminderPrefs> } | null)?.prefs;
         const merged = mergeReminderPrefs(savedPrefs);
         setPrefs(merged);
-        // Self-heal: the browser is subscribed but there's no server row (e.g.
-        // the table didn't exist yet when first enabled). Persist it now so the
-        // scheduler can actually reach this device.
-        if (!data) {
-          const { error: healError } = await saveSubscription(userId, sub, merged);
-          if (healError && !cancelled) {
-            setError(`Couldn't register this device for reminders: ${healError.message}`);
-          }
+        // Keep the server row current on every open: persists the device if it's
+        // missing (self-heal) and refreshes the stored timezone offset so
+        // reminders always fire at the right local time (e.g. after travel).
+        const { error: healError } = await saveSubscription(userId, sub, merged);
+        if (healError && !cancelled) {
+          setError(`Couldn't register this device for reminders: ${healError.message}`);
         }
         setStatus('on');
       } else {
