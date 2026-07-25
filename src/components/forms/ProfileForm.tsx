@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useProfile } from '../../hooks/useProfile';
 import type { Gender } from '../../utils/calculations';
 import { EQUIPMENT_OPTIONS } from '../../data/workoutPrograms';
+import { DataResetSection } from './DataResetSection';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -161,6 +162,8 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
       >
         AI usage & spending
       </button>
+
+      <DataResetSection />
     </form>
   );
 }
