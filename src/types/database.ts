@@ -59,6 +59,16 @@ export type ProgressPhoto = {
   created_at: string;
 };
 
+export type BodyScan = {
+  id: string;
+  user_id: string;
+  summary: string;
+  focus_areas: string[];
+  training_focus: string | null;
+  nutrition_focus: string | null;
+  created_at: string;
+};
+
 export type ExerciseSet = {
   exercise: string;
   reps: number;

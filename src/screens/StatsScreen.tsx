@@ -5,7 +5,7 @@ import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
-import { useLastBodyScan } from '../hooks/useLastBodyScan';
+import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -36,6 +36,14 @@ function formatMealTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
+function formatScanDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 function formatShortDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
     month: 'short',
@@ -62,7 +70,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
-  const { scan: lastBodyScan, clearScan } = useLastBodyScan();
+  const { scans: bodyScans, removeScan } = useBodyScans();
+  const [openScanId, setOpenScanId] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
 
   const measurement = measurements[0];
@@ -402,29 +411,75 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         <ChevronRight size={16} className="text-[var(--muted)]" />
       </button>
 
-      {/* Latest physique scan */}
-      {lastBodyScan ? (
+      {/* Physique scan history */}
+      {bodyScans.length > 0 ? (
         <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.25s' }}>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-[var(--text)]">Latest physique scan</p>
+          <p className="mb-1 text-sm font-semibold text-[var(--text)]">Physique scans</p>
+          <p className="mb-3 text-[10px] text-[var(--muted)]">
+            {bodyScans.length} scan{bodyScans.length === 1 ? '' : 's'} · directional AI coaching, not
+            a medical assessment
+          </p>
+
+          {/* Latest, expanded */}
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              {formatScanDate(bodyScans[0].created_at)} · latest
+            </p>
             <button
               type="button"
-              onClick={clearScan}
-              className="text-[11px] font-semibold text-[var(--muted)]"
+              onClick={() => removeScan(bodyScans[0].id)}
+              aria-label="Delete scan"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
             >
-              Clear
+              <Trash2 size={13} />
             </button>
           </div>
-          <BodyScanReadout result={lastBodyScan.result} />
-          <p className="mt-3 text-[10px] text-[var(--muted)]">
-            Scanned{' '}
-            {new Date(lastBodyScan.scannedAt).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}{' '}
-            · directional AI coaching, not a medical assessment
-          </p>
+          <BodyScanReadout result={scanToResult(bodyScans[0])} />
+
+          {/* Earlier scans — tap to expand */}
+          {bodyScans.length > 1 ? (
+            <div className="mt-4 border-t border-[var(--card-border)] pt-3">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Earlier
+              </p>
+              {bodyScans.slice(1).map(scan => {
+                const open = openScanId === scan.id;
+                return (
+                  <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenScanId(open ? null : scan.id)}
+                        className="flex flex-1 items-center justify-between text-left"
+                      >
+                        <span className="text-xs text-[var(--text)]">{formatScanDate(scan.created_at)}</span>
+                        <ChevronRight
+                          size={14}
+                          className="text-[var(--muted)] transition-transform"
+                          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeScan(scan.id)}
+                        aria-label="Delete scan"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                    {open ? (
+                      <div className="mt-2">
+                        <BodyScanReadout result={scanToResult(scan)} />
+                      </div>
+                    ) : (
+                      <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

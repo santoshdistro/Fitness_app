@@ -3,7 +3,7 @@ import { Camera } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useRecentMeasurements } from '../../hooks/useRecentMeasurements';
-import { useLastBodyScan } from '../../hooks/useLastBodyScan';
+import { useBodyScans } from '../../hooks/useBodyScans';
 import { analyzeBody, type BodyResult } from '../../lib/aiClient';
 import { fileToDownscaledBase64 } from '../../utils/image';
 import { BodyScanReadout } from '../BodyScanReadout';
@@ -25,7 +25,7 @@ export function BodyScanForm() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const { measurements } = useRecentMeasurements(1);
-  const { saveScan } = useLastBodyScan();
+  const { addScan } = useBodyScans();
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,7 +40,7 @@ export function BodyScanForm() {
     try {
       const image = await fileToDownscaledBase64(file);
       const result = await analyzeBody(session.user.id, image, { goal, bodyFatPercent: bodyFat });
-      saveScan(result);
+      void addScan(result);
       setStage({ step: 'result', preview, result });
     } catch (err) {
       setStage({
