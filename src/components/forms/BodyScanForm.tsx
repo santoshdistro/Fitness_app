@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
-import { Camera, Dumbbell, Sparkles, Utensils } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useRecentMeasurements } from '../../hooks/useRecentMeasurements';
+import { useLastBodyScan } from '../../hooks/useLastBodyScan';
 import { analyzeBody, type BodyResult } from '../../lib/aiClient';
 import { fileToDownscaledBase64 } from '../../utils/image';
+import { BodyScanReadout } from '../BodyScanReadout';
 import { errorTextClass } from './formStyles';
 
 type Stage =
@@ -23,6 +25,7 @@ export function BodyScanForm() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const { measurements } = useRecentMeasurements(1);
+  const { saveScan } = useLastBodyScan();
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +40,7 @@ export function BodyScanForm() {
     try {
       const image = await fileToDownscaledBase64(file);
       const result = await analyzeBody(session.user.id, image, { goal, bodyFatPercent: bodyFat });
+      saveScan(result);
       setStage({ step: 'result', preview, result });
     } catch (err) {
       setStage({
@@ -95,43 +99,7 @@ export function BodyScanForm() {
             </>
           ) : (
             <div className="w-full">
-              <div className="flex items-center gap-2">
-                <Sparkles size={15} style={{ color: 'var(--accent)' }} />
-                <p className="text-sm font-semibold text-[var(--text)]">Coach's read</p>
-              </div>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">{stage.result.summary}</p>
-
-              {stage.result.focusAreas.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {stage.result.focusAreas.map(area => (
-                    <span
-                      key={area}
-                      className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-semibold"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      {area}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="mt-4 flex flex-col gap-3">
-                <div className="flex gap-2.5 rounded-2xl bg-[var(--bg)] p-3">
-                  <Dumbbell size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Training</p>
-                    <p className="text-xs text-[var(--text)]">{stage.result.trainingFocus}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2.5 rounded-2xl bg-[var(--bg)] p-3">
-                  <Utensils size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Nutrition</p>
-                    <p className="text-xs text-[var(--text)]">{stage.result.nutritionFocus}</p>
-                  </div>
-                </div>
-              </div>
-
+              <BodyScanReadout result={stage.result} />
               <button
                 type="button"
                 onClick={() => setStage({ step: 'pick' })}

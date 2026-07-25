@@ -5,6 +5,8 @@ import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
+import { useLastBodyScan } from '../hooks/useLastBodyScan';
+import { BodyScanReadout } from '../components/BodyScanReadout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -60,6 +62,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
+  const { scan: lastBodyScan, clearScan } = useLastBodyScan();
   const [copying, setCopying] = useState(false);
 
   const measurement = measurements[0];
@@ -398,6 +401,32 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         </div>
         <ChevronRight size={16} className="text-[var(--muted)]" />
       </button>
+
+      {/* Latest physique scan */}
+      {lastBodyScan ? (
+        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.25s' }}>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-[var(--text)]">Latest physique scan</p>
+            <button
+              type="button"
+              onClick={clearScan}
+              className="text-[11px] font-semibold text-[var(--muted)]"
+            >
+              Clear
+            </button>
+          </div>
+          <BodyScanReadout result={lastBodyScan.result} />
+          <p className="mt-3 text-[10px] text-[var(--muted)]">
+            Scanned{' '}
+            {new Date(lastBodyScan.scannedAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}{' '}
+            · directional AI coaching, not a medical assessment
+          </p>
+        </div>
+      ) : null}
 
       {/* Body fat */}
       <div
