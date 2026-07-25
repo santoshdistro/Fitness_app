@@ -39,22 +39,6 @@ function toMinutes(time: string | undefined): number | null {
   return h * 60 + m;
 }
 
-/** Describes the Supabase key WITHOUT leaking it, to spot anon-vs-service mistakes. */
-function describeKey(key: string): string {
-  if (key.startsWith('sb_secret_')) return 'new secret key (OK)';
-  if (key.startsWith('sb_publishable_')) return 'PUBLISHABLE key — WRONG, use the secret key';
-  const parts = key.split('.');
-  if (parts.length === 3) {
-    try {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8')) as { role?: string };
-      return `jwt role=${payload.role ?? 'unknown'}${payload.role === 'service_role' ? ' (OK)' : ' — WRONG, use the service_role key'}`;
-    } catch {
-      return 'unreadable jwt';
-    }
-  }
-  return 'unknown key format';
-}
-
 export default async function handler(req: PushReq, res: PushRes): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -82,14 +66,11 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
   // supabase-js expects only the project origin.
   const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 
-  const debug = firstHeader(req.query?.debug) !== '';
-
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data, error: selectError } = await admin.from('push_subscriptions').select('*');
+  const { data } = await admin.from('push_subscriptions').select('*');
   const rows = (data as Row[]) ?? [];
 
   let sent = 0;
-  const diagnostics: unknown[] = [];
   for (const row of rows) {
     const nowLocal = new Date(Date.now() + (row.tz_offset_minutes || 0) * 60000);
     const minutesOfDay = nowLocal.getUTCHours() * 60 + nowLocal.getUTCMinutes();
@@ -141,53 +122,10 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
       await trySend('water', `${localDate}#${slot}`);
     }
 
-    if (debug) {
-      diagnostics.push({
-        localTime: `${String(nowLocal.getUTCHours()).padStart(2, '0')}:${String(nowLocal.getUTCMinutes()).padStart(2, '0')}`,
-        localDate,
-        tzOffsetMinutes: row.tz_offset_minutes,
-        hasWaterPref: Boolean(water),
-        water: water
-          ? {
-              enabled: Boolean(water.enabled),
-              everyHours: water.everyHours,
-              start: water.startTime,
-              end: water.endTime,
-              inRange,
-              intoSlot,
-              windowMinutes: WINDOW_MINUTES,
-              dedupKey: slot != null ? `${localDate}#${slot}` : null,
-              lastSentWater: lastSent.water ?? null,
-            }
-          : null,
-        enabledItems: Object.entries(prefs.items ?? {})
-          .filter(([, p]) => p?.enabled)
-          .map(([tag, p]) => ({ tag, time: p.time })),
-      });
-    }
-
     if (changed) {
       await admin.from('push_subscriptions').update({ last_sent: lastSent }).eq('id', row.id);
     }
   }
 
-  res.status(200).json({
-    ok: true,
-    sent,
-    subscriptions: rows.length,
-    ...(debug
-      ? {
-          serviceKey: describeKey(serviceKey),
-          supabaseHost: (() => {
-            try {
-              return new URL(supabaseUrl).host;
-            } catch {
-              return 'invalid SUPABASE_URL';
-            }
-          })(),
-          selectError: selectError?.message ?? null,
-          diagnostics,
-        }
-      : {}),
-  });
+  res.status(200).json({ ok: true, sent });
 }
