@@ -98,14 +98,15 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
       }
     };
 
-    // Fixed one-time reminders.
+    // Fixed one-time reminders. The dedup key includes the set time, so changing
+    // a reminder's time re-arms it for the new time on the same day.
     for (const [tag, pref] of Object.entries(prefs.items ?? {})) {
       if (!pref?.enabled) continue;
       const target = toMinutes(pref.time);
       if (target == null) continue;
       const delta = minutesOfDay - target;
       if (delta >= 0 && delta < WINDOW_MINUTES) {
-        await trySend(tag, localDate);
+        await trySend(tag, `${localDate}#${pref.time}`);
       }
     }
 
