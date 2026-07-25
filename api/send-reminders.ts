@@ -82,7 +82,7 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
   const debug = firstHeader(req.query?.debug) !== '';
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data } = await admin.from('push_subscriptions').select('*');
+  const { data, error: selectError } = await admin.from('push_subscriptions').select('*');
   const rows = (data as Row[]) ?? [];
 
   let sent = 0;
@@ -172,6 +172,19 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     ok: true,
     sent,
     subscriptions: rows.length,
-    ...(debug ? { serviceKey: describeKey(serviceKey), diagnostics } : {}),
+    ...(debug
+      ? {
+          serviceKey: describeKey(serviceKey),
+          supabaseHost: (() => {
+            try {
+              return new URL(supabaseUrl).host;
+            } catch {
+              return 'invalid SUPABASE_URL';
+            }
+          })(),
+          selectError: selectError?.message ?? null,
+          diagnostics,
+        }
+      : {}),
   });
 }
