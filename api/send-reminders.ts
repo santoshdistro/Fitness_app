@@ -39,6 +39,22 @@ function toMinutes(time: string | undefined): number | null {
   return h * 60 + m;
 }
 
+/** Describes the Supabase key WITHOUT leaking it, to spot anon-vs-service mistakes. */
+function describeKey(key: string): string {
+  if (key.startsWith('sb_secret_')) return 'new secret key (OK)';
+  if (key.startsWith('sb_publishable_')) return 'PUBLISHABLE key — WRONG, use the secret key';
+  const parts = key.split('.');
+  if (parts.length === 3) {
+    try {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8')) as { role?: string };
+      return `jwt role=${payload.role ?? 'unknown'}${payload.role === 'service_role' ? ' (OK)' : ' — WRONG, use the service_role key'}`;
+    } catch {
+      return 'unreadable jwt';
+    }
+  }
+  return 'unknown key format';
+}
+
 export default async function handler(req: PushReq, res: PushRes): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -152,5 +168,10 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     }
   }
 
-  res.status(200).json({ ok: true, sent, subscriptions: rows.length, ...(debug ? { diagnostics } : {}) });
+  res.status(200).json({
+    ok: true,
+    sent,
+    subscriptions: rows.length,
+    ...(debug ? { serviceKey: describeKey(serviceKey), diagnostics } : {}),
+  });
 }
