@@ -43,7 +43,12 @@ export function usePushReminders() {
           .eq('endpoint', sub.endpoint)
           .maybeSingle();
         const savedPrefs = (data as { prefs?: Partial<ReminderPrefs> } | null)?.prefs;
-        setPrefs(mergeReminderPrefs(savedPrefs));
+        const merged = mergeReminderPrefs(savedPrefs);
+        setPrefs(merged);
+        // Self-heal: the browser is subscribed but there's no server row (e.g.
+        // the table didn't exist yet when first enabled). Persist it now so the
+        // scheduler can actually reach this device.
+        if (!data) await saveSubscription(userId, sub, merged);
         setStatus('on');
       } else {
         setStatus('off');
