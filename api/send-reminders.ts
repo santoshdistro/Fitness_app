@@ -72,12 +72,15 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     res.status(500).json({ error: 'Push is not configured. Add VAPID keys in Vercel.' });
     return;
   }
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const rawUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) {
+  if (!rawUrl || !serviceKey) {
     res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set.' });
     return;
   }
+  // Tolerate a URL that mistakenly includes the REST path or a trailing slash —
+  // supabase-js expects only the project origin.
+  const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 
   const debug = firstHeader(req.query?.debug) !== '';
 
