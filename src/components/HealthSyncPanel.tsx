@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Check, Copy, RefreshCw, Smartphone } from 'lucide-react';
+import { Check, Copy, Play, RefreshCw, Smartphone } from 'lucide-react';
 import { useProfile } from '../hooks/useProfile';
+import { getSyncShortcutName, runSyncShortcut, setSyncShortcutName } from '../utils/healthShortcut';
 
 function makeToken(): string {
   const raw =
@@ -42,6 +43,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 export function HealthSyncPanel() {
   const { profile, saveProfile } = useProfile();
   const [working, setWorking] = useState(false);
+  const [shortcutName, setShortcutName] = useState(getSyncShortcutName());
 
   const token = profile?.sync_token ?? null;
   const endpoint =
@@ -89,6 +91,39 @@ export function HealthSyncPanel() {
           {working ? 'Generating…' : 'Generate my sync token'}
         </button>
       )}
+
+      {token ? (
+        <div className="glass-card flex flex-col gap-3 p-4">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Sync from inside the app</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)]">
+              Type your Shortcut's exact name here to get a one-tap sync button on the Home screen (and
+              below). Leave blank if you only use the nightly automation.
+            </p>
+          </div>
+          <input
+            className="rounded-xl bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none"
+            type="text"
+            value={shortcutName}
+            onChange={e => {
+              setShortcutName(e.target.value);
+              setSyncShortcutName(e.target.value);
+            }}
+            placeholder="e.g. Health Sync"
+          />
+          {shortcutName.trim() ? (
+            <button
+              type="button"
+              onClick={() => runSyncShortcut(shortcutName)}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            >
+              <Play size={15} fill="currentColor" />
+              Sync now
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="glass-card flex flex-col gap-3 p-4">
         <p className="text-sm font-semibold text-[var(--text)]">Build the Shortcut</p>

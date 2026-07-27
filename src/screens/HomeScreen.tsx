@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
+import { ChevronRight, Flame, HeartPulse, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
@@ -19,6 +19,7 @@ import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
+import { getSyncShortcutName, runSyncShortcut } from '../utils/healthShortcut';
 import { volumeParts } from '../utils/units';
 import {
   ageFromBirthDate,
@@ -56,6 +57,7 @@ type Props = {
 
 export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const [syncShortcut] = useState(getSyncShortcutName());
   const viewingToday = isToday(selectedDate);
 
   const { log: dayLog, loading: dayLoading, refresh: refreshDay } = useTodayLog(selectedDate);
@@ -235,6 +237,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {syncShortcut ? (
+            <button
+              onClick={() => runSyncShortcut(syncShortcut)}
+              aria-label="Sync Apple Health"
+              className="glass flex h-10 w-10 items-center justify-center rounded-full"
+            >
+              <HeartPulse size={16} className="text-[var(--accent)]" />
+            </button>
+          ) : null}
           <button
             onClick={onRefresh}
             aria-label="Refresh"
