@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronRight, Dumbbell, Sparkles, Trash2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useStrengthRecords } from '../hooks/useStrengthRecords';
+import { useTrainingSplit, SPLIT_OPTIONS, WEEKDAYS, todayIndex } from '../hooks/useTrainingSplit';
 import { useProfile } from '../hooks/useProfile';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
@@ -38,6 +39,8 @@ type Props = {
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
   const { records, lastByExercise } = useStrengthRecords();
+  const { split, setDay } = useTrainingSplit();
+  const todayIdx = todayIndex();
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
@@ -93,6 +96,38 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         </p>
         <p className="relative z-10 text-lg font-black leading-tight text-white drop-shadow">
           Show up. Lift. Repeat.
+        </p>
+      </div>
+
+      {/* Weekly split planner */}
+      <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.03s' }}>
+        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Weekly split</p>
+        <div className="flex flex-col gap-1.5">
+          {WEEKDAYS.map((d, i) => (
+            <div key={d} className="flex items-center gap-2">
+              <span
+                className={`w-12 text-xs font-bold ${i === todayIdx ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}`}
+              >
+                {d}
+                {i === todayIdx ? ' •' : ''}
+              </span>
+              <select
+                value={split[i]}
+                onChange={e => setDay(i, e.target.value)}
+                className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-xs outline-none"
+                style={{ color: split[i] === 'Rest' ? 'var(--muted)' : 'var(--text)' }}
+              >
+                {SPLIT_OPTIONS.map(o => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] text-[var(--muted)]">
+          Today: <span className="font-semibold text-[var(--text)]">{split[todayIdx]}</span>
         </p>
       </div>
 
