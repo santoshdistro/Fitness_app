@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronRight, Flame, HeartPulse, RefreshCw, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
@@ -71,11 +71,29 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const { workouts } = useRecentWorkouts(20);
 
   const refreshing = dayLoading || recentLoading;
-  const onRefresh = () => {
+  const reloadData = () => {
     refreshDay();
     refreshRecent();
     refreshNutrition();
   };
+  const onRefresh = () => {
+    // If a Health-sync Shortcut is configured, run it (jumps to Shortcuts,
+    // which posts today's metrics), then reload. When the user returns to the
+    // app the visibility handler below reloads again so fresh data shows.
+    if (syncShortcut) runSyncShortcut(syncShortcut);
+    reloadData();
+  };
+
+  // Reload whenever the app comes back to the foreground — e.g. after the
+  // Health-sync Shortcut ran and the user swiped back.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') reloadData();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const waterDisplay = volumeParts(dayLog?.water_ml ?? 0, settings.volumeUnit);
   const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
@@ -237,23 +255,14 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          {syncShortcut ? (
-            <button
-              onClick={() => runSyncShortcut(syncShortcut)}
-              aria-label="Sync Apple Health"
-              className="glass flex h-10 w-10 items-center justify-center rounded-full"
-            >
-              <HeartPulse size={16} className="text-[var(--accent)]" />
-            </button>
-          ) : null}
           <button
             onClick={onRefresh}
-            aria-label="Refresh"
+            aria-label={syncShortcut ? 'Sync Health & refresh' : 'Refresh'}
             className="glass flex h-10 w-10 items-center justify-center rounded-full"
           >
             <RefreshCw
               size={15}
-              className={`text-[var(--muted)] ${refreshing ? 'animate-spin' : ''}`}
+              className={`${syncShortcut ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} ${refreshing ? 'animate-spin' : ''}`}
             />
           </button>
           <button
