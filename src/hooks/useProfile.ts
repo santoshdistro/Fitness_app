@@ -19,6 +19,7 @@ export type Profile = {
   weekly_rate_kg: number | null;
   target_weight_kg: number | null;
   calorie_target_override: number | null;
+  sync_token: string | null;
 };
 
 export function useProfile() {

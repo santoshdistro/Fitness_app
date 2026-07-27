@@ -16,6 +16,9 @@ export function ActivityForm({ onSaved }: Props) {
   const [water, setWater] = useState('');
   const [sleep, setSleep] = useState('');
   const [activeKcal, setActiveKcal] = useState('');
+  const [caffeine, setCaffeine] = useState('');
+  const [mood, setMood] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +28,9 @@ export function ActivityForm({ onSaved }: Props) {
     if (todayLog.water_ml != null) setWater(String(todayLog.water_ml));
     if (todayLog.sleep_hours != null) setSleep(String(todayLog.sleep_hours));
     if (todayLog.active_calories_burned != null) setActiveKcal(String(todayLog.active_calories_burned));
+    if (todayLog.caffeine_mg != null) setCaffeine(String(todayLog.caffeine_mg));
+    if (todayLog.mood != null) setMood(todayLog.mood);
+    if (todayLog.energy != null) setEnergy(todayLog.energy);
   }, [todayLog]);
 
   async function handleSubmit(event: FormEvent) {
@@ -41,6 +47,9 @@ export function ActivityForm({ onSaved }: Props) {
     if (water) payload.water_ml = Math.round(Number(water));
     if (sleep) payload.sleep_hours = Number(sleep);
     if (activeKcal) payload.active_calories_burned = Number(activeKcal);
+    if (caffeine) payload.caffeine_mg = Number(caffeine);
+    if (mood != null) payload.mood = mood;
+    if (energy != null) payload.energy = energy;
 
     const { error: saveError } = await supabase
       .from('daily_logs')
@@ -135,10 +144,70 @@ export function ActivityForm({ onSaved }: Props) {
         />
       </div>
 
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="caffeine-input">
+          Caffeine (mg) — optional
+        </label>
+        <input
+          id="caffeine-input"
+          className={inputClass}
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={caffeine}
+          onChange={e => setCaffeine(e.target.value)}
+          placeholder="e.g. 95 per coffee"
+        />
+      </div>
+
+      <div className="mb-3">
+        <label className={labelClass}>Mood</label>
+        <div className="flex justify-between gap-1">
+          {['😣', '😕', '😐', '🙂', '😄'].map((emoji, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setMood(mood === i + 1 ? null : i + 1)}
+              className="flex-1 rounded-2xl border py-2 text-xl"
+              style={
+                mood === i + 1
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent)' }
+                  : { borderColor: 'var(--card-border)' }
+              }
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className={labelClass}>Energy</label>
+        <div className="flex justify-between gap-1">
+          {['😴', '🥱', '😐', '💪', '⚡'].map((emoji, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setEnergy(energy === i + 1 ? null : i + 1)}
+              className="flex-1 rounded-2xl border py-2 text-xl"
+              style={
+                energy === i + 1
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent)' }
+                  : { borderColor: 'var(--card-border)' }
+              }
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error ? <p className={errorTextClass}>{error}</p> : null}
       <button
         type="submit"
-        disabled={saving || (!steps && !water && !sleep && !activeKcal)}
+        disabled={
+          saving || (!steps && !water && !sleep && !activeKcal && !caffeine && mood == null && energy == null)
+        }
         className={submitButtonClass}
       >
         {saving ? 'Saving...' : 'Save activity'}

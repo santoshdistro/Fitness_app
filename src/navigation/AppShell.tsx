@@ -27,6 +27,7 @@ import { Calculators } from '../components/Calculators';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { AchievementsPanel } from '../components/AchievementsPanel';
 import { FastingPanel } from '../components/FastingPanel';
+import { HealthSyncPanel } from '../components/HealthSyncPanel';
 import { CardioForm } from '../components/forms/CardioForm';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
@@ -45,6 +46,7 @@ type ActiveSheet =
   | 'achievements'
   | 'fasting'
   | 'cardio'
+  | 'healthSync'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -276,6 +278,7 @@ export function AppShell() {
           onOpenSpend={() => setActiveSheet('spend')}
           onOpenCalculators={() => setActiveSheet('calculators')}
           onOpenAchievements={() => setActiveSheet('achievements')}
+          onOpenHealthSync={() => setActiveSheet('healthSync')}
         />
       </Sheet>
 
@@ -305,6 +308,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'cardio'} onClose={closeSheet} title="Log cardio">
         <CardioForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'healthSync'} onClose={closeSheet} title="Apple Health sync">
+        <HealthSyncPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">

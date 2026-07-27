@@ -7,6 +7,9 @@ export type DailyLog = {
   active_calories_burned: number | null;
   sleep_hours: number | null;
   water_ml: number | null;
+  caffeine_mg: number | null;
+  mood: number | null;
+  energy: number | null;
 };
 
 export type Measurement = {

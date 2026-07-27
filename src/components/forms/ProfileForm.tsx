@@ -13,6 +13,7 @@ type Props = {
   onOpenSpend: () => void;
   onOpenCalculators: () => void;
   onOpenAchievements: () => void;
+  onOpenHealthSync: () => void;
 };
 
 export function ProfileForm({
@@ -21,6 +22,7 @@ export function ProfileForm({
   onOpenSpend,
   onOpenCalculators,
   onOpenAchievements,
+  onOpenHealthSync,
 }: Props) {
   const { profile, saveProfile } = useProfile();
   const { settings } = useSettings();
@@ -220,6 +222,15 @@ export function ProfileForm({
         style={{ color: 'var(--accent)' }}
       >
         Calculators
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenHealthSync}
+        className="mt-3 w-full text-center text-xs font-semibold"
+        style={{ color: 'var(--accent)' }}
+      >
+        📱 Apple Health sync
       </button>
 
       <button
