@@ -12,6 +12,14 @@ function num(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// Guard against a mis-built Shortcut sending an implausible value (e.g. summing
+// all-time sleep instead of one night). Out-of-range values are dropped, not
+// saved, so a bad sync can never corrupt the day's log.
+function inRange(value: number | null, min: number, max: number): number | null {
+  if (value == null) return null;
+  return value >= min && value <= max ? value : null;
+}
+
 export default async function handler(req: PushReq, res: PushRes): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -63,11 +71,11 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
     user_id: (profile as { user_id: string }).user_id,
     log_date: logDate,
   };
-  const steps = num(body.steps);
-  const active = num(body.active_calories);
-  const weight = num(body.weight_kg);
-  const sleep = num(body.sleep_hours);
-  const water = num(body.water_ml);
+  const steps = inRange(num(body.steps), 0, 300000);
+  const active = inRange(num(body.active_calories), 0, 30000);
+  const weight = inRange(num(body.weight_kg), 20, 500);
+  const sleep = inRange(num(body.sleep_hours), 0, 24);
+  const water = inRange(num(body.water_ml), 0, 30000);
   if (steps != null) payload.steps = Math.round(steps);
   if (active != null) payload.active_calories_burned = Math.round(active);
   if (weight != null) payload.weight = Math.round(weight * 100) / 100;
