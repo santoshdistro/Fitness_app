@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
+export type WeightUnit = 'kg' | 'lb';
+export type VolumeUnit = 'ml' | 'l';
+export type FoodUnit = 'g' | 'oz';
 
 export type Settings = {
   stepGoal: number;
   waterGoalMl: number;
   theme: Theme;
+  weightUnit: WeightUnit;
+  volumeUnit: VolumeUnit;
+  foodUnit: FoodUnit;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   stepGoal: 10000,
   waterGoalMl: 2500,
   theme: 'light',
+  weightUnit: 'kg',
+  volumeUnit: 'l',
+  foodUnit: 'g',
 };
 
 const KEY = 'app_settings';

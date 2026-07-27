@@ -8,6 +8,8 @@ import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
+import { useSettings } from '../hooks/useSettings';
+import { gToUnit, unitToG } from '../utils/units';
 import { todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
@@ -67,6 +69,8 @@ export function DiscoverScreen() {
   const { totals: dayTotals, meals, refresh: refreshNutrition } = useTodayNutrition(today);
   const { profile } = useProfile();
   const { logs: recentLogs } = useRecentDailyLogs(14);
+  const { settings } = useSettings();
+  const foodUnit = settings.foodUnit;
 
   const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
   const [query, setQuery] = useState('');
@@ -244,6 +248,7 @@ export function DiscoverScreen() {
           saving={saving}
           logMeal={logMeal}
           loggedMeals={meals}
+          foodUnit={foodUnit}
         />
       ) : tab === 'nutrition' ? (
         <NutritionTab
@@ -279,6 +284,7 @@ type AddMealProps = {
   saving: boolean;
   logMeal: () => void;
   loggedMeals: FoodLog[];
+  foodUnit: 'g' | 'oz';
 };
 
 function AddMealTab(p: AddMealProps) {
@@ -367,12 +373,15 @@ function AddMealTab(p: AddMealProps) {
                 <input
                   className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
                   type="number"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   min="0"
-                  value={i.grams}
-                  onChange={e => p.updateGrams(i.key, Number(e.target.value) || 0)}
+                  step="any"
+                  value={p.foodUnit === 'oz' ? Math.round(gToUnit(i.grams, 'oz') * 10) / 10 : i.grams}
+                  onChange={e =>
+                    p.updateGrams(i.key, Math.round(unitToG(Number(e.target.value) || 0, p.foodUnit)))
+                  }
                 />
-                <span className="text-[10px] text-[var(--muted)]">g</span>
+                <span className="text-[10px] text-[var(--muted)]">{p.foodUnit}</span>
               </div>
               <button
                 type="button"

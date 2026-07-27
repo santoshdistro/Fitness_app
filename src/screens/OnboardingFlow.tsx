@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, Check, Dumbbell, Minus, TrendingDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
+import { useSettings } from '../hooks/useSettings';
 import { supabase } from '../lib/supabaseClient';
+import { unitToKg } from '../utils/units';
 import { todayDateString } from '../utils/date';
 import { inputClass } from '../components/forms/formStyles';
 import {
@@ -53,6 +55,8 @@ const GOAL_META: Record<GoalType, { label: string; desc: string; icon: typeof Du
 export function OnboardingFlow({ onComplete }: Props) {
   const { session } = useAuth();
   const { saveProfile } = useProfile();
+  const { settings } = useSettings();
+  const wUnit = settings.weightUnit;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +111,7 @@ export function OnboardingFlow({ onComplete }: Props) {
   // Live preview of the plan on the review step.
   const preview = (() => {
     if (!draft.gender || !draft.birthDate || !draft.goal) return null;
-    const weightKg = Number(draft.weight);
+    const weightKg = unitToKg(Number(draft.weight), wUnit);
     const bmr = computeBMR({
       gender: draft.gender,
       weightKg,
@@ -141,7 +145,8 @@ export function OnboardingFlow({ onComplete }: Props) {
       goal_type: draft.goal,
       weekly_rate_kg: draft.goal === 'maintain' ? 0 : draft.rate,
       calorie_deficit_kcal: preview.deficitKcal,
-      target_weight_kg: draft.goal === 'maintain' ? null : Number(draft.targetWeight),
+      target_weight_kg:
+        draft.goal === 'maintain' ? null : unitToKg(Number(draft.targetWeight), wUnit),
     });
     if (profileError) {
       setSaving(false);
@@ -153,7 +158,11 @@ export function OnboardingFlow({ onComplete }: Props) {
     await supabase
       .from('daily_logs')
       .upsert(
-        { user_id: session.user.id, log_date: todayDateString(), weight: Number(draft.weight) },
+        {
+          user_id: session.user.id,
+          log_date: todayDateString(),
+          weight: Math.round(unitToKg(Number(draft.weight), wUnit) * 100) / 100,
+        },
         { onConflict: 'user_id,log_date' },
       );
 
@@ -236,7 +245,10 @@ export function OnboardingFlow({ onComplete }: Props) {
         )}
 
         {current === 'weight' && (
-          <Question title="What's your current weight?" subtitle="In kilograms.">
+          <Question
+            title="What's your current weight?"
+            subtitle={wUnit === 'lb' ? 'In pounds.' : 'In kilograms.'}
+          >
             <div className="flex items-center gap-2">
               <input
                 className={inputClass}
@@ -245,9 +257,9 @@ export function OnboardingFlow({ onComplete }: Props) {
                 autoFocus
                 value={draft.weight}
                 onChange={e => set({ weight: e.target.value })}
-                placeholder="77"
+                placeholder={wUnit === 'lb' ? '170' : '77'}
               />
-              <span className="text-sm font-semibold text-[var(--muted)]">kg</span>
+              <span className="text-sm font-semibold text-[var(--muted)]">{wUnit}</span>
             </div>
           </Question>
         )}
@@ -321,7 +333,7 @@ export function OnboardingFlow({ onComplete }: Props) {
                 onChange={e => set({ targetWeight: e.target.value })}
                 placeholder={draft.goal === 'gain' ? '82' : '72'}
               />
-              <span className="text-sm font-semibold text-[var(--muted)]">kg</span>
+              <span className="text-sm font-semibold text-[var(--muted)]">{wUnit}</span>
             </div>
             {draft.weight && draft.targetWeight ? (
               <p className="mt-3 text-xs text-[var(--muted)]">
@@ -330,10 +342,10 @@ export function OnboardingFlow({ onComplete }: Props) {
                   const abs = Math.abs(diff).toFixed(1);
                   if (draft.goal === 'lose')
                     return diff > 0
-                      ? `That's ${abs} kg to lose. Totally doable. 💪`
+                      ? `That's ${abs} ${wUnit} to lose. Totally doable. 💪`
                       : 'Tip: your target should be below your current weight to lose.';
                   return diff < 0
-                    ? `That's ${abs} kg to gain. Let's build. 💪`
+                    ? `That's ${abs} ${wUnit} to gain. Let's build. 💪`
                     : 'Tip: your target should be above your current weight to gain.';
                 })()}
               </p>

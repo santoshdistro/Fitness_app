@@ -1,4 +1,6 @@
 import { computeBmi } from '../utils/calculations';
+import type { WeightUnit } from '../hooks/useSettings';
+import { weightValue } from '../utils/units';
 
 const CATEGORY_LABEL: Record<string, string> = {
   underweight: 'Underweight',
@@ -19,7 +21,15 @@ function bmiToPercent(bmi: number): number {
   return Math.max(0, Math.min(100, ((bmi - 15) / (40 - 15)) * 100));
 }
 
-export function BmiCard({ weightKg, heightCm }: { weightKg: number; heightCm: number }) {
+export function BmiCard({
+  weightKg,
+  heightCm,
+  weightUnit,
+}: {
+  weightKg: number;
+  heightCm: number;
+  weightUnit: WeightUnit;
+}) {
   const info = computeBmi(weightKg, heightCm);
   const color = CATEGORY_COLOR[info.category];
   const markerPercent = bmiToPercent(info.bmi);
@@ -29,11 +39,13 @@ export function BmiCard({ weightKg, heightCm }: { weightKg: number; heightCm: nu
   const p25 = bmiToPercent(25);
   const p30 = bmiToPercent(30);
 
+  const u = weightUnit;
+  const diff = weightValue(Math.abs(info.toHealthyKg), u, 1);
   const message =
     info.toHealthyKg > 0
-      ? `Lose ${info.toHealthyKg} kg to reach a healthy weight`
+      ? `Lose ${diff} ${u} to reach a healthy weight`
       : info.toHealthyKg < 0
-        ? `Gain ${Math.abs(info.toHealthyKg)} kg to reach a healthy weight`
+        ? `Gain ${diff} ${u} to reach a healthy weight`
         : "You're in the healthy range — nice. 🎉";
 
   return (

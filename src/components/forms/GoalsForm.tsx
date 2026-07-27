@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useProfile } from '../../hooks/useProfile';
+import { useSettings } from '../../hooks/useSettings';
+import { kgToUnit, unitToKg } from '../../utils/units';
 import {
   ACTIVITY_OPTIONS,
   GOAL_OPTIONS,
@@ -18,6 +20,8 @@ const GAIN_RATES = [0.15, 0.25, 0.5];
 
 export function GoalsForm({ onSaved }: Props) {
   const { profile, saveProfile } = useProfile();
+  const { settings } = useSettings();
+  const wUnit = settings.weightUnit;
   const [goal, setGoal] = useState<GoalType>('lose');
   const [activity, setActivity] = useState<ActivityLevel>('light');
   const [rate, setRate] = useState(0.5);
@@ -34,12 +38,13 @@ export function GoalsForm({ onSaved }: Props) {
     if (profile.goal_type) setGoal(profile.goal_type);
     if (profile.activity_level) setActivity(profile.activity_level);
     if (profile.weekly_rate_kg != null && profile.weekly_rate_kg > 0) setRate(profile.weekly_rate_kg);
-    if (profile.target_weight_kg != null) setTargetWeight(String(profile.target_weight_kg));
+    if (profile.target_weight_kg != null)
+      setTargetWeight(String(Math.round(kgToUnit(profile.target_weight_kg, wUnit) * 10) / 10));
     if (profile.calorie_target_override != null) setCalorieOverride(String(profile.calorie_target_override));
     if (profile.protein_target_g != null) setProtein(String(profile.protein_target_g));
     if (profile.fiber_target_g != null) setFiber(String(profile.fiber_target_g));
     if (profile.sodium_target_mg != null) setSodium(String(profile.sodium_target_mg));
-  }, [profile]);
+  }, [profile, wUnit]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -52,7 +57,12 @@ export function GoalsForm({ onSaved }: Props) {
       activity_level: activity,
       weekly_rate_kg: effectiveRate,
       calorie_deficit_kcal: deficitFromGoal(goal, effectiveRate),
-      target_weight_kg: goal === 'maintain' ? null : targetWeight ? Number(targetWeight) : null,
+      target_weight_kg:
+        goal === 'maintain'
+          ? null
+          : targetWeight
+            ? Math.round(unitToKg(Number(targetWeight), wUnit) * 100) / 100
+            : null,
       calorie_target_override: calorieOverride ? Number(calorieOverride) : null,
       protein_target_g: protein ? Number(protein) : null,
       fiber_target_g: fiber ? Number(fiber) : null,
@@ -136,7 +146,7 @@ export function GoalsForm({ onSaved }: Props) {
       {goal !== 'maintain' ? (
         <div className="mb-3">
           <label className={labelClass} htmlFor="target-weight-input">
-            {goal === 'gain' ? 'Goal weight (kg)' : 'Target weight (kg)'}
+            {goal === 'gain' ? `Goal weight (${wUnit})` : `Target weight (${wUnit})`}
           </label>
           <input
             id="target-weight-input"

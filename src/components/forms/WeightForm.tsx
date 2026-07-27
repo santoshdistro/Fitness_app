@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../hooks/useSettings';
+import { unitToKg } from '../../utils/units';
 import { todayDateString } from '../../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
@@ -10,6 +12,7 @@ type Props = {
 
 export function WeightForm({ onSaved }: Props) {
   const { session } = useAuth();
+  const { settings } = useSettings();
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +23,11 @@ export function WeightForm({ onSaved }: Props) {
     setSaving(true);
     setError(null);
 
+    const weightKg = Math.round(unitToKg(Number(weight), settings.weightUnit) * 100) / 100;
     const { error: saveError } = await supabase
       .from('daily_logs')
       .upsert(
-        { user_id: session.user.id, log_date: todayDateString(), weight: Number(weight) },
+        { user_id: session.user.id, log_date: todayDateString(), weight: weightKg },
         { onConflict: 'user_id,log_date' },
       );
 
@@ -38,7 +42,7 @@ export function WeightForm({ onSaved }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <label className={labelClass} htmlFor="weight-input">
-        Today's weight (kg)
+        Today's weight ({settings.weightUnit})
       </label>
       <input
         id="weight-input"

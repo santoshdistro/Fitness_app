@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
+import { useSettings } from '../../hooks/useSettings';
+import { gToUnit, unitToG } from '../../utils/units';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/mealCategory';
 import type { MealCategory } from '../../types/database';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
@@ -50,6 +52,8 @@ function baseFromInitial(initial?: MealInitial): PerGramMacros | null {
 export function MealForm({ onSaved, initial }: Props) {
   const { session } = useAuth();
   const { recent, frequent } = useFoodSuggestions();
+  const { settings } = useSettings();
+  const foodUnit = settings.foodUnit;
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodSearchResult[]>([]);
@@ -124,7 +128,7 @@ export function MealForm({ onSaved, initial }: Props) {
       fiber: result.fiber / 100,
       sodium: result.sodium / 100,
     });
-    setGrams('100');
+    setGrams(String(Math.round(gToUnit(100, foodUnit) * 10) / 10));
     setCalories(String(result.calories));
     setProtein(String(result.protein));
     setCarbs(String(result.carbs));
@@ -153,7 +157,7 @@ export function MealForm({ onSaved, initial }: Props) {
   function handleGramsChange(value: string) {
     setGrams(value);
     if (!perGram) return;
-    const gramsNum = Number(value) || 0;
+    const gramsNum = unitToG(Number(value) || 0, foodUnit);
     setCalories(String(Math.round(perGram.calories * gramsNum)));
     setProtein(String(Math.round(perGram.protein * gramsNum)));
     setCarbs(String(Math.round(perGram.carbs * gramsNum)));
@@ -328,7 +332,7 @@ export function MealForm({ onSaved, initial }: Props) {
         {perGram ? (
           <div className="mb-3">
             <label className={labelClass} htmlFor="grams-input">
-              Amount (g)
+              Amount ({foodUnit})
             </label>
             <input
               id="grams-input"

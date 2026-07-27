@@ -19,6 +19,7 @@ import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
+import { volumeParts } from '../utils/units';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -74,7 +75,8 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     refreshNutrition();
   };
 
-  const waterLiters = dayLog?.water_ml ? (dayLog.water_ml / 1000).toFixed(2) : '--';
+  const waterDisplay = volumeParts(dayLog?.water_ml ?? 0, settings.volumeUnit);
+  const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
 
   // Continuous 7-day window ending on the selected date, so every day shows on
   // the axis whether or not sleep was logged.
@@ -163,7 +165,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     {
       key: 'water',
       label: 'Stay hydrated',
-      detail: `${(waterMl / 1000).toFixed(1)} / ${(settings.waterGoalMl / 1000).toFixed(1)} L`,
+      detail: `${volumeParts(waterMl, settings.volumeUnit).value} / ${waterGoalDisplay.value} ${waterGoalDisplay.label}`,
       done: waterMl >= settings.waterGoalMl,
       progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
     },
@@ -212,7 +214,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   // Only coach for today — a past day's "calories left" would be nonsensical.
   const coach = useCoachInsight(coachPayload, hasAnyData && viewingToday);
 
-  const waterGoalLiters = (settings.waterGoalMl / 1000).toFixed(1);
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
@@ -288,7 +289,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       {/* Goal progress (today only) */}
       {viewingToday && goalProgress ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
-          <GoalProgressCard progress={goalProgress} />
+          <GoalProgressCard progress={goalProgress} weightUnit={settings.weightUnit} />
         </div>
       ) : null}
 
@@ -312,9 +313,12 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       {/* Water + active kcal */}
       <div className="anim-fade-rise mt-4 flex gap-3" style={{ animationDelay: '0.28s' }}>
         <div className="glass-card flex-1 p-4">
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">{waterLiters}</p>
+          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            {dayLog?.water_ml != null ? waterDisplay.value : '--'}
+          </p>
           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Water / {waterGoalLiters}L
+            Water / {waterGoalDisplay.value}
+            {waterGoalDisplay.label}
           </p>
         </div>
         <div className="glass-card flex-1 p-4">

@@ -1,14 +1,23 @@
 import { Flag, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import type { GoalProgress } from '../utils/calculations';
+import type { WeightUnit } from '../hooks/useSettings';
+import { weightValue } from '../utils/units';
 
 function formatEta(date: Date): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function GoalProgressCard({ progress }: { progress: GoalProgress }) {
+export function GoalProgressCard({
+  progress,
+  weightUnit,
+}: {
+  progress: GoalProgress;
+  weightUnit: WeightUnit;
+}) {
   const losing = progress.goalType === 'lose';
   const verb = losing ? 'lost' : 'gained';
   const TrendIcon = losing ? TrendingDown : TrendingUp;
+  const u = weightUnit;
 
   return (
     <div
@@ -36,17 +45,21 @@ export function GoalProgressCard({ progress }: { progress: GoalProgress }) {
         <p className="mt-1 text-2xl font-black leading-tight">Goal reached! 🎉</p>
       ) : (
         <p className="mt-1 text-3xl font-black leading-none">
-          {progress.remainingKg}
-          <span className="text-base font-bold text-white/80"> kg to go</span>
+          {weightValue(progress.remainingKg, u)}
+          <span className="text-base font-bold text-white/80"> {u} to go</span>
         </p>
       )}
 
       {/* Progress bar: start → target */}
       <div className="mt-4">
         <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-white/80">
-          <span>{progress.startWeight}kg</span>
+          <span>
+            {weightValue(progress.startWeight, u)}
+            {u}
+          </span>
           <span className="flex items-center gap-0.5">
-            <Flag size={10} /> {progress.targetWeight}kg
+            <Flag size={10} /> {weightValue(progress.targetWeight, u)}
+            {u}
           </span>
         </div>
         <div className="relative h-2.5 overflow-hidden rounded-full bg-white/20">
@@ -62,7 +75,7 @@ export function GoalProgressCard({ progress }: { progress: GoalProgress }) {
         <div className="flex-1 rounded-2xl bg-white/15 p-3">
           <p className="text-[9px] font-bold uppercase tracking-wide text-white/70">Achieved</p>
           <p className="text-lg font-black leading-tight">
-            {progress.achievedKg} kg
+            {weightValue(progress.achievedKg, u)} {u}
             <span className="text-[11px] font-semibold text-white/75"> {verb}</span>
           </p>
           <p className="text-[10px] text-white/75">{Math.round(progress.percent)}% of the way there</p>

@@ -5,6 +5,8 @@ import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
+import { useSettings } from '../hooks/useSettings';
+import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
@@ -72,6 +74,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
+  const { settings } = useSettings();
+  const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
 
@@ -179,7 +183,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       {/* BMI */}
       {profile?.height && latestWeight ? (
         <div className="mt-4">
-          <BmiCard weightKg={latestWeight} heightCm={profile.height} />
+          <BmiCard weightKg={latestWeight} heightCm={profile.height} weightUnit={wUnit} />
         </div>
       ) : null}
 
@@ -358,7 +362,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
             <p className="text-sm font-semibold text-[var(--text)]">Weight</p>
             <p className="text-[10px] font-medium text-[var(--muted)]">
               {weightValues.length >= 2
-                ? `${weightValues[0]}kg -> ${latestWeight}kg over last ${weightValues.length} entries`
+                ? `${weightValue(weightValues[0], wUnit)}${wUnit} -> ${weightValue(latestWeight, wUnit)}${wUnit} over last ${weightValues.length} entries`
                 : 'Log your weight to start a trend'}
             </p>
           </div>
@@ -366,7 +370,10 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
 
         <div className="mt-4 flex h-16 items-end justify-between">
           <p className="text-5xl font-black tracking-tighter text-[var(--text)]">
-            {latestWeight ?? '--'}
+            {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
+            {latestWeight != null ? (
+              <span className="text-lg font-bold text-[var(--muted)]"> {wUnit}</span>
+            ) : null}
           </p>
           {weightValues.length >= 2 ? <WeightSparkline values={weightValues} /> : null}
         </div>
@@ -385,7 +392,11 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
                 className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
               >
                 <p className="text-sm text-[var(--text)]">
-                  {formatShortDate(entry.log_date)} · <span className="font-semibold">{entry.weight}kg</span>
+                  {formatShortDate(entry.log_date)} ·{' '}
+                  <span className="font-semibold">
+                    {weightValue(entry.weight, wUnit)}
+                    {wUnit}
+                  </span>
                 </p>
                 <button
                   type="button"
