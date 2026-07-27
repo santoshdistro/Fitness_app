@@ -334,8 +334,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="grams-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={grams}
               onChange={e => handleGramsChange(e.target.value)}
             />
@@ -351,12 +352,13 @@ export function MealForm({ onSaved, initial }: Props) {
               type="number"
               inputMode="decimal"
               min="0"
-              step="0.5"
+              step="any"
               value={servings}
               onChange={e => handleServingsChange(e.target.value)}
             />
             <p className="mt-1 text-[11px] text-[var(--muted)]">
-              e.g. 2 for two bowls / scoops / pieces, 0.5 for half a portion.
+              e.g. 2 for two scoops / pieces, 0.5 for half. For a per-100g food, use
+              0.3 for 30g.
             </p>
           </div>
         ) : null}
