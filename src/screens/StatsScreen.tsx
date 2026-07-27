@@ -8,8 +8,10 @@ import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
 import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
+import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
+import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -74,6 +76,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const { log: todayLog } = useTodayLog();
   const { profile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
+  const { data: adaptiveTdee } = useAdaptiveTdee();
   const { settings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
@@ -269,6 +272,13 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
           </div>
         ) : null}
       </div>
+
+      {/* Adaptive maintenance from real data */}
+      {adaptiveTdee ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.13s' }}>
+          <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
+        </div>
+      ) : null}
 
       {/* Macro goals */}
       {macroGoals.length > 0 ? (
