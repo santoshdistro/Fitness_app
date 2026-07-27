@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ChevronRight, Dumbbell, Sparkles, Trash2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
+import { useStrengthRecords } from '../hooks/useStrengthRecords';
 import { useProfile } from '../hooks/useProfile';
+import { WeightSparkline } from '../components/charts/WeightSparkline';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
@@ -35,6 +37,7 @@ type Props = {
 
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
+  const { records, lastByExercise } = useStrengthRecords();
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
@@ -51,6 +54,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
       <GuidedWorkout
         title={guided.title}
         exercises={guided.exercises}
+        lastByExercise={lastByExercise}
         onClose={() => setGuided(null)}
         onSaved={() => {
           setGuided(null);
@@ -291,6 +295,30 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <p className="text-xs text-[var(--muted)]">Pick an equipment type above to see a program.</p>
         )}
       </div>
+
+      {/* Personal records */}
+      {records.length > 0 ? (
+        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.09s' }}>
+          <p className="text-sm font-semibold text-[var(--text)]">🏆 Personal records</p>
+          {records.slice(0, 8).map(r => (
+            <div key={r.exercise} className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[var(--text)]">{r.exercise}</p>
+                <p className="text-[10px] text-[var(--muted)]">
+                  Best {r.bestWeight}kg · est 1RM {r.best1RM}kg · {r.sessions} session
+                  {r.sessions === 1 ? '' : 's'}
+                </p>
+              </div>
+              {r.history.length >= 2 ? (
+                <WeightSparkline values={r.history.map(h => h.oneRm)} />
+              ) : null}
+            </div>
+          ))}
+          <p className="text-[10px] text-[var(--muted)]">
+            Est. 1RM via Epley. The line tracks your strength trend per exercise.
+          </p>
+        </div>
+      ) : null}
 
       {workouts.length === 0 ? (
         <div className="glass-card anim-fade-rise mt-6 p-6 text-center" style={{ animationDelay: '0.1s' }}>

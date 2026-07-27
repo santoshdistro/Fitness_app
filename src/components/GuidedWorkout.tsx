@@ -12,6 +12,7 @@ type Props = {
   exercises: GuidedExercise[];
   onClose: () => void;
   onSaved: () => void;
+  lastByExercise?: Map<string, { weight: number; reps: number }>;
 };
 
 const REST_OPTIONS = [45, 60, 90, 120];
@@ -21,7 +22,7 @@ function firstNumber(text: string): string {
   return m ? m[0] : '';
 }
 
-export function GuidedWorkout({ title, exercises, onClose, onSaved }: Props) {
+export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExercise }: Props) {
   const { session } = useAuth();
   const [exIndex, setExIndex] = useState(0);
   const [setNum, setSetNum] = useState(1);
@@ -208,6 +209,12 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved }: Props) {
                   <p className="text-xs text-[var(--muted)]">
                     Set {setNum} of {current.sets} · target {current.reps} reps
                   </p>
+                  {lastByExercise?.get(current.name) ? (
+                    <p className="text-[11px] font-semibold text-[var(--accent)]">
+                      Last time: {lastByExercise.get(current.name)!.weight} kg ×{' '}
+                      {lastByExercise.get(current.name)!.reps}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
