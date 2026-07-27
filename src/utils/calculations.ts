@@ -106,6 +106,32 @@ export function computeDailyCalorieTarget(params: { tdee: number; deficitKcal: n
   return Math.round(params.tdee - params.deficitKcal);
 }
 
+export type BmiInfo = {
+  bmi: number;
+  category: 'underweight' | 'normal' | 'overweight' | 'obese';
+  /** Healthy weight range for this height (BMI 18.5–24.9), in kg. */
+  healthyLowKg: number;
+  healthyHighKg: number;
+  /** kg to lose (positive) or gain (negative) to reach the nearest healthy edge; 0 if already healthy. */
+  toHealthyKg: number;
+};
+
+export function computeBmi(weightKg: number, heightCm: number): BmiInfo {
+  const m = heightCm / 100;
+  const bmi = weightKg / (m * m);
+  const healthyLowKg = Math.round(18.5 * m * m * 10) / 10;
+  const healthyHighKg = Math.round(24.9 * m * m * 10) / 10;
+
+  const category: BmiInfo['category'] =
+    bmi < 18.5 ? 'underweight' : bmi < 25 ? 'normal' : bmi < 30 ? 'overweight' : 'obese';
+
+  let toHealthyKg = 0;
+  if (weightKg > healthyHighKg) toHealthyKg = Math.round((weightKg - healthyHighKg) * 10) / 10;
+  else if (weightKg < healthyLowKg) toHealthyKg = Math.round((weightKg - healthyLowKg) * 10) / 10; // negative = gain
+
+  return { bmi: Math.round(bmi * 10) / 10, category, healthyLowKg, healthyHighKg, toHealthyKg };
+}
+
 export type GoalProgress = {
   goalType: Exclude<GoalType, 'maintain'>;
   startWeight: number;

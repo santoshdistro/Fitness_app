@@ -7,6 +7,7 @@ import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { BodyScanReadout } from '../components/BodyScanReadout';
+import { BmiCard } from '../components/BmiCard';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -174,6 +175,13 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
           <ChevronRight size={14} className="text-[var(--muted)]" />
         </button>
       </div>
+
+      {/* BMI */}
+      {profile?.height && latestWeight ? (
+        <div className="mt-4">
+          <BmiCard weightKg={latestWeight} heightCm={profile.height} />
+        </div>
+      ) : null}
 
       {/* Calories */}
       <div
