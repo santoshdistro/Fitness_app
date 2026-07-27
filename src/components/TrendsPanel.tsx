@@ -65,6 +65,13 @@ export function TrendsPanel() {
         <TrendChart points={trends.volume} type="bar" unit="kg" color="#8b5cf6" />
         <p className="text-[10px] text-[var(--muted)]">Total kg lifted per session (weight × reps).</p>
       </Section>
+
+      {trends.cardioDistance.length > 0 ? (
+        <Section title="Cardio distance" subtitle={`${trends.totalKm} km total`}>
+          <TrendChart points={trends.cardioDistance} type="bar" unit="km" color="#0ea5e9" />
+          <p className="text-[10px] text-[var(--muted)]">Distance per cardio session.</p>
+        </Section>
+      ) : null}
     </div>
   );
 }

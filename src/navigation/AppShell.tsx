@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Images, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -27,6 +27,7 @@ import { Calculators } from '../components/Calculators';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { AchievementsPanel } from '../components/AchievementsPanel';
 import { FastingPanel } from '../components/FastingPanel';
+import { CardioForm } from '../components/forms/CardioForm';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -43,6 +44,7 @@ type ActiveSheet =
   | 'trends'
   | 'achievements'
   | 'fasting'
+  | 'cardio'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -210,6 +212,11 @@ export function AppShell() {
             label="Log workout"
             onClick={() => setActiveSheet('workout')}
           />
+          <QuickAddOption
+            icon={Footprints}
+            label="Log cardio (run/walk/ride)"
+            onClick={() => setActiveSheet('cardio')}
+          />
         </div>
       </Sheet>
 
@@ -294,6 +301,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'fasting'} onClose={closeSheet} title="Fasting timer">
         <FastingPanel />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'cardio'} onClose={closeSheet} title="Log cardio">
+        <CardioForm onSaved={onSaved} />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">

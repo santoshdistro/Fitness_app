@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { addDays, startOfDateIso, todayDateString } from '../utils/date';
-import type { DailyLog, FoodLog, WorkoutLog } from '../types/database';
+import type { CardioLog, DailyLog, FoodLog, WorkoutLog } from '../types/database';
 
 export type Series = { label: string; value: number; date: string }[];
 
@@ -13,6 +13,8 @@ export type Trends = {
   protein: Series;
   steps: Series;
   volume: Series; // per workout session
+  cardioDistance: Series; // km per cardio session
+  totalKm: number;
   avgCalories: number | null;
   avgProtein: number | null;
   avgSteps: number | null;
@@ -69,7 +71,13 @@ export function useTrends() {
         .eq('user_id', userId)
         .gte('session_timestamp', startOfDateIso(start))
         .order('session_timestamp', { ascending: true }),
-    ]).then(([dailyRes, foodRes, workoutRes]) => {
+      supabase
+        .from('cardio_logs')
+        .select('session_timestamp, distance_km')
+        .eq('user_id', userId)
+        .gte('session_timestamp', startOfDateIso(start))
+        .order('session_timestamp', { ascending: true }),
+    ]).then(([dailyRes, foodRes, workoutRes, cardioRes]) => {
       if (cancelled) return;
       const dailies = (dailyRes.data as Pick<DailyLog, 'log_date' | 'weight' | 'steps'>[]) ?? [];
       const meals = (foodRes.data as Pick<FoodLog, 'meal_timestamp' | 'calories' | 'protein_g'>[]) ?? [];
@@ -106,6 +114,15 @@ export function useTrends() {
         return { label: shortLabel(date), value: Math.round(vol), date };
       });
 
+      const cardio = (cardioRes.data as Pick<CardioLog, 'session_timestamp' | 'distance_km'>[]) ?? [];
+      const cardioDistance: Series = cardio
+        .filter(c => c.distance_km != null)
+        .map(c => {
+          const date = c.session_timestamp.slice(0, 10);
+          return { label: shortLabel(date), value: Math.round((c.distance_km as number) * 10) / 10, date };
+        });
+      const totalKm = Math.round(cardioDistance.reduce((s, p) => s + p.value, 0) * 10) / 10;
+
       const avg = (arr: Series) =>
         arr.length ? Math.round(arr.reduce((s, p) => s + p.value, 0) / arr.length) : null;
 
@@ -116,6 +133,8 @@ export function useTrends() {
         protein,
         steps,
         volume,
+        cardioDistance,
+        totalKm,
         avgCalories: avg(calories),
         avgProtein: avg(protein),
         avgSteps: avg(steps),

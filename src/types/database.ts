@@ -69,6 +69,17 @@ export type BodyScan = {
   created_at: string;
 };
 
+export type CardioLog = {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  distance_km: number | null;
+  duration_min: number | null;
+  calories: number | null;
+  session_timestamp: string;
+  created_at: string;
+};
+
 export type ExerciseSet = {
   exercise: string;
   reps: number;
