@@ -24,6 +24,7 @@ import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
 import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
 import { Calculators } from '../components/Calculators';
+import { TrendsPanel } from '../components/TrendsPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -37,6 +38,7 @@ type ActiveSheet =
   | 'barcodeScan'
   | 'bodyScan'
   | 'progressPhotos'
+  | 'trends'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -102,6 +104,7 @@ export function AppShell() {
             key={refreshKey}
             onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
             onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
+            onOpenTrends={() => setActiveSheet('trends')}
           />
         )}
         {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
@@ -269,6 +272,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'calculators'} onClose={closeSheet} title="Calculators">
         <Calculators />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'trends'} onClose={closeSheet} title="Trends">
+        <TrendsPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">

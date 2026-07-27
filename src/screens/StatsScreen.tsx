@@ -65,9 +65,10 @@ function dateLabel(dateStr: string): string {
 type Props = {
   onQuickAddCalories: () => void;
   onOpenProgressPhotos: () => void;
+  onOpenTrends: () => void;
 };
 
-export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
+export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTrends }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { session } = useAuth();
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
@@ -182,6 +183,25 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
           <ChevronRight size={14} className="text-[var(--muted)]" />
         </button>
       </div>
+
+      {/* Trends */}
+      <button
+        type="button"
+        onClick={onOpenTrends}
+        className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
+        style={{ animationDelay: '0.06s' }}
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/10">
+          <span className="text-base">📈</span>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-[var(--text)]">Trends & charts</p>
+          <p className="text-[10px] text-[var(--muted)]">
+            Weight, calories, protein, steps & training volume over time
+          </p>
+        </div>
+        <ChevronRight size={16} className="text-[var(--muted)]" />
+      </button>
 
       {/* BMI */}
       {profile?.height && latestWeight ? (
