@@ -25,6 +25,7 @@ import { SpendPanel } from '../components/SpendPanel';
 import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
 import { Calculators } from '../components/Calculators';
 import { TrendsPanel } from '../components/TrendsPanel';
+import { AchievementsPanel } from '../components/AchievementsPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -39,6 +40,7 @@ type ActiveSheet =
   | 'bodyScan'
   | 'progressPhotos'
   | 'trends'
+  | 'achievements'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -259,6 +261,7 @@ export function AppShell() {
           onOpenGoals={() => setActiveSheet('goals')}
           onOpenSpend={() => setActiveSheet('spend')}
           onOpenCalculators={() => setActiveSheet('calculators')}
+          onOpenAchievements={() => setActiveSheet('achievements')}
         />
       </Sheet>
 
@@ -276,6 +279,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'trends'} onClose={closeSheet} title="Trends">
         <TrendsPanel />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'achievements'} onClose={closeSheet} title="Achievements">
+        <AchievementsPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">
