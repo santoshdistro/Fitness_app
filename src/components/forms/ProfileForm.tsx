@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useProfile } from '../../hooks/useProfile';
+import { useSettings } from '../../hooks/useSettings';
+import { cmToFtIn, ftInToCm } from '../../utils/units';
 import type { Gender } from '../../utils/calculations';
 import { EQUIPMENT_OPTIONS } from '../../data/workoutPrograms';
 import { DataResetSection } from './DataResetSection';
@@ -13,8 +15,12 @@ type Props = {
 
 export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
   const { profile, saveProfile } = useProfile();
+  const { settings } = useSettings();
+  const heightUnit = settings.heightUnit;
   const [name, setName] = useState('');
-  const [height, setHeight] = useState('');
+  const [height, setHeight] = useState(''); // canonical cm
+  const [feet, setFeet] = useState('');
+  const [inches, setInches] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [equipment, setEquipment] = useState('');
@@ -24,7 +30,12 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
   useEffect(() => {
     if (!profile) return;
     if (profile.name) setName(profile.name);
-    if (profile.height != null) setHeight(String(profile.height));
+    if (profile.height != null) {
+      setHeight(String(profile.height));
+      const { ft, inches: inch } = cmToFtIn(profile.height);
+      setFeet(String(ft));
+      setInches(String(inch));
+    }
     if (profile.birth_date) setBirthDate(profile.birth_date);
     if (profile.gender) setGender(profile.gender);
     if (profile.equipment_preference) setEquipment(profile.equipment_preference);
@@ -69,19 +80,50 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
       </div>
 
       <div className="mb-3">
-        <label className={labelClass} htmlFor="height-input">
-          Height (cm)
-        </label>
-        <input
-          id="height-input"
-          className={inputClass}
-          type="number"
-          inputMode="decimal"
-          step="0.1"
-          value={height}
-          onChange={e => setHeight(e.target.value)}
-          required
-        />
+        <label className={labelClass}>Height</label>
+        {heightUnit === 'ft' ? (
+          <div className="flex items-center gap-2">
+            <input
+              className={inputClass}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={feet}
+              onChange={e => {
+                setFeet(e.target.value);
+                setHeight(String(ftInToCm(Number(e.target.value) || 0, Number(inches) || 0)));
+              }}
+              placeholder="5"
+            />
+            <span className="text-sm font-semibold text-[var(--muted)]">ft</span>
+            <input
+              className={inputClass}
+              type="number"
+              inputMode="numeric"
+              min="0"
+              max="11"
+              value={inches}
+              onChange={e => {
+                setInches(e.target.value);
+                setHeight(String(ftInToCm(Number(feet) || 0, Number(e.target.value) || 0)));
+              }}
+              placeholder="10"
+            />
+            <span className="text-sm font-semibold text-[var(--muted)]">in</span>
+          </div>
+        ) : (
+          <input
+            id="height-input"
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            value={height}
+            onChange={e => setHeight(e.target.value)}
+            placeholder="175"
+            required
+          />
+        )}
       </div>
 
       <div className="mb-3">

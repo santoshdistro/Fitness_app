@@ -86,22 +86,22 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
 
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
+  const tdee = canComputeTarget
+    ? Math.round(
+        computeTDEE(
+          computeBMR({
+            gender: profile!.gender!,
+            weightKg: latestWeight!,
+            heightCm: profile!.height!,
+            ageYears: ageFromBirthDate(profile!.birth_date!),
+          }),
+          profile!.activity_level,
+        ),
+      )
+    : null;
   const calorieTarget =
     profile?.calorie_target_override ??
-    (canComputeTarget
-      ? computeDailyCalorieTarget({
-          tdee: computeTDEE(
-            computeBMR({
-              gender: profile!.gender!,
-              weightKg: latestWeight!,
-              heightCm: profile!.height!,
-              ageYears: ageFromBirthDate(profile!.birth_date!),
-            }),
-            profile!.activity_level,
-          ),
-          deficitKcal,
-        })
-      : REFERENCE_CALORIE_TARGET);
+    (tdee != null ? computeDailyCalorieTarget({ tdee, deficitKcal }) : REFERENCE_CALORIE_TARGET);
 
   const suggestedMacros = canComputeTarget
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
@@ -243,6 +243,31 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
             ? `${calorieTarget} kcal target · BMR + activity ${deficitKcal >= 0 ? '−' : '+'} ${Math.abs(deficitKcal)} kcal ${deficitKcal >= 0 ? 'deficit' : 'surplus'}`
             : `vs ${REFERENCE_CALORIE_TARGET} kcal reference · complete your profile and log weight for a personalized target`}
         </p>
+
+        {tdee != null ? (
+          <div className="rounded-2xl bg-[var(--bg)] p-3">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Calorie guide · at your current weight
+            </p>
+            <div className="flex flex-col gap-1 text-xs">
+              {[
+                { label: 'Maintain weight', kcal: tdee },
+                { label: 'Lose 0.5 kg / week', kcal: tdee - 550 },
+                { label: 'Lose 1 kg / week', kcal: tdee - 1100 },
+                { label: 'Gain 0.5 kg / week', kcal: tdee + 550 },
+              ].map(r => (
+                <div key={r.label} className="flex items-center justify-between">
+                  <span className="text-[var(--muted)]">{r.label}</span>
+                  <span className="font-semibold text-[var(--text)]">{Math.max(0, r.kcal)} kcal/day</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[9px] text-[var(--muted)]">
+              Estimates from your BMR + activity. Losing faster than ~1 kg/week or eating below
+              ~1500 kcal isn't usually recommended.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Macro goals */}

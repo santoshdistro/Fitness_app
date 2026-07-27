@@ -54,6 +54,15 @@ export function SettingsForm({ onSaved }: Props) {
             onChange={v => save({ weightUnit: v as 'kg' | 'lb' })}
           />
           <UnitRow
+            label="Height"
+            options={[
+              { value: 'cm', label: 'cm' },
+              { value: 'ft', label: 'ft/in' },
+            ]}
+            value={settings.heightUnit}
+            onChange={v => save({ heightUnit: v as 'cm' | 'ft' })}
+          />
+          <UnitRow
             label="Water"
             options={[
               { value: 'ml', label: 'ml' },

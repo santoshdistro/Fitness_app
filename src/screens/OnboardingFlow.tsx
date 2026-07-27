@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
 import { supabase } from '../lib/supabaseClient';
-import { unitToKg } from '../utils/units';
+import { ftInToCm, unitToKg } from '../utils/units';
 import { todayDateString } from '../utils/date';
 import { inputClass } from '../components/forms/formStyles';
 import {
@@ -57,7 +57,10 @@ export function OnboardingFlow({ onComplete }: Props) {
   const { saveProfile } = useProfile();
   const { settings } = useSettings();
   const wUnit = settings.weightUnit;
+  const hUnit = settings.heightUnit;
   const [step, setStep] = useState(0);
+  const [feet, setFeet] = useState('');
+  const [inches, setInches] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({
@@ -228,19 +231,53 @@ export function OnboardingFlow({ onComplete }: Props) {
         )}
 
         {current === 'height' && (
-          <Question title="How tall are you?" subtitle="In centimetres.">
-            <div className="flex items-center gap-2">
-              <input
-                className={inputClass}
-                type="number"
-                inputMode="decimal"
-                autoFocus
-                value={draft.height}
-                onChange={e => set({ height: e.target.value })}
-                placeholder="175"
-              />
-              <span className="text-sm font-semibold text-[var(--muted)]">cm</span>
-            </div>
+          <Question
+            title="How tall are you?"
+            subtitle={hUnit === 'ft' ? 'In feet & inches.' : 'In centimetres.'}
+          >
+            {hUnit === 'ft' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputClass}
+                  type="number"
+                  inputMode="numeric"
+                  autoFocus
+                  value={feet}
+                  onChange={e => {
+                    setFeet(e.target.value);
+                    set({ height: String(ftInToCm(Number(e.target.value) || 0, Number(inches) || 0)) });
+                  }}
+                  placeholder="5"
+                />
+                <span className="text-sm font-semibold text-[var(--muted)]">ft</span>
+                <input
+                  className={inputClass}
+                  type="number"
+                  inputMode="numeric"
+                  max="11"
+                  value={inches}
+                  onChange={e => {
+                    setInches(e.target.value);
+                    set({ height: String(ftInToCm(Number(feet) || 0, Number(e.target.value) || 0)) });
+                  }}
+                  placeholder="10"
+                />
+                <span className="text-sm font-semibold text-[var(--muted)]">in</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputClass}
+                  type="number"
+                  inputMode="decimal"
+                  autoFocus
+                  value={draft.height}
+                  onChange={e => set({ height: e.target.value })}
+                  placeholder="175"
+                />
+                <span className="text-sm font-semibold text-[var(--muted)]">cm</span>
+              </div>
+            )}
           </Question>
         )}
 

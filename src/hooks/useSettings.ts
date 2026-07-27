@@ -4,6 +4,7 @@ export type Theme = 'light' | 'dark';
 export type WeightUnit = 'kg' | 'lb';
 export type VolumeUnit = 'ml' | 'l';
 export type FoodUnit = 'g' | 'oz';
+export type HeightUnit = 'cm' | 'ft';
 
 export type Settings = {
   stepGoal: number;
@@ -12,6 +13,7 @@ export type Settings = {
   weightUnit: WeightUnit;
   volumeUnit: VolumeUnit;
   foodUnit: FoodUnit;
+  heightUnit: HeightUnit;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weightUnit: 'kg',
   volumeUnit: 'l',
   foodUnit: 'g',
+  heightUnit: 'cm',
 };
 
 const KEY = 'app_settings';

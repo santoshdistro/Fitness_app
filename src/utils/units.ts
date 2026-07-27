@@ -29,6 +29,21 @@ export function volumeParts(ml: number, unit: VolumeUnit): { value: string; labe
     : { value: String(Math.round(ml)), label: 'ml' };
 }
 
+/* ---- Height (stored in cm) ---- */
+export function cmToFtIn(cm: number): { ft: number; inches: number } {
+  const totalIn = cm / 2.54;
+  let ft = Math.floor(totalIn / 12);
+  let inches = Math.round(totalIn - ft * 12);
+  if (inches === 12) {
+    ft += 1;
+    inches = 0;
+  }
+  return { ft, inches };
+}
+export function ftInToCm(ft: number, inches: number): number {
+  return Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
+}
+
 /* ---- Food amount (stored in grams) ---- */
 export function gToUnit(g: number, unit: FoodUnit): number {
   return unit === 'oz' ? g * OZ_PER_G : g;
