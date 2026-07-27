@@ -41,7 +41,7 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: profile, error: lookupError } = await admin
     .from('profiles')
-    .select('id')
+    .select('user_id')
     .eq('sync_token', token)
     .maybeSingle();
 
@@ -60,7 +60,7 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
       : new Date().toISOString().slice(0, 10);
 
   const payload: Record<string, unknown> = {
-    user_id: (profile as { id: string }).id,
+    user_id: (profile as { user_id: string }).user_id,
     log_date: logDate,
   };
   const steps = num(body.steps);
