@@ -58,6 +58,7 @@ export function HandbookScreen() {
 
   const filterTags: (DietTag | 'all')[] = [
     'all',
+    'air_fryer',
     'high_protein',
     'low_carb',
     'vegetarian',

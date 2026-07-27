@@ -1,7 +1,14 @@
 // Bundled, offline healthy-eating handbook: a curated food list plus recipes
 // with full how-to steps. No network, no API cost — always available.
 
-export type DietTag = 'high_protein' | 'low_carb' | 'vegetarian' | 'vegan' | 'quick' | 'budget';
+export type DietTag =
+  | 'high_protein'
+  | 'low_carb'
+  | 'vegetarian'
+  | 'vegan'
+  | 'quick'
+  | 'budget'
+  | 'air_fryer';
 export type GoalTag = 'weight_loss' | 'muscle_gain' | 'maintenance';
 
 export type Recipe = {
@@ -384,6 +391,104 @@ export const RECIPES: Recipe[] = [
       'Add cheese, fold over, and slide onto a plate.',
     ],
   },
+  {
+    id: 'af_paneer_tikka',
+    name: 'Air-fryer paneer tikka',
+    emoji: '🧀',
+    blurb: 'High-protein, low-fat, veg — 12 minutes in the air fryer.',
+    image: foodImg('1601050690597-df0568f70950'),
+    minutes: 20,
+    servings: 2,
+    perServing: { calories: 320, protein_g: 24, carbs_g: 12, fat_g: 19 },
+    dietTags: ['high_protein', 'vegetarian', 'low_carb', 'air_fryer', 'quick'],
+    goalTags: ['muscle_gain', 'maintenance'],
+    ingredients: [
+      '250g paneer, cubed',
+      '3 tbsp Greek yogurt',
+      '1 tbsp tikka / tandoori masala',
+      '1 pepper + 1 onion, chunked',
+      '1 tsp oil, salt, lemon',
+    ],
+    steps: [
+      'Mix yogurt, masala, salt and lemon into a marinade.',
+      'Coat the paneer and veg; rest 10 min.',
+      'Preheat air fryer to 200°C / 400°F.',
+      'Air-fry 10–12 min, shaking halfway, until charred at the edges.',
+    ],
+  },
+  {
+    id: 'af_chicken_tikka',
+    name: 'Air-fryer chicken tikka',
+    emoji: '🍗',
+    blurb: 'Lean, very high protein, minimal fat.',
+    image: foodImg('1610057099431-d73a1c9d2f2f'),
+    minutes: 25,
+    servings: 2,
+    perServing: { calories: 300, protein_g: 46, carbs_g: 6, fat_g: 9 },
+    dietTags: ['high_protein', 'low_carb', 'air_fryer'],
+    goalTags: ['muscle_gain', 'weight_loss'],
+    ingredients: [
+      '400g chicken breast, cubed',
+      '4 tbsp Greek yogurt',
+      '1 tbsp tandoori masala',
+      '1 tsp ginger-garlic paste',
+      'Salt, chilli, lemon',
+    ],
+    steps: [
+      'Marinate chicken in yogurt, masala, ginger-garlic, salt and lemon for 15+ min.',
+      'Preheat air fryer to 200°C / 400°F.',
+      'Air-fry 12–15 min, shaking halfway, until cooked through (75°C inside).',
+      'Rest 2 min and squeeze over fresh lemon.',
+    ],
+  },
+  {
+    id: 'af_egg_bites',
+    name: 'Air-fryer egg & veg cups',
+    emoji: '🥚',
+    blurb: 'Protein-packed, low-fat breakfast in silicone cups.',
+    image: foodImg('1482049016688-2d3e1b311543'),
+    minutes: 15,
+    servings: 2,
+    perServing: { calories: 210, protein_g: 20, carbs_g: 4, fat_g: 12 },
+    dietTags: ['high_protein', 'low_carb', 'vegetarian', 'air_fryer', 'quick'],
+    goalTags: ['weight_loss', 'maintenance'],
+    ingredients: [
+      '4 eggs + 2 egg whites',
+      '1 handful spinach, chopped',
+      '1/2 pepper, diced',
+      '2 tbsp grated cheese (optional)',
+      'Salt & pepper',
+    ],
+    steps: [
+      'Whisk eggs and whites with salt and pepper.',
+      'Stir in the veg (and cheese) and pour into silicone cups.',
+      'Air-fry at 160°C / 320°F for 8–10 min until set.',
+      'Cool 1 min, then pop out.',
+    ],
+  },
+  {
+    id: 'af_veg',
+    name: 'Air-fryer crispy vegetables',
+    emoji: '🥦',
+    blurb: 'High-volume, low-calorie side — great with any protein.',
+    image: foodImg('1512621776951-a57141f2eefd'),
+    minutes: 18,
+    servings: 2,
+    perServing: { calories: 120, protein_g: 5, carbs_g: 16, fat_g: 5 },
+    dietTags: ['low_carb', 'vegetarian', 'vegan', 'air_fryer', 'quick'],
+    goalTags: ['weight_loss', 'maintenance'],
+    ingredients: [
+      '1 head broccoli + 1 pepper + 1 courgette',
+      '1 tsp olive oil',
+      '1/2 tsp paprika, garlic powder',
+      'Salt & pepper',
+    ],
+    steps: [
+      'Chop the veg into even pieces.',
+      'Toss with the oil and seasoning.',
+      'Air-fry at 200°C / 400°F for 10–12 min, shaking halfway, until charred.',
+    ],
+  },
 ];
 
 export const DIET_TAG_LABEL: Record<DietTag, string> = {
@@ -393,4 +498,5 @@ export const DIET_TAG_LABEL: Record<DietTag, string> = {
   vegan: 'Vegan',
   quick: 'Quick',
   budget: 'Budget',
+  air_fryer: 'Air fryer',
 };

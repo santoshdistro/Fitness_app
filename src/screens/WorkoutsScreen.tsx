@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
+import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -33,7 +34,8 @@ type Props = {
 };
 
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
-  const { workouts, deleteWorkout } = useRecentWorkouts(20);
+  const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
+  const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
   const recommended = getProgram(profile?.equipment_preference);
@@ -43,6 +45,20 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const [selectedGoalProgram, setSelectedGoalProgram] = useState<GoalProgram | null>(null);
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
+
+  if (guided) {
+    return (
+      <GuidedWorkout
+        title={guided.title}
+        exercises={guided.exercises}
+        onClose={() => setGuided(null)}
+        onSaved={() => {
+          setGuided(null);
+          refreshWorkouts();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
@@ -215,9 +231,30 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 
         {activeProgram ? (
           <div className="mt-1 flex flex-col gap-3">
-            <div>
-              <p className="text-sm font-bold text-[var(--text)]">{activeProgram.name}</p>
-              <p className="text-[10px] text-[var(--muted)]">{activeProgram.description}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-bold text-[var(--text)]">{activeProgram.name}</p>
+                <p className="text-[10px] text-[var(--muted)]">{activeProgram.description}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setGuided({
+                    title: activeProgram.name,
+                    exercises: activeProgram.days.flatMap(d =>
+                      d.exercises.map(e => ({
+                        name: e.name,
+                        sets: e.sets,
+                        reps: e.reps,
+                        exerciseId: e.exerciseId,
+                      })),
+                    ),
+                  })
+                }
+                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+              >
+                ▶ Start
+              </button>
             </div>
             {activeProgram.days.map(day => (
               <div key={day.day} className="rounded-2xl bg-[var(--bg)] p-3">
@@ -310,6 +347,26 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         {selectedGoalProgram ? (
           <div className="flex flex-col gap-3">
             <p className="text-xs text-[var(--muted)]">{selectedGoalProgram.focus}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setGuided({
+                  title: selectedGoalProgram.name,
+                  exercises: selectedGoalProgram.days.flatMap(d =>
+                    d.exercises.map(e => ({
+                      name: e.name,
+                      sets: e.sets,
+                      reps: e.reps,
+                      exerciseId: e.exerciseId,
+                    })),
+                  ),
+                });
+                setSelectedGoalProgram(null);
+              }}
+              className="rounded-2xl py-3 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            >
+              ▶ Start guided session
+            </button>
             {selectedGoalProgram.days.map(day => (
               <div key={day.day} className="rounded-2xl bg-[var(--bg)] p-3">
                 <p className="text-xs font-bold text-[var(--text)]">
