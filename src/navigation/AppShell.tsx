@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Images, Plus, Ruler, ScanLine, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Home, Images, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -26,6 +26,7 @@ import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
 import { Calculators } from '../components/Calculators';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { AchievementsPanel } from '../components/AchievementsPanel';
+import { FastingPanel } from '../components/FastingPanel';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -41,6 +42,7 @@ type ActiveSheet =
   | 'progressPhotos'
   | 'trends'
   | 'achievements'
+  | 'fasting'
   | 'workoutPlan'
   | 'profile'
   | 'activity'
@@ -199,6 +201,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('activity')}
           />
           <QuickAddOption
+            icon={Timer}
+            label="Fasting timer"
+            onClick={() => setActiveSheet('fasting')}
+          />
+          <QuickAddOption
             icon={Dumbbell}
             label="Log workout"
             onClick={() => setActiveSheet('workout')}
@@ -283,6 +290,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'achievements'} onClose={closeSheet} title="Achievements">
         <AchievementsPanel />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'fasting'} onClose={closeSheet} title="Fasting timer">
+        <FastingPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">
