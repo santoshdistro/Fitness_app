@@ -23,6 +23,7 @@ import { WorkoutPlanForm } from '../components/forms/WorkoutPlanForm';
 import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
 import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
+import { Calculators } from '../components/Calculators';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -42,6 +43,7 @@ type ActiveSheet =
   | 'workout'
   | 'goals'
   | 'spend'
+  | 'calculators'
   | 'settings'
   | null;
 
@@ -253,6 +255,7 @@ export function AppShell() {
           onSaved={onSaved}
           onOpenGoals={() => setActiveSheet('goals')}
           onOpenSpend={() => setActiveSheet('spend')}
+          onOpenCalculators={() => setActiveSheet('calculators')}
         />
       </Sheet>
 
@@ -262,6 +265,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'spend'} onClose={closeSheet} title="AI usage & spending">
         <SpendPanel />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'calculators'} onClose={closeSheet} title="Calculators">
+        <Calculators />
       </Sheet>
 
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">

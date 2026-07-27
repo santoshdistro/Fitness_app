@@ -11,9 +11,10 @@ type Props = {
   onSaved: () => void;
   onOpenGoals: () => void;
   onOpenSpend: () => void;
+  onOpenCalculators: () => void;
 };
 
-export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
+export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend, onOpenCalculators }: Props) {
   const { profile, saveProfile } = useProfile();
   const { settings } = useSettings();
   const heightUnit = settings.heightUnit;
@@ -194,6 +195,15 @@ export function ProfileForm({ onSaved, onOpenGoals, onOpenSpend }: Props) {
         style={{ color: 'var(--accent)' }}
       >
         Edit calorie & macro goals
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenCalculators}
+        className="mt-3 w-full text-center text-xs font-semibold"
+        style={{ color: 'var(--accent)' }}
+      >
+        Calculators
       </button>
 
       <button
