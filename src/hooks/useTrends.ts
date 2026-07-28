@@ -13,6 +13,7 @@ export type Trends = {
   protein: Series;
   steps: Series;
   caffeine: Series;
+  hasCaffeine: boolean;
   volume: Series; // per workout session
   cardioDistance: Series; // km per cardio session
   totalKm: number;
@@ -23,6 +24,7 @@ export type Trends = {
 };
 
 const DAYS = 90;
+const WINDOW = 7; // continuous days shown for daily-intake charts
 
 function shortLabel(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -92,28 +94,48 @@ export function useTrends() {
         .map(d => ({ label: shortLabel(d.log_date), value: d.weight as number, date: d.log_date }));
       const weightMovingAvg = movingAverage(weight.map(w => w.value), 5);
 
-      // Steps last 30 days.
-      const steps: Series = dailies
-        .filter(d => d.log_date >= start30 && d.steps != null)
-        .map(d => ({ label: shortLabel(d.log_date), value: d.steps as number, date: d.log_date }));
+      // Build lookup maps so we can render a continuous window (every day shown,
+      // gaps filled with 0) rather than only the days that happen to have data.
+      const stepsMap = new Map<string, number>();
+      const caffeineMap = new Map<string, number>();
+      for (const d of dailies) {
+        if (d.steps != null) stepsMap.set(d.log_date, d.steps);
+        if (d.caffeine_mg != null) caffeineMap.set(d.log_date, d.caffeine_mg);
+      }
 
-      // Caffeine last 30 days.
-      const caffeine: Series = dailies
-        .filter(d => d.log_date >= start30 && d.caffeine_mg != null)
-        .map(d => ({ label: shortLabel(d.log_date), value: d.caffeine_mg as number, date: d.log_date }));
-
-      // Calories + protein per day (last 30).
-      const calByDay = new Map<string, { kcal: number; protein: number }>();
+      const kcalMap = new Map<string, number>();
+      const proteinMap = new Map<string, number>();
       for (const m of meals) {
         const day = new Date(m.meal_timestamp).toLocaleDateString('en-CA');
-        const acc = calByDay.get(day) ?? { kcal: 0, protein: 0 };
-        acc.kcal += m.calories ?? 0;
-        acc.protein += m.protein_g ?? 0;
-        calByDay.set(day, acc);
+        kcalMap.set(day, (kcalMap.get(day) ?? 0) + (m.calories ?? 0));
+        proteinMap.set(day, (proteinMap.get(day) ?? 0) + (m.protein_g ?? 0));
       }
-      const days = [...calByDay.keys()].sort();
-      const calories: Series = days.map(d => ({ label: shortLabel(d), value: Math.round(calByDay.get(d)!.kcal), date: d }));
-      const protein: Series = days.map(d => ({ label: shortLabel(d), value: Math.round(calByDay.get(d)!.protein), date: d }));
+
+      // Continuous last-N-days series ending today.
+      const continuous = (map: Map<string, number>, days: number): Series =>
+        Array.from({ length: days }, (_, k) => {
+          const date = addDays(today, -(days - 1 - k));
+          return { label: shortLabel(date), value: Math.round(map.get(date) ?? 0), date };
+        });
+      // Average over the days that actually have data (ignore the filled zeros).
+      const avgLogged = (map: Map<string, number>, days: number): number | null => {
+        let sum = 0;
+        let count = 0;
+        for (let i = 0; i < days; i++) {
+          const v = map.get(addDays(today, -i));
+          if (v != null) {
+            sum += v;
+            count += 1;
+          }
+        }
+        return count ? Math.round(sum / count) : null;
+      };
+
+      const steps = continuous(stepsMap, WINDOW);
+      const caffeine = continuous(caffeineMap, WINDOW);
+      const calories = continuous(kcalMap, WINDOW);
+      const protein = continuous(proteinMap, WINDOW);
+      const hasCaffeine = caffeineMap.size > 0;
 
       // Training volume per session.
       const volume: Series = workouts.map(w => {
@@ -131,9 +153,6 @@ export function useTrends() {
         });
       const totalKm = Math.round(cardioDistance.reduce((s, p) => s + p.value, 0) * 10) / 10;
 
-      const avg = (arr: Series) =>
-        arr.length ? Math.round(arr.reduce((s, p) => s + p.value, 0) / arr.length) : null;
-
       setTrends({
         weight,
         weightMovingAvg,
@@ -141,13 +160,14 @@ export function useTrends() {
         protein,
         steps,
         caffeine,
+        hasCaffeine,
         volume,
         cardioDistance,
         totalKm,
-        avgCalories: avg(calories),
-        avgProtein: avg(protein),
-        avgSteps: avg(steps),
-        avgCaffeine: avg(caffeine),
+        avgCalories: avgLogged(kcalMap, WINDOW),
+        avgProtein: avgLogged(proteinMap, WINDOW),
+        avgSteps: avgLogged(stepsMap, WINDOW),
+        avgCaffeine: avgLogged(caffeineMap, WINDOW),
       });
       setLoading(false);
     });

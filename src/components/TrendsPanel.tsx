@@ -58,7 +58,7 @@ export function TrendsPanel() {
       </Section>
 
       <Section title="Steps" subtitle={trends.avgSteps != null ? `avg ${trends.avgSteps.toLocaleString()}/day` : undefined}>
-        <TrendChart points={trends.steps} type="bar" color="#f97316" />
+        <TrendChart points={trends.steps} type="bar" color="#f97316" goal={settings.stepGoal} />
       </Section>
 
       <Section
@@ -76,7 +76,7 @@ export function TrendsPanel() {
         </Section>
       ) : null}
 
-      {trends.caffeine.length > 0 ? (
+      {trends.hasCaffeine ? (
         <Section
           title="Caffeine"
           subtitle={trends.avgCaffeine != null ? `avg ${trends.avgCaffeine} mg/day` : undefined}
