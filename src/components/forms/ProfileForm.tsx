@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { ChevronRight, Calculator, Medal, Smartphone, Sparkles, Target } from 'lucide-react';
 import { useProfile } from '../../hooks/useProfile';
 import { useSettings } from '../../hooks/useSettings';
 import { cmToFtIn, ftInToCm } from '../../utils/units';
@@ -197,52 +198,46 @@ export function ProfileForm({
         {saving ? 'Saving...' : 'Save profile'}
       </button>
 
-      <button
-        type="button"
-        onClick={onOpenGoals}
-        className="mt-4 w-full text-center text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        Edit calorie & macro goals
-      </button>
-
-      <button
-        type="button"
-        onClick={onOpenAchievements}
-        className="mt-4 w-full text-center text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        🏅 Achievements
-      </button>
-
-      <button
-        type="button"
-        onClick={onOpenCalculators}
-        className="mt-3 w-full text-center text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        Calculators
-      </button>
-
-      <button
-        type="button"
-        onClick={onOpenHealthSync}
-        className="mt-3 w-full text-center text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        📱 Apple Health sync
-      </button>
-
-      <button
-        type="button"
-        onClick={onOpenSpend}
-        className="mt-3 w-full text-center text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        AI usage & spending
-      </button>
+      <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)]">
+        <MenuRow icon={Target} label="Calorie & macro goals" onClick={onOpenGoals} />
+        <MenuRow icon={Medal} label="Achievements" onClick={onOpenAchievements} />
+        <MenuRow icon={Calculator} label="Calculators" onClick={onOpenCalculators} />
+        <MenuRow icon={Smartphone} label="Apple Health sync" onClick={onOpenHealthSync} />
+        <MenuRow icon={Sparkles} label="AI usage & spending" onClick={onOpenSpend} last />
+      </div>
 
       <DataResetSection />
     </form>
+  );
+}
+
+function MenuRow({
+  icon: Icon,
+  label,
+  onClick,
+  last,
+}: {
+  icon: typeof Target;
+  label: string;
+  onClick: () => void;
+  last?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 bg-[var(--card)] px-4 py-3.5 text-left active:bg-[var(--input-bg)] ${
+        last ? '' : 'border-b border-[var(--card-border)]'
+      }`}
+    >
+      <span
+        className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--accent)]"
+        style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}
+      >
+        <Icon size={16} />
+      </span>
+      <span className="flex-1 text-sm font-semibold text-[var(--text)]">{label}</span>
+      <ChevronRight size={16} className="text-[var(--muted)]" />
+    </button>
   );
 }
