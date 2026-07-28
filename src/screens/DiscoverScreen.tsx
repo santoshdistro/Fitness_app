@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Trash2, UtensilsCrossed } from 'lucide-react';
+import { Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
+import { searchOpenFoodFacts } from '../lib/openFoodFacts';
+import { searchIndianFoods } from '../data/indianFoods';
+import { estimateFood } from '../lib/aiClient';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { useSettings } from '../hooks/useSettings';
@@ -76,6 +79,7 @@ export function DiscoverScreen() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [estimating, setEstimating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
@@ -133,12 +137,51 @@ export function DiscoverScreen() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
+    const indian = searchIndianFoods(query.trim());
+    const [off, usda] = await Promise.allSettled([
+      searchOpenFoodFacts(query.trim()),
+      searchFoods(query.trim()),
+    ]);
+    const merged = [
+      ...indian,
+      ...(off.status === 'fulfilled' ? off.value : []),
+      ...(usda.status === 'fulfilled' ? usda.value : []),
+    ];
+    setResults(merged);
+    if (merged.length === 0) {
+      setSearchError('No match in the databases — tap ✨ to estimate it with AI instead.');
+    }
+    setSearching(false);
+  }
+
+  async function handleAiEstimate() {
+    if (!query.trim() || !session?.user) return;
+    setEstimating(true);
+    setSearchError(null);
     try {
-      setResults(await searchFoods(query.trim()));
+      const r = await estimateFood(session.user.id, query.trim());
+      addResult({
+        fdcId: -Date.now(),
+        description: r.name,
+        calories: r.calories,
+        protein: r.protein_g,
+        carbs: r.carbs_g,
+        fat: r.fat_g,
+        fiber: r.fiber_g,
+        sodium: r.sodium_mg,
+        sugar: 0,
+        satFat: 0,
+        transFat: 0,
+        polyFat: 0,
+        monoFat: 0,
+        isPerServing: true,
+        servingSize: 100,
+        servingSizeUnit: 'g',
+      });
     } catch {
-      setSearchError("Couldn't reach the food database. Try again.");
+      setSearchError('Could not estimate that — add a portion, e.g. "aloo methi 1 bowl".');
     } finally {
-      setSearching(false);
+      setEstimating(false);
     }
   }
 
@@ -238,8 +281,10 @@ export function DiscoverScreen() {
           setQuery={setQuery}
           results={results}
           searching={searching}
+          estimating={estimating}
           searchError={searchError}
           handleSearch={handleSearch}
+          handleAiEstimate={handleAiEstimate}
           addResult={addResult}
           items={items}
           updateGrams={updateGrams}
@@ -274,8 +319,10 @@ type AddMealProps = {
   setQuery: (q: string) => void;
   results: FoodSearchResult[];
   searching: boolean;
+  estimating: boolean;
   searchError: string | null;
   handleSearch: () => void;
+  handleAiEstimate: () => void;
   addResult: (r: FoodSearchResult) => void;
   items: Item[];
   updateGrams: (key: string, grams: number) => void;
@@ -325,13 +372,29 @@ function AddMealTab(p: AddMealProps) {
           <button
             type="button"
             onClick={p.handleSearch}
-            disabled={p.searching || !p.query.trim()}
-            aria-label="Search"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            disabled={p.searching || p.estimating || !p.query.trim()}
+            aria-label="Search databases"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-[var(--bg)] text-[var(--text)] disabled:opacity-40"
           >
             <Search size={18} />
           </button>
+          <button
+            type="button"
+            onClick={p.handleAiEstimate}
+            disabled={p.searching || p.estimating || !p.query.trim()}
+            aria-label="Estimate with AI"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          >
+            {p.estimating ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <Sparkles size={18} />
+            )}
+          </button>
         </div>
+        <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+          🔍 global + Indian + US databases · ✨ AI estimates any home-cooked dish
+        </p>
         {p.searchError ? <p className="mt-2 text-xs text-red-500">{p.searchError}</p> : null}
 
         {p.results.length > 0 ? (

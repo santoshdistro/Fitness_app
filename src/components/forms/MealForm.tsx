@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
+import { searchIndianFoods } from '../../data/indianFoods';
 import { estimateFood } from '../../lib/aiClient';
 import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
@@ -87,11 +88,13 @@ export function MealForm({ onSaved, initial }: Props) {
     setSearchError(null);
     // Query the global (Open Food Facts) and US (USDA) databases together, so
     // one failing or being sparse doesn't block the other.
+    const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
       searchFoods(query.trim()),
     ]);
     const merged = [
+      ...indian,
       ...(off.status === 'fulfilled' ? off.value : []),
       ...(usda.status === 'fulfilled' ? usda.value : []),
     ];
