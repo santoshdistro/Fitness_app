@@ -231,13 +231,13 @@ function MenuRow({
       }`}
     >
       <span
-        className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--accent)]"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--accent)]"
         style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}
       >
         <Icon size={16} />
       </span>
-      <span className="flex-1 text-sm font-semibold text-[var(--text)]">{label}</span>
-      <ChevronRight size={16} className="text-[var(--muted)]" />
+      <span className="min-w-0 flex-1 text-sm font-semibold text-[var(--text)]">{label}</span>
+      <ChevronRight size={16} className="shrink-0 text-[var(--muted)]" />
     </button>
   );
 }
