@@ -1,3 +1,5 @@
+import { useId, useState } from 'react';
+
 type Point = { label: string; value: number };
 
 type Props = {
@@ -10,8 +12,12 @@ type Props = {
   height?: number;
 };
 
-// Lightweight responsive SVG chart (line or bars) with min/max/latest labels.
-export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, unit = '', height = 90 }: Props) {
+// Responsive SVG chart (line or bars) with a gradient fill, point markers and
+// tap-to-inspect tooltips.
+export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, unit = '', height = 120 }: Props) {
+  const gid = useId().replace(/:/g, '');
+  const [active, setActive] = useState<number | null>(null);
+
   if (points.length === 0) {
     return <p className="py-4 text-center text-xs text-[var(--muted)]">Not enough data yet.</p>;
   }
@@ -23,14 +29,16 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
   const n = points.length;
 
   const x = (i: number) => (n === 1 ? 50 : (i / (n - 1)) * 100);
-  const y = (v: number) => 38 - ((v - min) / range) * 36 + 1;
+  const y = (v: number) => 38 - ((v - min) / range) * 34 + 2; // 2..38
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(p.value)}`).join(' ');
+  const areaPath = `${linePath} L ${x(n - 1)} 40 L ${x(0)} 40 Z`;
   const overlayPath = overlay
     ? overlay.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ')
     : null;
 
   const latest = values[values.length - 1];
+  const activePoint = active != null ? points[active] : null;
 
   return (
     <div>
@@ -44,32 +52,109 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
           {unit}
         </span>
       </div>
-      <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height }}>
-        {type === 'bar' ? (
-          points.map((p, i) => {
-            const bw = Math.max(0.8, 100 / n - 1.5);
-            const bh = ((p.value - min) / range) * 36;
-            return (
-              <rect
-                key={i}
-                x={x(i) - bw / 2}
-                y={39 - bh}
-                width={bw}
-                height={Math.max(0.5, bh)}
-                rx={0.6}
-                fill={color}
-                opacity={0.85}
+
+      <div className="relative" style={{ height }}>
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+          <defs>
+            <linearGradient id={`fill-${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+
+          {type === 'bar' ? (
+            points.map((p, i) => {
+              const bw = Math.max(0.8, 100 / n - 1.5);
+              const bh = ((p.value - min) / range) * 34;
+              return (
+                <rect
+                  key={i}
+                  x={x(i) - bw / 2}
+                  y={38 - bh}
+                  width={bw}
+                  height={Math.max(0.6, bh)}
+                  rx={0.6}
+                  fill={color}
+                  opacity={active === i ? 1 : 0.85}
+                />
+              );
+            })
+          ) : (
+            <>
+              <path d={areaPath} fill={`url(#fill-${gid})`} stroke="none" />
+              <path
+                d={linePath}
+                fill="none"
+                stroke={color}
+                strokeWidth={1.6}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
               />
-            );
-          })
-        ) : (
-          <path d={linePath} fill="none" stroke={color} strokeWidth={1.4} strokeLinejoin="round" />
-        )}
-        {overlayPath ? (
-          <path d={overlayPath} fill="none" stroke="var(--text)" strokeWidth={1} strokeDasharray="2 1.5" opacity={0.5} />
+            </>
+          )}
+          {overlayPath ? (
+            <path
+              d={overlayPath}
+              fill="none"
+              stroke="var(--text)"
+              strokeWidth={1}
+              strokeDasharray="2 1.5"
+              opacity={0.45}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
+        </svg>
+
+        {/* Point markers (line only) */}
+        {type === 'line'
+          ? points.map((p, i) => (
+              <span
+                key={i}
+                className="pointer-events-none absolute rounded-full"
+                style={{
+                  left: `${x(i)}%`,
+                  top: `${(y(p.value) / 40) * 100}%`,
+                  width: active === i || i === n - 1 ? 9 : 5,
+                  height: active === i || i === n - 1 ? 9 : 5,
+                  transform: 'translate(-50%, -50%)',
+                  background: active === i || i === n - 1 ? color : 'var(--card)',
+                  border: `2px solid ${color}`,
+                }}
+              />
+            ))
+          : null}
+
+        {/* Transparent hit columns for tap-to-inspect */}
+        <div className="absolute inset-0 flex">
+          {points.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`${p.label}: ${Math.round(p.value)}${unit}`}
+              onClick={() => setActive(active === i ? null : i)}
+              className="h-full flex-1"
+            />
+          ))}
+        </div>
+
+        {/* Tooltip */}
+        {activePoint ? (
+          <div
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2 py-1 text-[10px] font-semibold text-white shadow-lg"
+            style={{
+              left: `${Math.min(85, Math.max(15, x(active!)))}%`,
+              top: `${(y(activePoint.value) / 40) * 100}%`,
+              background: color,
+            }}
+          >
+            {activePoint.label} · {Math.round(activePoint.value)}
+            {unit}
+          </div>
         ) : null}
-      </svg>
-      <div className="mt-0.5 flex items-center justify-between text-[9px] text-[var(--muted)]">
+      </div>
+
+      <div className="mt-1 flex items-center justify-between text-[9px] text-[var(--muted)]">
         <span>{points[0].label}</span>
         <span>{points[points.length - 1].label}</span>
       </div>

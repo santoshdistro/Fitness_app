@@ -24,7 +24,6 @@ import { SettingsForm } from '../components/forms/SettingsForm';
 import { SpendPanel } from '../components/SpendPanel';
 import { ProgressPhotosPanel } from '../components/ProgressPhotosPanel';
 import { Calculators } from '../components/Calculators';
-import { TrendsPanel } from '../components/TrendsPanel';
 import { AchievementsPanel } from '../components/AchievementsPanel';
 import { FastingPanel } from '../components/FastingPanel';
 import { HealthSyncPanel } from '../components/HealthSyncPanel';
@@ -42,7 +41,6 @@ type ActiveSheet =
   | 'barcodeScan'
   | 'bodyScan'
   | 'progressPhotos'
-  | 'trends'
   | 'achievements'
   | 'fasting'
   | 'cardio'
@@ -112,7 +110,6 @@ export function AppShell() {
             key={refreshKey}
             onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
             onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
-            onOpenTrends={() => setActiveSheet('trends')}
           />
         )}
         {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
@@ -292,10 +289,6 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'calculators'} onClose={closeSheet} title="Calculators">
         <Calculators />
-      </Sheet>
-
-      <Sheet open={activeSheet === 'trends'} onClose={closeSheet} title="Trends">
-        <TrendsPanel />
       </Sheet>
 
       <Sheet open={activeSheet === 'achievements'} onClose={closeSheet} title="Achievements">

@@ -13,6 +13,7 @@ import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { WellnessCard } from '../components/WellnessCard';
+import { TrendsPanel } from '../components/TrendsPanel';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -66,10 +67,10 @@ function dateLabel(dateStr: string): string {
 type Props = {
   onQuickAddCalories: () => void;
   onOpenProgressPhotos: () => void;
-  onOpenTrends: () => void;
 };
 
-export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTrends }: Props) {
+export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
+  const [tab, setTab] = useState<'stats' | 'trends'>('stats');
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { session } = useAuth();
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
@@ -162,7 +163,38 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTr
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
-      <div className="anim-drop-in mt-2 flex items-center justify-center gap-3">
+      {/* Tabs: Stats / Trends */}
+      <div className="anim-drop-in mt-2 flex rounded-2xl bg-[var(--bg)] p-1">
+        {([
+          { key: 'stats', label: 'Stats' },
+          { key: 'trends', label: 'Trends' },
+        ] as const).map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="flex-1 rounded-xl py-2 text-xs font-bold"
+              style={
+                active
+                  ? { background: 'var(--card)', color: 'var(--text)', boxShadow: '0 2px 8px -3px rgba(0,0,0,0.25)' }
+                  : { color: 'var(--muted)' }
+              }
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'trends' ? (
+        <div className="anim-fade-rise mt-4">
+          <TrendsPanel />
+        </div>
+      ) : (
+        <>
+      <div className="anim-drop-in mt-4 flex items-center justify-center gap-3">
         <button
           type="button"
           onClick={() => setSelectedDate(current => addDays(current, -1))}
@@ -184,25 +216,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTr
           <ChevronRight size={14} className="text-[var(--muted)]" />
         </button>
       </div>
-
-      {/* Trends */}
-      <button
-        type="button"
-        onClick={onOpenTrends}
-        className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
-        style={{ animationDelay: '0.06s' }}
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/10">
-          <span className="text-base">📈</span>
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-[var(--text)]">Trends & charts</p>
-          <p className="text-[10px] text-[var(--muted)]">
-            Weight, calories, protein, steps & training volume over time
-          </p>
-        </div>
-        <ChevronRight size={16} className="text-[var(--muted)]" />
-      </button>
 
       {/* BMI */}
       {profile?.height && latestWeight ? (
@@ -617,6 +630,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTr
           ))}
         </div>
       ) : null}
+        </>
+      )}
     </div>
   );
 }
