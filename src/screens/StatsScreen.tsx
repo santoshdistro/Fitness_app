@@ -12,6 +12,7 @@ import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
+import { WellnessCard } from '../components/WellnessCard';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -299,6 +300,11 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos, onOpenTr
           <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
         </div>
       ) : null}
+
+      {/* Mood, energy & caffeine check-ins */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.135s' }}>
+        <WellnessCard logs={weightLogs} />
+      </div>
 
       {/* Macro goals */}
       {macroGoals.length > 0 ? (
