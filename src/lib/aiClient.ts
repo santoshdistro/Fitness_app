@@ -43,6 +43,19 @@ export type NutritionPreferences = {
   proteinTarget?: number;
 };
 
+export type DietPlanItem = {
+  meal: string;
+  name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+};
+export type DietPlanDay = { items: DietPlanItem[] };
+export type DietPlanResult = { summary: string; days: DietPlanDay[] };
+export type DietPlanInput = NutritionPreferences & { days?: number };
+
 type ApiResponse<T> = { result?: T; usage?: AiUsage; error?: string };
 
 async function postJson<T>(url: string, payload: unknown): Promise<{ result: T; usage?: AiUsage }> {
@@ -101,5 +114,14 @@ export async function generateNutritionPlan(
 ): Promise<NutritionPlanResult> {
   const { result, usage } = await postJson<NutritionPlanResult>('/api/nutrition-coach', input);
   if (usage) void logAiUsage(userId, 'nutrition_coach', usage);
+  return result;
+}
+
+export async function generateDietPlan(
+  userId: string,
+  input: DietPlanInput,
+): Promise<DietPlanResult> {
+  const { result, usage } = await postJson<DietPlanResult>('/api/diet-plan', input);
+  if (usage) void logAiUsage(userId, 'diet_plan', usage);
   return result;
 }

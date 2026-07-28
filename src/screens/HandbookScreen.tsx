@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useNutritionCoach } from '../hooks/useNutritionCoach';
 import { generateNutritionPlan, type NutritionPreferences } from '../lib/aiClient';
 import { Sheet } from '../components/Sheet';
+import { DietPlanner } from '../components/DietPlanner';
 import { PhotoBackdrop } from '../components/PhotoBackdrop';
 import { NUTRITION_HERO_IMAGE } from '../data/gymImagery';
 import {
@@ -47,6 +48,7 @@ export function HandbookScreen() {
   const { profile } = useProfile();
   const { prefs, plan, save, clear } = useNutritionCoach();
 
+  const [tab, setTab] = useState<'handbook' | 'plan'>('handbook');
   const [coachOpen, setCoachOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [dietFilter, setDietFilter] = useState<DietTag | 'all'>('all');
@@ -91,6 +93,37 @@ export function HandbookScreen() {
         </p>
       </div>
 
+      {/* Tabs: Diet Handbook / Diet Plan */}
+      <div className="anim-fade-rise mt-4 flex rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.04s' }}>
+        {([
+          { key: 'handbook', label: 'Diet Handbook' },
+          { key: 'plan', label: 'Diet Plan' },
+        ] as const).map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="flex-1 rounded-xl py-2 text-xs font-bold"
+              style={
+                active
+                  ? { background: 'var(--card)', color: 'var(--text)', boxShadow: '0 2px 8px -3px rgba(0,0,0,0.25)' }
+                  : { color: 'var(--muted)' }
+              }
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'plan' ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
+          <DietPlanner />
+        </div>
+      ) : (
+        <>
       {/* AI nutrition coach */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
         {plan ? (
@@ -284,6 +317,8 @@ export function HandbookScreen() {
           ))}
         </div>
       </div>
+        </>
+      )}
 
       {/* Recipe detail */}
       <Sheet
