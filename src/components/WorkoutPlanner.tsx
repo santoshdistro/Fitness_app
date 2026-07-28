@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Dumbbell, Play, Plus, Sparkles, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, Dumbbell, Play, Plus, Sparkles, Trash2, Wand2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useTrainingSplit, SPLIT_OPTIONS, WEEKDAYS } from '../hooks/useTrainingSplit';
@@ -63,6 +63,33 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
     setViewDate(stripStart);
   }
 
+  // Copy the 7 days immediately before the strip start into this fortnight's
+  // first week — replicate last week's training forward. Empty source days are
+  // skipped so they don't wipe anything already planned.
+  const lastWeekHasPlan = useMemo(() => {
+    for (let i = 1; i <= 7; i++) {
+      if ((plan.byDate[addDays(stripStart, -i)]?.length ?? 0) > 0) return true;
+    }
+    return false;
+  }, [plan, stripStart]);
+
+  function copyLastWeek() {
+    const entries: RangeEntry[] = [];
+    for (let i = 0; i < 7; i++) {
+      const src = exercisesFor(addDays(stripStart, i - 7));
+      if (src.length) {
+        entries.push({
+          date: addDays(stripStart, i),
+          exercises: src.map(({ name, sets, reps }) => ({ name, sets, reps })),
+        });
+      }
+    }
+    if (entries.length) {
+      applyRange(entries);
+      setViewDate(stripStart);
+    }
+  }
+
   function startGuidedToday() {
     if (exercises.length === 0) return;
     onStartGuided(
@@ -113,6 +140,15 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
           <Sparkles size={15} /> Build with AI
         </button>
       </div>
+      {lastWeekHasPlan ? (
+        <button
+          type="button"
+          onClick={copyLastWeek}
+          className="glass-card -mt-2 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-[var(--text)]"
+        >
+          <Copy size={14} className="text-[var(--accent)]" /> Copy last week here
+        </button>
+      ) : null}
       <p className="-mt-2 text-[10px] text-[var(--muted)]">
         Fills 14 days from {fmt(stripStart, { day: 'numeric', month: 'short' })}, matching each day to
         your split. Every day stays editable.
