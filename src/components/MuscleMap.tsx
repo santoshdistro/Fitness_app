@@ -1,101 +1,83 @@
 import { muscleHeat, type MuscleKey } from '../data/muscles';
 
-type Shape =
-  | { m?: MuscleKey; kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
-  | { m?: MuscleKey; kind: 'rect'; x: number; y: number; w: number; h: number; r: number };
+type Pt = [number, number];
+type Region = { m: MuscleKey; pts: Pt[]; mirror?: boolean };
 
-// Neutral silhouette pieces shared by both views (head, limbs, hands, feet).
-const BASE: Shape[] = [
-  { kind: 'ellipse', cx: 30, cy: 14, rx: 7, ry: 8 },
-  { kind: 'rect', x: 27, y: 20, w: 6, h: 6, r: 2 },
-  { kind: 'ellipse', cx: 7, cy: 92, rx: 4, ry: 5 },
-  { kind: 'ellipse', cx: 53, cy: 92, rx: 4, ry: 5 },
-  { kind: 'rect', x: 21, y: 122, w: 7, h: 44, r: 3 },
-  { kind: 'rect', x: 32, y: 122, w: 7, h: 44, r: 3 },
-  { kind: 'ellipse', cx: 24, cy: 172, rx: 5, ry: 4 },
-  { kind: 'ellipse', cx: 36, cy: 172, rx: 5, ry: 4 },
+const IDLE = '#eef1f6';
+const STROKE = '#9aa4b2';
+
+const FRONT: Region[] = [
+  { m: 'shoulders', mirror: true, pts: [[40, 36], [34, 34], [28, 38], [26, 46], [31, 50], [39, 47], [42, 40]] },
+  { m: 'chest', mirror: true, pts: [[42, 40], [49.5, 41], [49.5, 55], [43, 57], [38, 52], [38, 44]] },
+  { m: 'biceps', mirror: true, pts: [[33, 51], [39, 53], [38, 65], [34, 69], [29, 64], [30, 54]] },
+  { m: 'forearms', mirror: true, pts: [[29, 67], [35, 67], [34, 83], [30, 87], [25, 80], [26, 70]] },
+  { m: 'abs', mirror: true, pts: [[40, 60], [42, 60], [42, 84], [39, 80], [38, 66]] }, // obliques
+  { m: 'abs', pts: [[43, 58], [57, 58], [56, 82], [50, 90], [44, 82]] },
+  { m: 'quads', mirror: true, pts: [[41, 90], [49, 90], [48, 122], [44, 130], [39, 120], [38, 99]] },
 ];
 
-const FRONT: Shape[] = [
-  { m: 'shoulders', kind: 'ellipse', cx: 15, cy: 33, rx: 7, ry: 6 },
-  { m: 'shoulders', kind: 'ellipse', cx: 45, cy: 33, rx: 7, ry: 6 },
-  { m: 'chest', kind: 'rect', x: 18, y: 37, w: 11, h: 13, r: 4 },
-  { m: 'chest', kind: 'rect', x: 31, y: 37, w: 11, h: 13, r: 4 },
-  { m: 'biceps', kind: 'ellipse', cx: 11, cy: 53, rx: 4.5, ry: 11 },
-  { m: 'biceps', kind: 'ellipse', cx: 49, cy: 53, rx: 4.5, ry: 11 },
-  { m: 'abs', kind: 'rect', x: 23, y: 51, w: 14, h: 26, r: 4 },
-  { m: 'forearms', kind: 'ellipse', cx: 8, cy: 75, rx: 4, ry: 12 },
-  { m: 'forearms', kind: 'ellipse', cx: 52, cy: 75, rx: 4, ry: 12 },
-  { m: 'quads', kind: 'rect', x: 20, y: 80, w: 9, h: 44, r: 4 },
-  { m: 'quads', kind: 'rect', x: 31, y: 80, w: 9, h: 44, r: 4 },
+const BACK: Region[] = [
+  { m: 'traps', pts: [[43, 31], [57, 31], [56, 41], [50, 45], [44, 41]] },
+  { m: 'shoulders', mirror: true, pts: [[40, 36], [34, 34], [28, 38], [26, 46], [31, 50], [39, 47], [42, 40]] },
+  { m: 'back', mirror: true, pts: [[42, 42], [49.5, 44], [48, 67], [43, 69], [38, 60], [38, 47]] },
+  { m: 'triceps', mirror: true, pts: [[33, 51], [39, 53], [38, 65], [34, 69], [29, 64], [30, 54]] },
+  { m: 'forearms', mirror: true, pts: [[29, 67], [35, 67], [34, 83], [30, 87], [25, 80], [26, 70]] },
+  { m: 'lowerBack', pts: [[44, 68], [56, 68], [55, 79], [50, 81], [45, 79]] },
+  { m: 'glutes', mirror: true, pts: [[42, 80], [49.5, 81], [49.5, 95], [44, 98], [39, 92], [39, 84]] },
+  { m: 'hamstrings', mirror: true, pts: [[41, 98], [49, 98], [48, 127], [44, 133], [39, 124], [38, 105]] },
+  { m: 'calves', mirror: true, pts: [[40, 150], [47, 150], [46, 176], [43, 182], [38, 176], [37, 156]] },
 ];
 
-const BACK: Shape[] = [
-  { m: 'traps', kind: 'rect', x: 24, y: 26, w: 12, h: 9, r: 3 },
-  { m: 'shoulders', kind: 'ellipse', cx: 15, cy: 33, rx: 7, ry: 6 },
-  { m: 'shoulders', kind: 'ellipse', cx: 45, cy: 33, rx: 7, ry: 6 },
-  { m: 'back', kind: 'rect', x: 20, y: 36, w: 20, h: 24, r: 6 },
-  { m: 'triceps', kind: 'ellipse', cx: 11, cy: 53, rx: 4.5, ry: 11 },
-  { m: 'triceps', kind: 'ellipse', cx: 49, cy: 53, rx: 4.5, ry: 11 },
-  { m: 'forearms', kind: 'ellipse', cx: 8, cy: 75, rx: 4, ry: 12 },
-  { m: 'forearms', kind: 'ellipse', cx: 52, cy: 75, rx: 4, ry: 12 },
-  { m: 'lowerBack', kind: 'rect', x: 24, y: 60, w: 12, h: 12, r: 3 },
-  { m: 'glutes', kind: 'ellipse', cx: 24, cy: 82, rx: 7, ry: 7 },
-  { m: 'glutes', kind: 'ellipse', cx: 36, cy: 82, rx: 7, ry: 7 },
-  { m: 'hamstrings', kind: 'rect', x: 20, y: 90, w: 9, h: 34, r: 4 },
-  { m: 'hamstrings', kind: 'rect', x: 31, y: 90, w: 9, h: 34, r: 4 },
-  { m: 'calves', kind: 'ellipse', cx: 24, cy: 140, rx: 5, ry: 13 },
-  { m: 'calves', kind: 'ellipse', cx: 36, cy: 140, rx: 5, ry: 13 },
-];
+const SHIN: Pt[] = [[40, 124], [47, 124], [46, 162], [41, 165], [39, 140]];
 
-function ShapeEl({
-  s,
-  fill,
-  onClick,
-}: {
-  s: Shape;
-  fill: string;
-  onClick?: () => void;
-}) {
-  const common = {
-    fill,
-    stroke: '#9aa4b2',
-    strokeWidth: 0.4,
-    onClick,
-    style: { cursor: onClick ? 'pointer' : 'default' } as const,
-  };
-  return s.kind === 'ellipse' ? (
-    <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} {...common} />
-  ) : (
-    <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.r} {...common} />
-  );
+function ptsStr(pts: Pt[]): string {
+  return pts.map(([x, y]) => `${x},${y}`).join(' ');
+}
+function mirror(pts: Pt[]): Pt[] {
+  return pts.map(([x, y]) => [100 - x, y] as Pt);
 }
 
 function Figure({
-  shapes,
+  regions,
   label,
   intensity,
   onSelect,
 }: {
-  shapes: Shape[];
+  regions: Region[];
   label: string;
   intensity: Partial<Record<MuscleKey, number>>;
   onSelect: (m: MuscleKey) => void;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center">
-      <svg viewBox="0 0 60 182" style={{ width: '100%', maxWidth: 150 }}>
-        {BASE.map((s, i) => (
-          <ShapeEl key={`b${i}`} s={s} fill="#eef1f6" />
-        ))}
-        {shapes.map((s, i) => (
-          <ShapeEl
-            key={`m${i}`}
-            s={s}
-            fill={muscleHeat(s.m ? intensity[s.m] ?? 0 : 0)}
-            onClick={s.m ? () => onSelect(s.m!) : undefined}
-          />
-        ))}
+      <svg viewBox="0 0 100 192" style={{ width: '100%', maxWidth: 160 }}>
+        {/* neutral silhouette */}
+        <circle cx={50} cy={18} r={10} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <polygon points={ptsStr([[45, 27], [55, 27], [54, 34], [46, 34]])} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <polygon points={ptsStr(SHIN)} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <polygon points={ptsStr(mirror(SHIN))} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <circle cx={42} cy={170} r={5} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <circle cx={58} cy={170} r={5} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <circle cx={26} cy={90} r={5} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+        <circle cx={74} cy={90} r={5} fill={IDLE} stroke={STROKE} strokeWidth={0.5} />
+
+        {/* muscles */}
+        {regions.flatMap((r, i) => {
+          const fill = muscleHeat(intensity[r.m] ?? 0);
+          const shapes = [r.pts, ...(r.mirror ? [mirror(r.pts)] : [])];
+          return shapes.map((pts, j) => (
+            <polygon
+              key={`${i}-${j}`}
+              points={ptsStr(pts)}
+              fill={fill}
+              stroke={STROKE}
+              strokeWidth={0.5}
+              strokeLinejoin="round"
+              onClick={() => onSelect(r.m)}
+              style={{ cursor: 'pointer' }}
+            />
+          ));
+        })}
       </svg>
       <span className="mt-1 text-[10px] font-semibold text-[var(--muted)]">{label}</span>
     </div>
@@ -111,8 +93,8 @@ export function MuscleMap({
 }) {
   return (
     <div className="flex gap-2">
-      <Figure shapes={FRONT} label="Front" intensity={intensity} onSelect={onSelect} />
-      <Figure shapes={BACK} label="Back" intensity={intensity} onSelect={onSelect} />
+      <Figure regions={FRONT} label="Front" intensity={intensity} onSelect={onSelect} />
+      <Figure regions={BACK} label="Back" intensity={intensity} onSelect={onSelect} />
     </div>
   );
 }

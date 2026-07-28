@@ -12,6 +12,7 @@ import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
+import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -21,6 +22,7 @@ import {
   ageFromBirthDate,
   computeBMR,
   computeDailyCalorieTarget,
+  computeMetabolicAge,
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
@@ -222,6 +224,31 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
           <BmiCard weightKg={latestWeight} heightCm={profile.height} weightUnit={wUnit} />
         </div>
       ) : null}
+
+      {/* Metabolic age */}
+      {(() => {
+        if (!profile?.birth_date || !profile?.gender || !profile?.height || latestWeight == null) return null;
+        const actualAge = ageFromBirthDate(profile.birth_date);
+        const bmiVal = latestWeight / Math.pow(profile.height / 100, 2);
+        const bodyFat = measurement?.calculated_body_fat ?? null;
+        const metabolicAge = computeMetabolicAge({
+          ageYears: actualAge,
+          gender: profile.gender,
+          bmi: bmiVal,
+          bodyFatPercent: bodyFat,
+          activity: profile.activity_level ?? null,
+        });
+        if (metabolicAge == null) return null;
+        return (
+          <div className="mt-4">
+            <MetabolicAgeCard
+              metabolicAge={metabolicAge}
+              actualAge={actualAge}
+              basis={bodyFat != null ? 'bodyFat' : 'bmi'}
+            />
+          </div>
+        );
+      })()}
 
       {/* Calories */}
       <div

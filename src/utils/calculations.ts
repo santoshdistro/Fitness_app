@@ -221,6 +221,35 @@ export type MacroTargets = {
  * support growth in a bulk; fat is a fixed share of calories; carbs fill the
  * remainder. Not stored — recomputed whenever inputs change.
  */
+/**
+ * A rough, motivational "metabolic age" estimate (not medical). Starts from
+ * real age and shifts it by body composition and activity: leaner + more
+ * active reads younger, higher body fat / BMI + sedentary reads older. Uses
+ * body-fat % when available, otherwise BMI.
+ */
+export function computeMetabolicAge(params: {
+  ageYears: number;
+  gender: Gender;
+  bmi: number | null;
+  bodyFatPercent: number | null;
+  activity: ActivityLevel | null;
+}): number | null {
+  const { ageYears, gender, bmi, bodyFatPercent, activity } = params;
+  if (!ageYears) return null;
+
+  let adj = 0;
+  if (bodyFatPercent != null) {
+    const ref = gender === 'female' ? 23 : 15; // healthy reference body fat %
+    adj += ((bodyFatPercent - ref) / 5) * 3; // ~3 yrs per 5% off reference
+  } else if (bmi != null) {
+    adj += ((bmi - 22) / 3) * 2; // ~2 yrs per 3 BMI points off 22
+  }
+  adj +=
+    activity === 'very_active' ? -2 : activity === 'moderate' ? -1 : activity === 'sedentary' ? 2 : 0;
+
+  return Math.max(16, Math.round(ageYears + adj));
+}
+
 export function computeSuggestedMacros(params: {
   weightKg: number;
   calorieTarget: number;
