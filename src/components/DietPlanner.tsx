@@ -1,13 +1,22 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
-import { PLAN_DAYS, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
+import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
+
+const STRIP_DAYS = 14;
+
+function fmt(date: string, opts: Intl.DateTimeFormatOptions): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, opts);
+}
+function longDate(date: string): string {
+  return fmt(date, { weekday: 'long', day: 'numeric', month: 'short' });
+}
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
 
@@ -33,50 +42,52 @@ function goalDefault(goalType?: string | null): string {
   return GOAL_OPTIONS[2].value;
 }
 
-function dayLabel(index: number): { top: string; sub: string } {
-  const date = new Date(`${addDays(todayDateString(), index)}T00:00:00`);
-  return {
-    top: `Day ${index + 1}`,
-    sub: date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
-  };
-}
-
 export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, addItem, removeItem, applyAiPlan, clear } = useDietPlan();
+  const { plan, hasPlan, itemsFor, addItem, removeItem, applyAiPlan, clearDate, clearAll } =
+    useDietPlan();
 
-  const [selectedDay, setSelectedDay] = useState(0);
+  const today = todayDateString();
+  const [viewDate, setViewDate] = useState(today);
+  const [stripStart, setStripStart] = useState(today);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  const day = useMemo(() => plan.days[selectedDay] ?? { items: [] }, [plan.days, selectedDay]);
+  const items = itemsFor(viewDate);
 
-  const totals = useMemo(() => {
-    return day.items.reduce(
-      (acc, it) => ({
-        calories: acc.calories + (it.calories || 0),
-        protein_g: acc.protein_g + (it.protein_g || 0),
-        carbs_g: acc.carbs_g + (it.carbs_g || 0),
-        fat_g: acc.fat_g + (it.fat_g || 0),
-        fiber_g: acc.fiber_g + (it.fiber_g || 0),
-      }),
-      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 },
-    );
-  }, [day]);
+  const totals = useMemo(
+    () =>
+      items.reduce(
+        (acc, it) => ({
+          calories: acc.calories + (it.calories || 0),
+          protein_g: acc.protein_g + (it.protein_g || 0),
+          carbs_g: acc.carbs_g + (it.carbs_g || 0),
+          fat_g: acc.fat_g + (it.fat_g || 0),
+          fiber_g: acc.fiber_g + (it.fiber_g || 0),
+        }),
+        { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 },
+      ),
+    [items],
+  );
 
   const byMeal = useMemo(() => {
     const map = new Map<string, PlanItem[]>();
-    for (const it of day.items) {
+    for (const it of items) {
       const bucket = map.get(it.meal) ?? [];
       bucket.push(it);
       map.set(it.meal, bucket);
     }
     return map;
-  }, [day]);
+  }, [items]);
 
   const mealOrder = [...MEALS, ...[...byMeal.keys()].filter(m => !MEALS.includes(m as never))];
+
+  function jumpTo(date: string) {
+    setViewDate(date);
+    setStripStart(date);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,11 +106,10 @@ export function DietPlanner() {
           <Sparkles size={18} className="text-white" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-white">
-            {hasPlan ? 'Rebuild my 2-week plan' : 'Build my 2-week plan with AI'}
-          </p>
+          <p className="text-sm font-bold text-white">Build a 2-week plan with AI</p>
           <p className="text-[11px] text-white/80">
-            Drafts what to eat for the next {PLAN_DAYS} days around your goal & macros.
+            Fills {PLAN_SPAN} days from {fmt(stripStart, { day: 'numeric', month: 'short' })} around your
+            goal & macros.
           </p>
         </div>
       </button>
@@ -110,17 +120,50 @@ export function DietPlanner() {
         </p>
       ) : null}
 
-      {/* Day selector */}
+      {/* Week navigator: jump to any date + shift the strip */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => jumpTo(addDays(stripStart, -STRIP_DAYS))}
+          aria-label="Previous fortnight"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)]"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <label className="relative flex flex-1 items-center justify-center gap-2 rounded-full bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)]">
+          <CalendarDays size={14} className="text-[var(--accent)]" />
+          <span>{fmt(stripStart, { day: 'numeric', month: 'short' })}</span>
+          <span className="text-[var(--muted)]">→ {fmt(addDays(stripStart, STRIP_DAYS - 1), { day: 'numeric', month: 'short' })}</span>
+          <input
+            type="date"
+            value={viewDate}
+            onChange={e => e.target.value && jumpTo(e.target.value)}
+            aria-label="Jump to date"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => jumpTo(addDays(stripStart, STRIP_DAYS))}
+          aria-label="Next fortnight"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)]"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Day strip */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {Array.from({ length: PLAN_DAYS }, (_, i) => {
-          const { top, sub } = dayLabel(i);
-          const active = i === selectedDay;
-          const filled = plan.days[i]?.items.length > 0;
+        {Array.from({ length: STRIP_DAYS }, (_, i) => {
+          const date = addDays(stripStart, i);
+          const active = date === viewDate;
+          const filled = (plan.byDate[date]?.length ?? 0) > 0;
+          const isToday = date === today;
           return (
             <button
-              key={i}
+              key={date}
               type="button"
-              onClick={() => setSelectedDay(i)}
+              onClick={() => setViewDate(date)}
               className="flex shrink-0 flex-col items-center rounded-2xl px-3 py-2"
               style={
                 active
@@ -128,10 +171,12 @@ export function DietPlanner() {
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
-              <span className="text-[11px] font-bold">{top}</span>
-              <span className="text-[9px] opacity-80">{sub}</span>
+              <span className="text-[9px] font-bold uppercase opacity-80">
+                {isToday ? 'Today' : fmt(date, { weekday: 'short' })}
+              </span>
+              <span className="text-sm font-bold">{fmt(date, { day: 'numeric' })}</span>
               <span
-                className="mt-1 h-1 w-1 rounded-full"
+                className="mt-0.5 h-1 w-1 rounded-full"
                 style={{ background: filled ? (active ? 'white' : 'var(--accent)') : 'transparent' }}
               />
             </button>
@@ -139,14 +184,16 @@ export function DietPlanner() {
         })}
       </div>
 
-      {/* Meals for the selected day */}
+      <p className="text-xs font-bold text-[var(--text)]">{longDate(viewDate)}</p>
+
+      {/* Meals for the viewed day */}
       <div className="flex flex-col gap-3">
-        {day.items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="glass-card flex flex-col items-center gap-1 p-6 text-center">
             <Utensils size={22} className="text-[var(--muted)]" />
             <p className="text-sm font-semibold text-[var(--text)]">Nothing planned yet</p>
             <p className="text-[11px] text-[var(--muted)]">
-              Add foods below, or let AI draft the whole fortnight.
+              Add foods below, or let AI draft two weeks from here.
             </p>
           </div>
         ) : (
@@ -168,7 +215,7 @@ export function DietPlanner() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(selectedDay, it.id)}
+                        onClick={() => removeItem(viewDate, it.id)}
                         aria-label="Remove"
                         className="shrink-0 text-[var(--muted)]"
                       >
@@ -186,15 +233,22 @@ export function DietPlanner() {
           onClick={() => setAddOpen(true)}
           className="glass-card flex items-center justify-center gap-2 py-3 text-sm font-semibold text-[var(--accent)]"
         >
-          <Plus size={16} /> Add food to {dayLabel(selectedDay).top}
+          <Plus size={16} /> Add food
         </button>
+        {items.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => clearDate(viewDate)}
+            className="text-center text-[11px] font-semibold text-[var(--muted)]"
+          >
+            Clear this day
+          </button>
+        ) : null}
       </div>
 
       {/* Macro totals for the day */}
       <div className="glass-card p-4">
-        <p className="mb-3 text-sm font-semibold text-[var(--text)]">
-          What you'll get — {dayLabel(selectedDay).top}
-        </p>
+        <p className="mb-3 text-sm font-semibold text-[var(--text)]">What you'll get this day</p>
         <MacroBar label="Calories" value={Math.round(totals.calories)} goal={targets.calorieTarget} unit="kcal" />
         <MacroBar label="Protein" value={Math.round(totals.protein_g)} goal={targets.proteinTarget} unit="g" />
         <MacroBar label="Carbs" value={Math.round(totals.carbs_g)} goal={targets.carbTarget} unit="g" />
@@ -209,18 +263,18 @@ export function DietPlanner() {
         <button
           type="button"
           onClick={() => {
-            if (confirm('Clear the whole 2-week plan?')) clear();
+            if (confirm('Clear every planned day?')) clearAll();
           }}
           className="flex items-center justify-center gap-1.5 text-xs font-semibold text-red-500"
         >
-          <Trash2 size={13} /> Clear plan
+          <Trash2 size={13} /> Clear entire plan
         </button>
       ) : null}
 
-      <Sheet open={addOpen} onClose={() => setAddOpen(false)} title={`Add food · ${dayLabel(selectedDay).top}`}>
+      <Sheet open={addOpen} onClose={() => setAddOpen(false)} title={`Add food · ${longDate(viewDate)}`}>
         <AddFoodForm
           onAdd={item => {
-            addItem(selectedDay, item);
+            addItem(viewDate, item);
             setAddOpen(false);
           }}
         />
@@ -229,12 +283,13 @@ export function DietPlanner() {
       <Sheet open={builderOpen} onClose={() => setBuilderOpen(false)} title="Build 2-week plan">
         <PlanBuilderForm
           userId={session?.user?.id}
+          startDate={stripStart}
           defaultGoal={goalDefault(profile?.goal_type)}
           calorieTarget={targets.calorieTarget}
           proteinTarget={targets.proteinTarget}
           onBuilt={result => {
-            applyAiPlan(result);
-            setSelectedDay(0);
+            applyAiPlan(result, stripStart);
+            setViewDate(stripStart);
             setBuilderOpen(false);
           }}
         />
@@ -365,12 +420,14 @@ function NumField({
 
 function PlanBuilderForm({
   userId,
+  startDate,
   defaultGoal,
   calorieTarget,
   proteinTarget,
   onBuilt,
 }: {
   userId?: string;
+  startDate: string;
   defaultGoal: string;
   calorieTarget: number;
   proteinTarget: number;
@@ -414,8 +471,9 @@ function PlanBuilderForm({
   return (
     <form onSubmit={submit}>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        AI drafts a varied week of meals and lays it across your 2 weeks. Every day stays editable —
-        tweak anything before you follow it.
+        AI drafts a varied week of meals and lays it across the 2 weeks starting{' '}
+        {fmt(startDate, { weekday: 'long', day: 'numeric', month: 'short' })}. Every day stays
+        editable — tweak anything before you follow it.
       </p>
       <div className="mb-3">
         <label className={labelClass} htmlFor="db-goal">Goal</label>

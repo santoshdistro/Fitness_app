@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { addDays } from '../utils/date';
 import type { DietPlanItem, DietPlanResult } from '../lib/aiClient';
 
-// A personal 2-week eating plan, kept locally (single-device convenience data,
-// no Supabase table). Each of the 14 days holds a list of planned food items.
+// A personal eating plan kept locally (single-device convenience data, no
+// Supabase table). Items are keyed by real calendar date, so you can plan any
+// day — this week, next week, or further out.
 
-export const PLAN_DAYS = 14;
+export const PLAN_SPAN = 14;
 
 export type PlanItem = DietPlanItem & { id: string };
-export type PlanDay = { items: PlanItem[] };
-export type StoredPlan = { summary: string; days: PlanDay[] };
+export type StoredPlan = { summary: string; byDate: Record<string, PlanItem[]> };
 
 function key(userId: string): string {
-  return `diet_plan_2w:${userId}`;
+  return `diet_plan_dates:${userId}`;
 }
 
 function newId(): string {
@@ -21,32 +22,24 @@ function newId(): string {
     : Math.random().toString(36).slice(2);
 }
 
-function emptyDays(): PlanDay[] {
-  return Array.from({ length: PLAN_DAYS }, () => ({ items: [] }));
-}
+const EMPTY: StoredPlan = { summary: '', byDate: {} };
 
 export function useDietPlan() {
   const { session } = useAuth();
   const userId = session?.user?.id;
-  const [plan, setPlan] = useState<StoredPlan>({ summary: '', days: emptyDays() });
+  const [plan, setPlan] = useState<StoredPlan>(EMPTY);
 
   useEffect(() => {
     if (!userId) {
-      setPlan({ summary: '', days: emptyDays() });
+      setPlan(EMPTY);
       return;
     }
     try {
       const raw = localStorage.getItem(key(userId));
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoredPlan;
-        // Normalise length in case PLAN_DAYS changed.
-        const days = emptyDays().map((d, i) => parsed.days[i] ?? d);
-        setPlan({ summary: parsed.summary ?? '', days });
-      } else {
-        setPlan({ summary: '', days: emptyDays() });
-      }
+      const parsed = raw ? (JSON.parse(raw) as StoredPlan) : null;
+      setPlan(parsed?.byDate ? { summary: parsed.summary ?? '', byDate: parsed.byDate } : EMPTY);
     } catch {
-      setPlan({ summary: '', days: emptyDays() });
+      setPlan(EMPTY);
     }
   }, [userId]);
 
@@ -58,45 +51,56 @@ export function useDietPlan() {
     [userId],
   );
 
+  const itemsFor = useCallback((date: string): PlanItem[] => plan.byDate[date] ?? [], [plan]);
+
   const addItem = useCallback(
-    (dayIndex: number, item: DietPlanItem) => {
-      const days = plan.days.map((d, i) =>
-        i === dayIndex ? { items: [...d.items, { ...item, id: newId() }] } : d,
-      );
-      persist({ ...plan, days });
+    (date: string, item: DietPlanItem) => {
+      const list = plan.byDate[date] ?? [];
+      persist({
+        ...plan,
+        byDate: { ...plan.byDate, [date]: [...list, { ...item, id: newId() }] },
+      });
     },
     [plan, persist],
   );
 
   const removeItem = useCallback(
-    (dayIndex: number, id: string) => {
-      const days = plan.days.map((d, i) =>
-        i === dayIndex ? { items: d.items.filter(it => it.id !== id) } : d,
-      );
-      persist({ ...plan, days });
+    (date: string, id: string) => {
+      const list = (plan.byDate[date] ?? []).filter(it => it.id !== id);
+      persist({ ...plan, byDate: { ...plan.byDate, [date]: list } });
     },
     [plan, persist],
   );
 
-  // Lay an AI result (a handful of unique days) across the full 2 weeks by
-  // cycling through them, so every day is filled and still individually editable.
+  // Lay an AI result (a handful of unique days) across `span` days starting at
+  // `startDate`, cycling through the source days. Only the affected dates are
+  // overwritten — plans on other dates are kept.
   const applyAiPlan = useCallback(
-    (result: DietPlanResult) => {
+    (result: DietPlanResult, startDate: string, span = PLAN_SPAN) => {
       const source = result.days.filter(d => d.items?.length);
       if (source.length === 0) return;
-      const days: PlanDay[] = Array.from({ length: PLAN_DAYS }, (_, i) => ({
-        items: source[i % source.length].items.map(it => ({ ...it, id: newId() })),
-      }));
-      persist({ summary: result.summary ?? '', days });
+      const byDate = { ...plan.byDate };
+      for (let i = 0; i < span; i++) {
+        const date = addDays(startDate, i);
+        byDate[date] = source[i % source.length].items.map(it => ({ ...it, id: newId() }));
+      }
+      persist({ summary: result.summary ?? plan.summary, byDate });
     },
-    [persist],
+    [plan, persist],
   );
 
-  const clear = useCallback(() => {
-    persist({ summary: '', days: emptyDays() });
-  }, [persist]);
+  const clearDate = useCallback(
+    (date: string) => {
+      const byDate = { ...plan.byDate };
+      delete byDate[date];
+      persist({ ...plan, byDate });
+    },
+    [plan, persist],
+  );
 
-  const hasPlan = plan.days.some(d => d.items.length > 0);
+  const clearAll = useCallback(() => persist(EMPTY), [persist]);
 
-  return { plan, hasPlan, addItem, removeItem, applyAiPlan, clear };
+  const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
+
+  return { plan, hasPlan, itemsFor, addItem, removeItem, applyAiPlan, clearDate, clearAll };
 }
