@@ -3,6 +3,7 @@ import { Search, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
+import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
 import { estimateFood } from '../../lib/aiClient';
 import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
@@ -84,13 +85,21 @@ export function MealForm({ onSaved, initial }: Props) {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
-    try {
-      setResults(await searchFoods(query.trim()));
-    } catch {
-      setSearchError("Couldn't reach the food database. Check your connection and try again.");
-    } finally {
-      setSearching(false);
+    // Query the global (Open Food Facts) and US (USDA) databases together, so
+    // one failing or being sparse doesn't block the other.
+    const [off, usda] = await Promise.allSettled([
+      searchOpenFoodFacts(query.trim()),
+      searchFoods(query.trim()),
+    ]);
+    const merged = [
+      ...(off.status === 'fulfilled' ? off.value : []),
+      ...(usda.status === 'fulfilled' ? usda.value : []),
+    ];
+    setResults(merged);
+    if (merged.length === 0) {
+      setSearchError('No match in the databases — tap ✨ to estimate it with AI instead.');
     }
+    setSearching(false);
   }
 
   async function handleAiEstimate() {
