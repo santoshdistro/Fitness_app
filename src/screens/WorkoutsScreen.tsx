@@ -9,6 +9,7 @@ import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
+import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -41,6 +42,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { records, lastByExercise } = useStrengthRecords();
   const { split, setDay } = useTrainingSplit();
   const todayIdx = todayIndex();
+  const [tab, setTab] = useState<'workouts' | 'plan'>('workouts');
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
@@ -99,6 +101,39 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         </p>
       </div>
 
+      {/* Tabs: Workouts / Workout Plan */}
+      <div className="anim-fade-rise mt-4 flex rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.03s' }}>
+        {([
+          { key: 'workouts', label: 'Workouts' },
+          { key: 'plan', label: 'Workout Plan' },
+        ] as const).map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="flex-1 rounded-xl py-2 text-xs font-bold"
+              style={
+                active
+                  ? { background: 'var(--card)', color: 'var(--text)', boxShadow: '0 2px 8px -3px rgba(0,0,0,0.25)' }
+                  : { color: 'var(--muted)' }
+              }
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'plan' ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
+          <WorkoutPlanner
+            onStartGuided={(title, exercises) => setGuided({ title, exercises })}
+          />
+        </div>
+      ) : (
+        <>
       {/* Weekly split planner */}
       <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.03s' }}>
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Weekly split</p>
@@ -400,6 +435,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
 
       <Sheet
