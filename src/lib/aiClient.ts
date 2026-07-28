@@ -85,6 +85,12 @@ export async function scanFood(
   return result;
 }
 
+export async function estimateFood(userId: string, query: string): Promise<FoodResult> {
+  const { result, usage } = await postJson<FoodResult>('/api/estimate-food', { query });
+  if (usage) void logAiUsage(userId, 'food_estimate', usage);
+  return result;
+}
+
 export async function analyzeBody(
   userId: string,
   image: EncodedImage,

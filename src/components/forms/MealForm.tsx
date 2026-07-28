@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
+import { estimateFood } from '../../lib/aiClient';
 import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
 import { gToUnit, unitToG } from '../../utils/units';
@@ -58,6 +59,7 @@ export function MealForm({ onSaved, initial }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [estimating, setEstimating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [servingNote, setServingNote] = useState<string | null>(initial?.servingNote ?? null);
@@ -88,6 +90,39 @@ export function MealForm({ onSaved, initial }: Props) {
       setSearchError("Couldn't reach the food database. Check your connection and try again.");
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function handleAiEstimate() {
+    if (!query.trim() || !session?.user) return;
+    setEstimating(true);
+    setSearchError(null);
+    try {
+      const r = await estimateFood(session.user.id, query.trim());
+      setMealName(r.name);
+      setResults([]);
+      setQuery('');
+      setPerGram(null);
+      setPerServing({
+        calories: r.calories,
+        protein: r.protein_g,
+        carbs: r.carbs_g,
+        fat: r.fat_g,
+        fiber: r.fiber_g,
+        sodium: r.sodium_mg,
+      });
+      setServings('1');
+      setCalories(String(r.calories));
+      setProtein(String(r.protein_g));
+      setCarbs(String(r.carbs_g));
+      setFat(String(r.fat_g));
+      setFiber(String(r.fiber_g));
+      setSodium(String(r.sodium_mg));
+      setServingNote(`AI estimate (${r.confidence} confidence) · adjust quantity below`);
+    } catch {
+      setSearchError('Could not estimate that. Try adding a portion, e.g. "aloo methi 1 bowl".');
+    } finally {
+      setEstimating(false);
     }
   }
 
@@ -244,7 +279,7 @@ export function MealForm({ onSaved, initial }: Props) {
 
       <div className="mb-4">
         <label className={labelClass} htmlFor="food-search-input">
-          Search food database
+          Search or estimate a food
         </label>
         <div className="flex gap-2">
           <input
@@ -256,18 +291,35 @@ export function MealForm({ onSaved, initial }: Props) {
             onKeyDown={e => {
               if (e.key === 'Enter') handleSearch();
             }}
-            placeholder="e.g. chicken breast"
+            placeholder="e.g. aloo methi 1 bowl"
           />
           <button
             type="button"
             onClick={handleSearch}
-            disabled={searching || !query.trim()}
-            aria-label="Search"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            disabled={searching || estimating || !query.trim()}
+            aria-label="Search database"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl bg-[var(--bg)] text-[var(--text)] disabled:opacity-40"
           >
             <Search size={18} />
           </button>
+          <button
+            type="button"
+            onClick={handleAiEstimate}
+            disabled={searching || estimating || !query.trim()}
+            aria-label="Estimate with AI"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          >
+            {estimating ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <Sparkles size={18} />
+            )}
+          </button>
         </div>
+        <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+          🔍 searches the food database · ✨ estimates any dish with AI (great for home-cooked &
+          regional foods).
+        </p>
 
         {searchError ? <p className={`mt-2 ${errorTextClass}`}>{searchError}</p> : null}
 

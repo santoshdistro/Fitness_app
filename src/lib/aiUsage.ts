@@ -8,7 +8,8 @@ export type AiFeature =
   | 'body_scan'
   | 'workout_plan'
   | 'nutrition_coach'
-  | 'diet_plan';
+  | 'diet_plan'
+  | 'food_estimate';
 
 /**
  * Records one AI call's token usage + estimated cost for the in-app spend
