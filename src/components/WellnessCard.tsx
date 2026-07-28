@@ -1,4 +1,4 @@
-import type { DailyLog } from '../types/database';
+import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 
 const MOOD = ['😣', '😕', '😐', '🙂', '😄'];
 const ENERGY = ['😴', '🥱', '😐', '💪', '⚡'];
@@ -7,7 +7,8 @@ function weekdayLetter(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2);
 }
 
-export function WellnessCard({ logs }: { logs: DailyLog[] }) {
+export function WellnessCard() {
+  const { logs } = useRecentDailyLogs(14);
   // Last 7 days, oldest → newest (logs already arrive in that order).
   const recent = logs.slice(-7);
   const hasAny = recent.some(l => l.caffeine_mg != null || l.mood != null || l.energy != null);

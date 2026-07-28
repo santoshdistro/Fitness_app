@@ -1,7 +1,9 @@
 import { useTrends } from '../hooks/useTrends';
 import { useSettings } from '../hooks/useSettings';
+import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { kgToUnit } from '../utils/units';
 import { TrendChart } from './charts/TrendChart';
+import { WellnessCard } from './WellnessCard';
 
 function Section({
   title,
@@ -26,6 +28,7 @@ function Section({
 export function TrendsPanel() {
   const { trends, loading } = useTrends();
   const { settings } = useSettings();
+  const targets = useCalorieTargets();
   const wUnit = settings.weightUnit;
 
   if (loading) return <p className="text-xs text-[var(--muted)]">Loading…</p>;
@@ -47,11 +50,11 @@ export function TrendsPanel() {
       </Section>
 
       <Section title="Calories" subtitle={trends.avgCalories != null ? `avg ${trends.avgCalories}/day` : undefined}>
-        <TrendChart points={trends.calories} type="bar" unit="" color="#6c63ff" />
+        <TrendChart points={trends.calories} type="bar" unit="" color="#6c63ff" goal={targets.calorieTarget} />
       </Section>
 
       <Section title="Protein" subtitle={trends.avgProtein != null ? `avg ${trends.avgProtein}g/day` : undefined}>
-        <TrendChart points={trends.protein} type="bar" unit="g" color="#22c55e" />
+        <TrendChart points={trends.protein} type="bar" unit="g" color="#22c55e" goal={targets.proteinTarget} />
       </Section>
 
       <Section title="Steps" subtitle={trends.avgSteps != null ? `avg ${trends.avgSteps.toLocaleString()}/day` : undefined}>
@@ -72,6 +75,17 @@ export function TrendsPanel() {
           <p className="text-[10px] text-[var(--muted)]">Distance per cardio session.</p>
         </Section>
       ) : null}
+
+      {trends.caffeine.length > 0 ? (
+        <Section
+          title="Caffeine"
+          subtitle={trends.avgCaffeine != null ? `avg ${trends.avgCaffeine} mg/day` : undefined}
+        >
+          <TrendChart points={trends.caffeine} type="bar" unit="mg" color="#a16207" />
+        </Section>
+      ) : null}
+
+      <WellnessCard />
     </div>
   );
 }

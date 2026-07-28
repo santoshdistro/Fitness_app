@@ -12,12 +12,14 @@ export type Trends = {
   calories: Series; // last 30 days, per day
   protein: Series;
   steps: Series;
+  caffeine: Series;
   volume: Series; // per workout session
   cardioDistance: Series; // km per cardio session
   totalKm: number;
   avgCalories: number | null;
   avgProtein: number | null;
   avgSteps: number | null;
+  avgCaffeine: number | null;
 };
 
 const DAYS = 90;
@@ -55,7 +57,7 @@ export function useTrends() {
     Promise.all([
       supabase
         .from('daily_logs')
-        .select('log_date, weight, steps')
+        .select('log_date, weight, steps, caffeine_mg')
         .eq('user_id', userId)
         .gte('log_date', start)
         .lte('log_date', today)
@@ -79,7 +81,8 @@ export function useTrends() {
         .order('session_timestamp', { ascending: true }),
     ]).then(([dailyRes, foodRes, workoutRes, cardioRes]) => {
       if (cancelled) return;
-      const dailies = (dailyRes.data as Pick<DailyLog, 'log_date' | 'weight' | 'steps'>[]) ?? [];
+      const dailies =
+        (dailyRes.data as Pick<DailyLog, 'log_date' | 'weight' | 'steps' | 'caffeine_mg'>[]) ?? [];
       const meals = (foodRes.data as Pick<FoodLog, 'meal_timestamp' | 'calories' | 'protein_g'>[]) ?? [];
       const workouts = (workoutRes.data as Pick<WorkoutLog, 'session_timestamp' | 'exercise_data'>[]) ?? [];
 
@@ -93,6 +96,11 @@ export function useTrends() {
       const steps: Series = dailies
         .filter(d => d.log_date >= start30 && d.steps != null)
         .map(d => ({ label: shortLabel(d.log_date), value: d.steps as number, date: d.log_date }));
+
+      // Caffeine last 30 days.
+      const caffeine: Series = dailies
+        .filter(d => d.log_date >= start30 && d.caffeine_mg != null)
+        .map(d => ({ label: shortLabel(d.log_date), value: d.caffeine_mg as number, date: d.log_date }));
 
       // Calories + protein per day (last 30).
       const calByDay = new Map<string, { kcal: number; protein: number }>();
@@ -132,12 +140,14 @@ export function useTrends() {
         calories,
         protein,
         steps,
+        caffeine,
         volume,
         cardioDistance,
         totalKm,
         avgCalories: avg(calories),
         avgProtein: avg(protein),
         avgSteps: avg(steps),
+        avgCaffeine: avg(caffeine),
       });
       setLoading(false);
     });

@@ -12,7 +12,6 @@ import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
-import { WellnessCard } from '../components/WellnessCard';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -314,10 +313,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         </div>
       ) : null}
 
-      {/* Mood, energy & caffeine check-ins */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.135s' }}>
-        <WellnessCard logs={weightLogs} />
-      </div>
 
       {/* Macro goals */}
       {macroGoals.length > 0 ? (

@@ -8,13 +8,15 @@ type Props = {
   color?: string;
   /** Optional smoothed overlay line (e.g. moving average), same length as points. */
   overlay?: number[];
+  /** Optional constant target/required line drawn across the chart. */
+  goal?: number | null;
   unit?: string;
   height?: number;
 };
 
-// Responsive SVG chart (line or bars) with a gradient fill, point markers and
-// tap-to-inspect tooltips.
-export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, unit = '', height = 120 }: Props) {
+// Responsive SVG chart (line or bars) with a gradient fill, point markers,
+// an optional target line, and tap-to-inspect tooltips.
+export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, goal, unit = '', height = 120 }: Props) {
   const gid = useId().replace(/:/g, '');
   const [active, setActive] = useState<number | null>(null);
 
@@ -22,7 +24,7 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
     return <p className="py-4 text-center text-xs text-[var(--muted)]">Not enough data yet.</p>;
   }
   const values = points.map(p => p.value);
-  const all = overlay ? [...values, ...overlay] : values;
+  const all = [...values, ...(overlay ?? []), ...(goal != null ? [goal] : [])];
   const min = Math.min(...all);
   const max = Math.max(...all);
   const range = max - min || 1;
@@ -104,6 +106,18 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
               vectorEffect="non-scaling-stroke"
             />
           ) : null}
+          {goal != null ? (
+            <line
+              x1={0}
+              y1={y(goal)}
+              x2={100}
+              y2={y(goal)}
+              stroke="#ef4444"
+              strokeWidth={1.2}
+              strokeDasharray="3 2"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
         </svg>
 
         {/* Point markers (line only) */}
@@ -158,6 +172,20 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
         <span>{points[0].label}</span>
         <span>{points[points.length - 1].label}</span>
       </div>
+
+      {goal != null ? (
+        <div className="mt-1.5 flex items-center gap-3 text-[9px] text-[var(--muted)]">
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-sm" style={{ background: color }} />
+            {type === 'bar' ? 'Intake' : 'Actual'}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-0 w-3 border-t-2 border-dashed" style={{ borderColor: '#ef4444' }} />
+            Target {Math.round(goal)}
+            {unit}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
