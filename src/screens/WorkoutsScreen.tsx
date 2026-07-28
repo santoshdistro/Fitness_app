@@ -9,6 +9,7 @@ import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
+import { BodyMapCard } from '../components/BodyMapCard';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -329,6 +330,11 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         ) : (
           <p className="text-xs text-[var(--muted)]">Pick an equipment type above to see a program.</p>
         )}
+      </div>
+
+      {/* Muscle map heatmap */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.085s' }}>
+        <BodyMapCard />
       </div>
 
       {/* Personal records */}
