@@ -115,6 +115,15 @@ body {
   }
 }
 
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @keyframes dropIn {
   from {
     opacity: 0;
@@ -136,6 +145,11 @@ body {
 
 .anim-drop-in {
   animation: dropIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-sheet-up {
+  animation: sheetUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
 }
 
 .shimmer {
@@ -163,6 +177,7 @@ body {
   .anim-fade-rise,
   .anim-fade-in,
   .anim-drop-in,
+  .anim-sheet-up,
   .shimmer {
     animation: none;
   }

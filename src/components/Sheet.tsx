@@ -46,7 +46,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="glass-card relative max-h-[88dvh] w-full max-w-md overflow-y-auto overflow-x-hidden overscroll-contain rounded-b-none p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] anim-fade-rise"
+        className="glass-card relative max-h-[88dvh] w-full max-w-md overflow-y-auto overflow-x-hidden overscroll-contain rounded-b-none p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] anim-sheet-up"
         style={{ borderBottom: 'none' }}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: 'var(--card-border)' }} />
