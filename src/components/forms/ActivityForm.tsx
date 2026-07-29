@@ -14,7 +14,8 @@ export function ActivityForm({ onSaved }: Props) {
   const { log: todayLog } = useTodayLog();
   const [steps, setSteps] = useState('');
   const [water, setWater] = useState('');
-  const [sleep, setSleep] = useState('');
+  const [sleepH, setSleepH] = useState('');
+  const [sleepM, setSleepM] = useState('');
   const [activeKcal, setActiveKcal] = useState('');
   const [caffeine, setCaffeine] = useState('');
   const [mood, setMood] = useState<number | null>(null);
@@ -26,7 +27,12 @@ export function ActivityForm({ onSaved }: Props) {
     if (!todayLog) return;
     if (todayLog.steps != null) setSteps(String(todayLog.steps));
     if (todayLog.water_ml != null) setWater(String(todayLog.water_ml));
-    if (todayLog.sleep_hours != null) setSleep(String(todayLog.sleep_hours));
+    if (todayLog.sleep_hours != null) {
+      const h = Math.floor(todayLog.sleep_hours);
+      const m = Math.round((todayLog.sleep_hours - h) * 60);
+      setSleepH(String(h));
+      setSleepM(m ? String(m) : '');
+    }
     if (todayLog.active_calories_burned != null) setActiveKcal(String(todayLog.active_calories_burned));
     if (todayLog.caffeine_mg != null) setCaffeine(String(todayLog.caffeine_mg));
     if (todayLog.mood != null) setMood(todayLog.mood);
@@ -45,7 +51,9 @@ export function ActivityForm({ onSaved }: Props) {
     };
     if (steps) payload.steps = Number(steps);
     if (water) payload.water_ml = Math.round(Number(water));
-    if (sleep) payload.sleep_hours = Number(sleep);
+    if (sleepH || sleepM) {
+      payload.sleep_hours = Math.round(((Number(sleepH) || 0) + (Number(sleepM) || 0) / 60) * 100) / 100;
+    }
     if (activeKcal) payload.active_calories_burned = Number(activeKcal);
     if (caffeine) payload.caffeine_mg = Number(caffeine);
     if (mood != null) payload.mood = mood;
@@ -111,21 +119,35 @@ export function ActivityForm({ onSaved }: Props) {
       </div>
 
       <div className="mb-3">
-        <label className={labelClass} htmlFor="sleep-input">
-          Sleep (hours)
-        </label>
-        <input
-          id="sleep-input"
-          className={inputClass}
-          type="number"
-          inputMode="decimal"
-          step="0.1"
-          min="0"
-          max="24"
-          value={sleep}
-          onChange={e => setSleep(e.target.value)}
-          placeholder="e.g. 7.5"
-        />
+        <label className={labelClass}>Sleep</label>
+        <div className="flex items-center gap-2">
+          <input
+            className={inputClass}
+            type="number"
+            inputMode="numeric"
+            step="1"
+            min="0"
+            max="24"
+            value={sleepH}
+            onChange={e => setSleepH(e.target.value)}
+            placeholder="hrs"
+            aria-label="Sleep hours"
+          />
+          <span className="text-sm font-semibold text-[var(--muted)]">h</span>
+          <input
+            className={inputClass}
+            type="number"
+            inputMode="numeric"
+            step="1"
+            min="0"
+            max="59"
+            value={sleepM}
+            onChange={e => setSleepM(e.target.value)}
+            placeholder="min"
+            aria-label="Sleep minutes"
+          />
+          <span className="text-sm font-semibold text-[var(--muted)]">m</span>
+        </div>
       </div>
 
       <div className="mb-3">
@@ -206,7 +228,15 @@ export function ActivityForm({ onSaved }: Props) {
       <button
         type="submit"
         disabled={
-          saving || (!steps && !water && !sleep && !activeKcal && !caffeine && mood == null && energy == null)
+          saving ||
+          (!steps &&
+            !water &&
+            !sleepH &&
+            !sleepM &&
+            !activeKcal &&
+            !caffeine &&
+            mood == null &&
+            energy == null)
         }
         className={submitButtonClass}
       >

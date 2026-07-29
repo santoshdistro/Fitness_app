@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 type Props = {
   open: boolean;
@@ -34,7 +35,9 @@ export function Sheet({ open, onClose, title, children }: Props) {
 
   if (!open) return null;
 
-  return (
+  // Portal to <body> so the sheet is never trapped by a transformed/animated
+  // ancestor — it always covers the whole screen, above the FAB and nav bar.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center anim-fade-in">
       <div
         className="absolute inset-0 bg-black/60"
@@ -66,6 +69,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
