@@ -74,6 +74,15 @@ export function AppShell() {
     setActiveSheet(null);
   }
 
+  // Slide a finger across the nav (or tap) to move to the tab under it.
+  function handleNavTouch(e: React.TouchEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.touches[0].clientX - rect.left) / rect.width;
+    const index = Math.max(0, Math.min(TABS.length - 1, Math.floor(ratio * TABS.length)));
+    const key = TABS[index].key;
+    if (key !== activeTab) setActiveTab(key);
+  }
+
   function onSaved() {
     setRefreshKey(key => key + 1);
     closeSheet();
@@ -137,21 +146,37 @@ export function AppShell() {
         <Plus size={24} strokeWidth={2.5} />
       </button>
 
-      <nav className="glass-card flex shrink-0 justify-between rounded-none border-x-0 border-b-0 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        {TABS.map(({ key, label, icon: Icon }) => {
-          const isActive = activeTab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className="flex flex-col items-center gap-1"
-              style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
-            >
-              <Icon size={20} strokeWidth={2.5} />
-              <span className="text-[9px] font-bold tracking-wider">{label}</span>
-            </button>
-          );
-        })}
+      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div
+          className="relative flex"
+          onTouchStart={handleNavTouch}
+          onTouchMove={handleNavTouch}
+        >
+          {/* Sliding glass highlight */}
+          <div
+            className="pointer-events-none absolute inset-y-0 rounded-2xl transition-[left] duration-300 ease-out"
+            style={{
+              left: `${(TABS.findIndex(t => t.key === activeTab) * 100) / TABS.length}%`,
+              width: `${100 / TABS.length}%`,
+              background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
+            }}
+          />
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className="relative z-10 flex flex-1 flex-col items-center gap-1 py-1"
+                style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
+              >
+                <Icon size={20} strokeWidth={2.5} />
+                <span className="text-[9px] font-bold tracking-wider">{label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       <Sheet open={activeSheet === 'quickAdd'} onClose={closeSheet} title="Quick add">
