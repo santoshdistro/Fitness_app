@@ -97,6 +97,8 @@ const DETAIL_MUSCLE: Record<string, MuscleKey> = {
   quadriceps: 'quads',
   shoulders: 'shoulders',
   triceps: 'triceps',
+  forearms: 'forearms',
+  traps: 'traps',
 };
 
 export type MuscleExercise = { id?: string; name: string };

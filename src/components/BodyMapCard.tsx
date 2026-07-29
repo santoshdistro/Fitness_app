@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
 import { exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
@@ -14,12 +14,22 @@ export function BodyMapCard() {
   const { addExercise } = useWorkoutPlan();
   const [selected, setSelected] = useState<MuscleKey | null>(null);
   const [selectedEx, setSelectedEx] = useState<MuscleExercise | null>(null);
+  const [planDate, setPlanDate] = useState(todayDateString());
   const [added, setAdded] = useState(false);
 
   function closeSheet() {
     setSelected(null);
     setSelectedEx(null);
     setAdded(false);
+  }
+
+  function dayLabel(date: string): string {
+    if (date === todayDateString()) return 'today';
+    return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
   }
 
   const ranked = (Object.keys(data.volumes) as MuscleKey[]).sort(
@@ -109,10 +119,35 @@ export function BodyMapCard() {
               <ChevronLeft size={14} /> Back to {MUSCLE_LABEL[selected].toLowerCase()}
             </button>
             <ExerciseDetail name={selectedEx.name} exerciseId={selectedEx.id} sets={3} reps="8-10" />
+
+            <div>
+              <p className="mb-1 text-xs font-semibold text-[var(--muted)]">Add to which day?</p>
+              <label className="relative flex items-center justify-between gap-2 rounded-xl bg-[var(--bg)] px-3 py-2.5 text-sm font-semibold text-[var(--text)]">
+                <span className="flex items-center gap-2">
+                  <CalendarDays size={15} className="text-[var(--accent)]" />
+                  {dayLabel(planDate)}
+                </span>
+                <span className="text-[11px] text-[var(--muted)]">tap to change</span>
+                <input
+                  type="date"
+                  value={planDate}
+                  min={todayDateString()}
+                  onChange={e => {
+                    if (e.target.value) {
+                      setPlanDate(e.target.value);
+                      setAdded(false);
+                    }
+                  }}
+                  aria-label="Plan date"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+            </div>
+
             <button
               type="button"
               onClick={() => {
-                addExercise(todayDateString(), { name: selectedEx.name, sets: 3, reps: '8-10' });
+                addExercise(planDate, { name: selectedEx.name, sets: 3, reps: '8-10' });
                 setAdded(true);
               }}
               disabled={added}
@@ -121,11 +156,11 @@ export function BodyMapCard() {
             >
               {added ? (
                 <>
-                  <Check size={16} /> Added to today's plan
+                  <Check size={16} /> Added to {dayLabel(planDate)}'s plan
                 </>
               ) : (
                 <>
-                  <Plus size={16} /> Add to today's workout plan
+                  <Plus size={16} /> Add to {dayLabel(planDate)}'s plan
                 </>
               )}
             </button>
