@@ -1,13 +1,26 @@
 import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { MUSCLE_EXERCISES, MUSCLE_LABEL, muscleHeat, type MuscleKey } from '../data/muscles';
+import { exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
+import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
+import { todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
+import { ExerciseDetail } from './ExerciseDetail';
 import { Sheet } from './Sheet';
 
 export function BodyMapCard() {
   const [period, setPeriod] = useState<MusclePeriod>('week');
   const { data, loading } = useMuscleActivity(period);
+  const { addExercise } = useWorkoutPlan();
   const [selected, setSelected] = useState<MuscleKey | null>(null);
+  const [selectedEx, setSelectedEx] = useState<MuscleExercise | null>(null);
+  const [added, setAdded] = useState(false);
+
+  function closeSheet() {
+    setSelected(null);
+    setSelectedEx(null);
+    setAdded(false);
+  }
 
   const ranked = (Object.keys(data.volumes) as MuscleKey[]).sort(
     (a, b) => (data.volumes[b] ?? 0) - (data.volumes[a] ?? 0),
@@ -79,10 +92,46 @@ export function BodyMapCard() {
 
       <Sheet
         open={selected != null}
-        onClose={() => setSelected(null)}
+        onClose={closeSheet}
         title={selected ? MUSCLE_LABEL[selected] : 'Muscle'}
       >
-        {selected ? (
+        {selected && selectedEx ? (
+          // Drill-in: how-to for one exercise + add to plan
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedEx(null);
+                setAdded(false);
+              }}
+              className="flex items-center gap-1 self-start text-xs font-semibold text-[var(--accent)]"
+            >
+              <ChevronLeft size={14} /> Back to {MUSCLE_LABEL[selected].toLowerCase()}
+            </button>
+            <ExerciseDetail name={selectedEx.name} exerciseId={selectedEx.id} sets={3} reps="8-10" />
+            <button
+              type="button"
+              onClick={() => {
+                addExercise(todayDateString(), { name: selectedEx.name, sets: 3, reps: '8-10' });
+                setAdded(true);
+              }}
+              disabled={added}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-70"
+              style={{ background: added ? '#22c55e' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            >
+              {added ? (
+                <>
+                  <Check size={16} /> Added to today's plan
+                </>
+              ) : (
+                <>
+                  <Plus size={16} /> Add to today's workout plan
+                </>
+              )}
+            </button>
+          </div>
+        ) : selected ? (
+          // Muscle overview: volume + tappable exercise list
           <div className="flex flex-col gap-3">
             <div className="glass-card flex items-center justify-between p-4">
               <span className="text-xs text-[var(--muted)]">
@@ -97,12 +146,24 @@ export function BodyMapCard() {
                 Exercises for {MUSCLE_LABEL[selected].toLowerCase()}
               </p>
               <div className="flex flex-col gap-1.5">
-                {MUSCLE_EXERCISES[selected].map(name => (
-                  <div key={name} className="rounded-xl bg-[var(--bg)] px-4 py-2.5 text-sm text-[var(--text)]">
-                    {name}
-                  </div>
+                {exercisesForMuscle(selected).map(ex => (
+                  <button
+                    key={ex.id ?? ex.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedEx(ex);
+                      setAdded(false);
+                    }}
+                    className="flex items-center justify-between rounded-xl bg-[var(--bg)] px-4 py-2.5 text-left text-sm capitalize text-[var(--text)]"
+                  >
+                    <span>{ex.name}</span>
+                    <ChevronRight size={15} className="text-[var(--muted)]" />
+                  </button>
                 ))}
               </div>
+              <p className="mt-2 text-[10px] text-[var(--muted)]">
+                Tap an exercise for the how-to and to add it to your plan.
+              </p>
             </div>
           </div>
         ) : null}
