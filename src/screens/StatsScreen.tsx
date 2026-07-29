@@ -14,6 +14,7 @@ import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
+import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -88,7 +89,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const [openScanId, setOpenScanId] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
   const [addedMealIds, setAddedMealIds] = useState<Set<string>>(new Set());
-  const [addingMealId, setAddingMealId] = useState<string | null>(null);
+  const [editingMeal, setEditingMeal] = useState<{ meal: FoodLog; mode: MealEditMode } | null>(null);
+  const [savingMeal, setSavingMeal] = useState(false);
 
   const measurement = measurements[0];
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -166,30 +168,40 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
     setCopying(false);
   }
 
-  // Re-log a single meal from a past day into today's diary (leaves the DB
-  // meal_timestamp at its default of now, i.e. today).
-  async function addMealToToday(meal: FoodLog) {
-    if (!session?.user) return;
-    setAddingMealId(meal.id);
-    await supabase.from('food_logs').insert({
-      user_id: session.user.id,
-      meal_name: meal.meal_name,
-      meal_category: meal.meal_category,
-      calories: meal.calories,
-      protein_g: meal.protein_g,
-      carbs_g: meal.carbs_g,
-      fat_g: meal.fat_g,
-      fiber_g: meal.fiber_g,
-      sodium_mg: meal.sodium_mg,
-      saturated_fat_g: meal.saturated_fat_g,
-      trans_fat_g: meal.trans_fat_g,
-      poly_fat_g: meal.poly_fat_g,
-      mono_fat_g: meal.mono_fat_g,
-    });
-    setAddedMealIds(prev => new Set(prev).add(meal.id));
-    setAddingMealId(null);
-    // If we're viewing today, reflect the new row immediately.
-    if (isToday(selectedDate)) await refreshMeals();
+  // Apply a portion adjustment from the edit sheet. In 'edit' mode it updates
+  // the existing row; in 'today' mode it logs a scaled copy into today.
+  async function applyMealChange(multiplier: number) {
+    if (!session?.user || !editingMeal) return;
+    const { meal, mode } = editingMeal;
+    const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
+    const scaled = {
+      calories: s(meal.calories),
+      protein_g: s(meal.protein_g),
+      carbs_g: s(meal.carbs_g),
+      fat_g: s(meal.fat_g),
+      fiber_g: s(meal.fiber_g),
+      sodium_mg: s(meal.sodium_mg),
+      saturated_fat_g: s(meal.saturated_fat_g),
+      trans_fat_g: s(meal.trans_fat_g),
+      poly_fat_g: s(meal.poly_fat_g),
+      mono_fat_g: s(meal.mono_fat_g),
+    };
+    setSavingMeal(true);
+    if (mode === 'edit') {
+      await supabase.from('food_logs').update(scaled).eq('id', meal.id);
+      await refreshMeals();
+    } else {
+      await supabase.from('food_logs').insert({
+        user_id: session.user.id,
+        meal_name: meal.meal_name,
+        meal_category: meal.meal_category,
+        ...scaled,
+      });
+      setAddedMealIds(prev => new Set(prev).add(meal.id));
+      if (isToday(selectedDate)) await refreshMeals();
+    }
+    setSavingMeal(false);
+    setEditingMeal(null);
   }
 
   return (
@@ -450,19 +462,24 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
                     key={meal.id}
                     className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
                   >
-                    <div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingMeal({ meal, mode: 'edit' })}
+                      className="min-w-0 flex-1 pr-2 text-left"
+                      aria-label={`Edit ${meal.meal_name}`}
+                    >
                       <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
                       <p className="text-[10px] text-[var(--muted)]">
                         {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
-                        {meal.protein_g ?? 0}g protein
+                        {meal.protein_g ?? 0}g protein · tap to edit
                       </p>
-                    </div>
+                    </button>
                     <div className="flex shrink-0 items-center gap-1">
                       {!isToday(selectedDate) ? (
                         <button
                           type="button"
-                          onClick={() => addMealToToday(meal)}
-                          disabled={addingMealId === meal.id || addedMealIds.has(meal.id)}
+                          onClick={() => setEditingMeal({ meal, mode: 'today' })}
+                          disabled={addedMealIds.has(meal.id)}
                           aria-label={`Add ${meal.meal_name} to today`}
                           className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-bold disabled:opacity-70"
                           style={
@@ -712,6 +729,14 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         </>
       )}
       </div>
+
+      <MealEditSheet
+        meal={editingMeal?.meal ?? null}
+        mode={editingMeal?.mode ?? 'edit'}
+        saving={savingMeal}
+        onClose={() => setEditingMeal(null)}
+        onConfirm={applyMealChange}
+      />
     </div>
   );
 }
