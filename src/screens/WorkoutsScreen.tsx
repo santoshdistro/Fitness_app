@@ -235,6 +235,27 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             ))}
           </div>
 
+          {aiPlan.progression && aiPlan.progression.length > 0 ? (
+            <div className="mt-3 rounded-2xl bg-white/12 p-3">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-white/80">
+                Week-by-week progression
+              </p>
+              <div className="flex flex-col gap-2">
+                {aiPlan.progression.map((step, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[9px] font-black text-white">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="text-[11px] font-bold text-white">{step.label}</p>
+                      <p className="text-[11px] leading-snug text-white/85">{step.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <button
             type="button"
             onClick={clearPlan}

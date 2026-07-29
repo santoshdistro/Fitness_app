@@ -21,7 +21,13 @@ export type BodyResult = {
 
 export type WorkoutPlanExercise = { name: string; sets: number; reps: string };
 export type WorkoutPlanDay = { day: string; focus: string; exercises: WorkoutPlanExercise[] };
-export type WorkoutPlanResult = { name: string; description: string; days: WorkoutPlanDay[] };
+export type WorkoutProgressionStep = { label: string; detail: string };
+export type WorkoutPlanResult = {
+  name: string;
+  description: string;
+  days: WorkoutPlanDay[];
+  progression?: WorkoutProgressionStep[];
+};
 
 export type NutritionMeal = { meal: string; idea: string; approxCalories: number; protein_g: number };
 export type NutritionRecipe = { name: string; why: string; ingredients: string[]; steps: string[] };

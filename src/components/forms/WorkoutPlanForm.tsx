@@ -19,7 +19,7 @@ const GOAL_OPTIONS = [
   { value: 'general fitness', label: 'General fitness' },
 ];
 
-const EXPERIENCE_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
+const EXPERIENCE_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Extreme'];
 
 const EQUIPMENT_LABEL: Record<string, string> = {
   full_gym: 'Full gym',
@@ -132,7 +132,7 @@ export function WorkoutPlanForm({ onGenerated }: Props) {
 
       <div className="mb-3 grid grid-cols-2 gap-3">
         <div>
-          <label className={labelClass} htmlFor="plan-exp">Experience</label>
+          <label className={labelClass} htmlFor="plan-exp">Gym level</label>
           <select id="plan-exp" className={inputClass} value={experience} onChange={e => setExperience(e.target.value)}>
             {EXPERIENCE_OPTIONS.map(o => (
               <option key={o} value={o}>
