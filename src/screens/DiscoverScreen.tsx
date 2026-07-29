@@ -9,6 +9,7 @@ import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../lib/openFoodFacts';
 import { searchIndianFoods } from '../data/indianFoods';
 import { estimateFood } from '../lib/aiClient';
+import { useTabSwipe } from '../hooks/useTabSwipe';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { useSettings } from '../hooks/useSettings';
@@ -68,6 +69,11 @@ const REFERENCE_CALORIE_TARGET = 2000;
 export function DiscoverScreen() {
   const { session } = useAuth();
   const [tab, setTab] = useState<Tab>('add');
+  const { handlers, change, animClass } = useTabSwipe(
+    ['add', 'nutrition', 'macros'] as const,
+    tab,
+    setTab,
+  );
   const today = todayDateString();
   const { totals: dayTotals, meals, refresh: refreshNutrition } = useTodayNutrition(today);
   const { profile } = useProfile();
@@ -260,7 +266,7 @@ export function DiscoverScreen() {
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => change(t.key)}
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-colors"
             style={
               tab === t.key
@@ -273,6 +279,7 @@ export function DiscoverScreen() {
         ))}
       </div>
 
+      <div key={tab} {...handlers} className={animClass}>
       {tab === 'add' ? (
         <AddMealTab
           category={category}
@@ -308,6 +315,7 @@ export function DiscoverScreen() {
       ) : (
         <MacrosTab totals={dayTotals} meals={meals} />
       )}
+      </div>
     </div>
   );
 }

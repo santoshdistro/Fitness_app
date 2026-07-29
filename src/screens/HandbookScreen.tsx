@@ -6,6 +6,7 @@ import { useNutritionCoach } from '../hooks/useNutritionCoach';
 import { generateNutritionPlan, type NutritionPreferences } from '../lib/aiClient';
 import { Sheet } from '../components/Sheet';
 import { DietPlanner } from '../components/DietPlanner';
+import { useTabSwipe } from '../hooks/useTabSwipe';
 import { PhotoBackdrop } from '../components/PhotoBackdrop';
 import { NUTRITION_HERO_IMAGE } from '../data/gymImagery';
 import {
@@ -49,6 +50,7 @@ export function HandbookScreen() {
   const { prefs, plan, save, clear } = useNutritionCoach();
 
   const [tab, setTab] = useState<'handbook' | 'plan'>('handbook');
+  const { handlers, change, animClass } = useTabSwipe(['handbook', 'plan'] as const, tab, setTab);
   const [coachOpen, setCoachOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [dietFilter, setDietFilter] = useState<DietTag | 'all'>('all');
@@ -104,7 +106,7 @@ export function HandbookScreen() {
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => change(t.key)}
               className="flex-1 rounded-xl py-2 text-xs font-bold"
               style={
                 active
@@ -118,6 +120,7 @@ export function HandbookScreen() {
         })}
       </div>
 
+      <div key={tab} {...handlers} className={animClass}>
       {tab === 'plan' ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
           <DietPlanner />
@@ -319,6 +322,7 @@ export function HandbookScreen() {
       </div>
         </>
       )}
+      </div>
 
       {/* Recipe detail */}
       <Sheet

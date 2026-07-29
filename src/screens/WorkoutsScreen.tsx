@@ -10,6 +10,7 @@ import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { BodyMapCard } from '../components/BodyMapCard';
+import { useTabSwipe } from '../hooks/useTabSwipe';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -41,6 +42,11 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
   const { records, lastByExercise } = useStrengthRecords();
   const [tab, setTab] = useState<'workouts' | 'plan' | 'heatmap'>('workouts');
+  const { handlers, change, animClass } = useTabSwipe(
+    ['workouts', 'plan', 'heatmap'] as const,
+    tab,
+    setTab,
+  );
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
@@ -111,7 +117,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => change(t.key)}
               className="flex-1 rounded-xl py-2 text-xs font-bold"
               style={
                 active
@@ -125,6 +131,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         })}
       </div>
 
+      <div key={tab} {...handlers} className={animClass}>
       {tab === 'plan' ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
           <WorkoutPlanner
@@ -409,6 +416,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
       )}
         </>
       )}
+      </div>
 
       <Sheet
         open={selectedGoalProgram != null}

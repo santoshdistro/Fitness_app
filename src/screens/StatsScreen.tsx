@@ -14,6 +14,7 @@ import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
+import { useTabSwipe } from '../hooks/useTabSwipe';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
@@ -72,6 +73,7 @@ type Props = {
 
 export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
   const [tab, setTab] = useState<'stats' | 'trends'>('stats');
+  const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { session } = useAuth();
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
@@ -175,7 +177,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => change(t.key)}
               className="flex-1 rounded-xl py-2 text-xs font-bold"
               style={
                 active
@@ -189,6 +191,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         })}
       </div>
 
+      <div key={tab} {...handlers} className={animClass}>
       {tab === 'trends' ? (
         <div className="anim-fade-rise mt-4">
           <TrendsPanel />
@@ -654,6 +657,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       ) : null}
         </>
       )}
+      </div>
     </div>
   );
 }
