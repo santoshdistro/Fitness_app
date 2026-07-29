@@ -573,23 +573,38 @@ function MacroSplitBar({ protein, carbs, fat }: { protein: number; carbs: number
   const cCal = carbs * 4;
   const fCal = fat * 9;
   const total = pCal + cCal + fCal;
-  const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+  const pW = total > 0 ? (pCal / total) * 100 : 100 / 3;
+  const cW = total > 0 ? (cCal / total) * 100 : 100 / 3;
+  const fW = total > 0 ? (fCal / total) * 100 : 100 / 3;
+
+  // Center each label under its own segment; anchor the ends so they don't clip.
+  const pos = (center: number): React.CSSProperties => {
+    if (center <= 12) return { left: 0 };
+    if (center >= 88) return { right: 0 };
+    return { left: `${center}%`, transform: 'translateX(-50%)' };
+  };
 
   return (
     <div className="mt-1">
       <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--bg)]">
         {total > 0 ? (
           <>
-            <span style={{ width: `${pct(pCal)}%`, background: MACRO_COLORS.protein }} />
-            <span style={{ width: `${pct(cCal)}%`, background: MACRO_COLORS.carbs }} />
-            <span style={{ width: `${pct(fCal)}%`, background: MACRO_COLORS.fat }} />
+            <span style={{ width: `${pW}%`, background: MACRO_COLORS.protein }} />
+            <span style={{ width: `${cW}%`, background: MACRO_COLORS.carbs }} />
+            <span style={{ width: `${fW}%`, background: MACRO_COLORS.fat }} />
           </>
         ) : null}
       </div>
-      <div className="mt-1 flex justify-between text-[9px] font-semibold">
-        <span className="flex-1 text-left" style={{ color: MACRO_COLORS.protein }}>{Math.round(protein)}g P</span>
-        <span className="flex-1 text-center" style={{ color: MACRO_COLORS.carbs }}>{Math.round(carbs)}g C</span>
-        <span className="flex-1 text-right" style={{ color: MACRO_COLORS.fat }}>{Math.round(fat)}g F</span>
+      <div className="relative mt-1 h-3 text-[9px] font-semibold">
+        <span className="absolute whitespace-nowrap" style={{ ...pos(pW / 2), color: MACRO_COLORS.protein }}>
+          {Math.round(protein)}g P
+        </span>
+        <span className="absolute whitespace-nowrap" style={{ ...pos(pW + cW / 2), color: MACRO_COLORS.carbs }}>
+          {Math.round(carbs)}g C
+        </span>
+        <span className="absolute whitespace-nowrap" style={{ ...pos(pW + cW + fW / 2), color: MACRO_COLORS.fat }}>
+          {Math.round(fat)}g F
+        </span>
       </div>
     </div>
   );
