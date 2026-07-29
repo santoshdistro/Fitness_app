@@ -128,7 +128,7 @@ export function ProfileForm({
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={height}
             onChange={e => setHeight(e.target.value)}
             placeholder="175"

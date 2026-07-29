@@ -50,7 +50,7 @@ export function WeightForm({ onSaved }: Props) {
         style={{ marginBottom: '1rem' }}
         type="number"
         inputMode="decimal"
-        step="0.1"
+        step="any"
         min="0"
         value={weight}
         onChange={e => setWeight(e.target.value)}

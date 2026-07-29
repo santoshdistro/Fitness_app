@@ -80,7 +80,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={neck}
             onChange={e => setNeck(e.target.value)}
             required
@@ -95,7 +95,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={waist}
             onChange={e => setWaist(e.target.value)}
             required
@@ -110,7 +110,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={hips}
             onChange={e => setHips(e.target.value)}
             required={needsHips}
@@ -125,7 +125,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={chest}
             onChange={e => setChest(e.target.value)}
           />
@@ -139,7 +139,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={biceps}
             onChange={e => setBiceps(e.target.value)}
           />
@@ -153,7 +153,7 @@ export function MeasurementsForm({ onSaved }: Props) {
             className={inputClass}
             type="number"
             inputMode="decimal"
-            step="0.1"
+            step="any"
             value={thighs}
             onChange={e => setThighs(e.target.value)}
           />

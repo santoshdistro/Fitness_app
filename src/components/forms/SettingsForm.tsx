@@ -108,7 +108,7 @@ export function SettingsForm({ onSaved }: Props) {
           type="number"
           inputMode="numeric"
           min="0"
-          step="100"
+          step="any"
           value={waterGoal}
           onChange={e => setWaterGoal(e.target.value)}
         />
