@@ -5,7 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useTrainingSplit, SPLIT_OPTIONS, WEEKDAYS } from '../hooks/useTrainingSplit';
 import { useWorkoutPlan, type RangeEntry } from '../hooks/useWorkoutPlan';
 import { generateWorkoutPlan } from '../lib/aiClient';
-import { SPLIT_TEMPLATES, classifyFocus } from '../data/splitTemplates';
+import { SPLIT_TEMPLATES, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
@@ -21,6 +21,37 @@ function longDate(date: string): string {
 }
 function weekdayIndex(date: string): number {
   return (new Date(`${date}T00:00:00`).getDay() + 6) % 7; // Mon = 0
+}
+
+export const GYM_LEVELS = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Extreme'] as const;
+type GymLevel = (typeof GYM_LEVELS)[number];
+
+// How many sets to add/remove per exercise for each level (clamped to 2..6).
+const LEVEL_SET_DELTA: Record<GymLevel, number> = {
+  Beginner: -1,
+  Novice: 0,
+  Intermediate: 1,
+  Advanced: 2,
+  Extreme: 3,
+};
+
+function scaleByLevel(exercises: TemplateExercise[], level: GymLevel): TemplateExercise[] {
+  const delta = LEVEL_SET_DELTA[level] ?? 0;
+  return exercises.map(e => ({ ...e, sets: Math.min(6, Math.max(2, e.sets + delta)) }));
+}
+
+const PLAN_PREFS_KEY = 'fb-ai-plan-prefs';
+
+// Reuse the AI-plan form's remembered gym level as the default here.
+function defaultGymLevel(): GymLevel {
+  try {
+    const p = JSON.parse(localStorage.getItem(PLAN_PREFS_KEY) ?? '{}') as { experience?: string };
+    return (GYM_LEVELS as readonly string[]).includes(p.experience ?? '')
+      ? (p.experience as GymLevel)
+      : 'Novice';
+  } catch {
+    return 'Novice';
+  }
 }
 
 type Props = {
@@ -39,6 +70,8 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
   const [stripStart, setStripStart] = useState(today);
   const [addOpen, setAddOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [autofillOpen, setAutofillOpen] = useState(false);
+  const [autofillLevel, setAutofillLevel] = useState<GymLevel>(defaultGymLevel());
 
   const focus = split[weekdayIndex(viewDate)];
   const exercises = exercisesFor(viewDate);
@@ -51,16 +84,17 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
   }
 
   // Deterministic prefill: fill 14 days from the strip start using each day's
-  // split focus → template exercises.
-  function autofillFromSplit() {
+  // split focus → template exercises, with volume scaled to the chosen level.
+  function autofillFromSplit(level: GymLevel) {
     const entries: RangeEntry[] = [];
     for (let i = 0; i < STRIP_DAYS; i++) {
       const date = addDays(stripStart, i);
       const dayFocus = split[weekdayIndex(date)];
-      entries.push({ date, exercises: SPLIT_TEMPLATES[dayFocus] ?? [] });
+      entries.push({ date, exercises: scaleByLevel(SPLIT_TEMPLATES[dayFocus] ?? [], level) });
     }
     applyRange(entries);
     setViewDate(stripStart);
+    setAutofillOpen(false);
   }
 
   // Copy the 7 days immediately before the strip start into this fortnight's
@@ -126,7 +160,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={autofillFromSplit}
+          onClick={() => setAutofillOpen(true)}
           className="glass-card flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold text-[var(--text)]"
         >
           <Wand2 size={15} className="text-[var(--accent)]" /> Auto-fill from split
@@ -332,6 +366,47 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         />
       </Sheet>
 
+      <Sheet open={autofillOpen} onClose={() => setAutofillOpen(false)} title="Auto-fill from split">
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-[var(--muted)]">
+            Fills 14 days from {fmt(stripStart, { weekday: 'long', day: 'numeric', month: 'short' })} using
+            each day's split focus. Pick your gym level — higher levels add more sets per exercise.
+          </p>
+          <div>
+            <label className={labelClass}>Gym level</label>
+            <div className="flex flex-wrap gap-1.5">
+              {GYM_LEVELS.map(l => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setAutofillLevel(l)}
+                  className="rounded-xl px-3 py-2 text-xs font-bold"
+                  style={
+                    autofillLevel === l
+                      ? { background: 'var(--accent)', color: 'white' }
+                      : { background: 'var(--bg)', color: 'var(--muted)' }
+                  }
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+              {LEVEL_SET_DELTA[autofillLevel] === 0
+                ? 'Uses the template set counts as-is.'
+                : `${LEVEL_SET_DELTA[autofillLevel] > 0 ? '+' : ''}${LEVEL_SET_DELTA[autofillLevel]} set per exercise vs. the base template.`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => autofillFromSplit(autofillLevel)}
+            className={submitButtonClass}
+          >
+            <Wand2 size={15} className="mr-2" /> Fill 14 days
+          </button>
+        </div>
+      </Sheet>
+
       <Sheet open={builderOpen} onClose={() => setBuilderOpen(false)} title="Build 2-week plan">
         <AiBuilderForm
           userId={session?.user?.id}
@@ -430,7 +505,7 @@ function AiBuilderForm({
 }) {
   const [equipment, setEquipment] = useState(defaultEquipment ?? '');
   const [goal, setGoal] = useState(defaultGoal ?? 'build');
-  const [experience, setExperience] = useState('intermediate');
+  const [experience, setExperience] = useState<GymLevel>(defaultGymLevel());
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -493,11 +568,18 @@ function AiBuilderForm({
         </select>
       </div>
       <div className="mb-3">
-        <label className={labelClass} htmlFor="wb-exp">Experience</label>
-        <select id="wb-exp" className={inputClass} value={experience} onChange={e => setExperience(e.target.value)}>
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
+        <label className={labelClass} htmlFor="wb-exp">Gym level</label>
+        <select
+          id="wb-exp"
+          className={inputClass}
+          value={experience}
+          onChange={e => setExperience(e.target.value as GymLevel)}
+        >
+          {GYM_LEVELS.map(l => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
         </select>
       </div>
       <div className="mb-4">
