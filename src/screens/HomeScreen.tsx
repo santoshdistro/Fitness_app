@@ -160,13 +160,19 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   );
   const steps = dayLog?.steps ?? 0;
   const waterMl = dayLog?.water_ml ?? 0;
+  // Exercise "earns back" calorie budget: net intake = eaten − active kcal burned.
+  const burnedKcal = Math.max(0, Math.round(dayLog?.active_calories_burned ?? 0));
+  const netCalories = Math.max(0, Math.round(totals.calories - burnedKcal));
   const gamePlan: GamePlanItem[] = [
     {
       key: 'calories',
       label: 'Eat around your target',
-      detail: `${Math.round(totals.calories)} / ${calorieTarget} kcal`,
-      done: totals.calories >= calorieTarget * 0.85 && totals.calories <= calorieTarget * 1.05,
-      progress: calorieTarget > 0 ? totals.calories / calorieTarget : 0,
+      detail:
+        burnedKcal > 0
+          ? `${Math.round(totals.calories)} − ${burnedKcal} = ${netCalories} / ${calorieTarget} kcal`
+          : `${Math.round(totals.calories)} / ${calorieTarget} kcal`,
+      done: netCalories >= calorieTarget * 0.85 && netCalories <= calorieTarget * 1.05,
+      progress: calorieTarget > 0 ? netCalories / calorieTarget : 0,
     },
     {
       key: 'protein',
@@ -199,7 +205,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   ];
 
   const rings: Ring[] = [
-    { label: 'Calories', value: totals.calories, target: calorieTarget, color: '#6c63ff' },
+    { label: 'Calories', value: netCalories, target: calorieTarget, color: '#6c63ff' },
     {
       label: 'Protein',
       value: totals.protein_g,
@@ -219,6 +225,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const coachPayload: CoachPayload = {
     goal: deficitKcal > 0 ? 'deficit' : deficitKcal < 0 ? 'surplus' : 'maintenance',
     caloriesLogged: Math.round(totals.calories),
+    caloriesBurned: burnedKcal,
     calorieTarget,
     proteinLogged: Math.round(totals.protein_g),
     proteinTarget,

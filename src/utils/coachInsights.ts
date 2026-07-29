@@ -11,7 +11,10 @@ function pick<T>(arr: T[], seed: number): T {
 export function generateCoachInsight(p: CoachPayload): string {
   const target = p.calorieTarget ?? 2000;
   const logged = p.caloriesLogged ?? 0;
-  const left = Math.round(target - logged);
+  const burned = Math.max(0, Math.round(p.caloriesBurned ?? 0));
+  // Exercise earns back budget, MyFitnessPal-style: left = target + burned - eaten.
+  const budget = target + burned;
+  const left = Math.round(budget - logged);
   const proteinGap =
     p.proteinTarget != null ? Math.round(p.proteinTarget - (p.proteinLogged ?? 0)) : null;
   const seed = logged + (p.proteinLogged ?? 0) + (p.mealCount ?? 0) + new Date().getDate();
@@ -37,8 +40,8 @@ export function generateCoachInsight(p: CoachPayload): string {
     parts.push(
       pick(
         [
-          `You've got ${target} kcal to work with today.`,
-          `${target} kcal on the table today — make them count with quality food.`,
+          `You've got ${budget} kcal to work with today${burned > 0 ? ` (incl. ${burned} burned)` : ''}.`,
+          `${budget} kcal on the table today — make them count with quality food.`,
         ],
         seed,
       ),

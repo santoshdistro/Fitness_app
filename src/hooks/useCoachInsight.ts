@@ -4,6 +4,7 @@ import { generateCoachInsight } from '../utils/coachInsights';
 export type CoachPayload = {
   goal?: 'deficit' | 'surplus' | 'maintenance';
   caloriesLogged?: number;
+  caloriesBurned?: number | null;
   calorieTarget?: number;
   proteinLogged?: number;
   proteinTarget?: number | null;
