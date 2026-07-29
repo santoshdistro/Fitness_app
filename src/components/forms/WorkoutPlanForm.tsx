@@ -28,23 +28,53 @@ const EQUIPMENT_LABEL: Record<string, string> = {
   minimal: 'Minimal equipment (bands / kettlebell)',
 };
 
+const PREFS_KEY = 'fb-ai-plan-prefs';
+
+type PlanPrefs = {
+  equipment?: string;
+  goal?: string;
+  experience?: string;
+  daysPerWeek?: string;
+  notes?: string;
+};
+
+function loadPrefs(): PlanPrefs {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as PlanPrefs;
+  } catch {
+    return {};
+  }
+}
+
+// Map the user's calorie-goal direction to a sensible training goal default.
+function goalFromDeficit(deficit: number | null | undefined): string {
+  if (deficit == null || deficit === 0) return GOAL_OPTIONS[4].value; // general fitness
+  return deficit > 0 ? GOAL_OPTIONS[1].value : GOAL_OPTIONS[0].value; // lose fat : build muscle
+}
+
 export function WorkoutPlanForm({ onGenerated }: Props) {
   const { session } = useAuth();
   const { profile } = useProfile();
+  const prefs = loadPrefs();
 
-  const [equipment, setEquipment] = useState('full_gym');
-  const [goal, setGoal] = useState(GOAL_OPTIONS[0].value);
-  const [experience, setExperience] = useState('Beginner');
-  const [daysPerWeek, setDaysPerWeek] = useState('4');
-  const [notes, setNotes] = useState('');
+  const [equipment, setEquipment] = useState(prefs.equipment ?? 'full_gym');
+  const [goal, setGoal] = useState(prefs.goal ?? GOAL_OPTIONS[0].value);
+  const [experience, setExperience] = useState(prefs.experience ?? 'Beginner');
+  const [daysPerWeek, setDaysPerWeek] = useState(prefs.daysPerWeek ?? '4');
+  const [notes, setNotes] = useState(prefs.notes ?? '');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Prefill from the profile only when the user hasn't already made a choice.
   useEffect(() => {
-    if (profile?.equipment_preference && EQUIPMENT_LABEL[profile.equipment_preference]) {
+    if (!prefs.equipment && profile?.equipment_preference && EQUIPMENT_LABEL[profile.equipment_preference]) {
       setEquipment(profile.equipment_preference);
     }
-  }, [profile?.equipment_preference]);
+    if (!prefs.goal && profile?.calorie_deficit_kcal != null) {
+      setGoal(goalFromDeficit(profile.calorie_deficit_kcal));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.equipment_preference, profile?.calorie_deficit_kcal]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -52,6 +82,10 @@ export function WorkoutPlanForm({ onGenerated }: Props) {
     setGenerating(true);
     setError(null);
     try {
+      localStorage.setItem(
+        PREFS_KEY,
+        JSON.stringify({ equipment, goal, experience, daysPerWeek, notes } satisfies PlanPrefs),
+      );
       const plan = await generateWorkoutPlan(session.user.id, {
         equipment: EQUIPMENT_LABEL[equipment] ?? equipment,
         goal,
