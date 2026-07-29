@@ -521,11 +521,18 @@ function AddMealTab(p: AddMealProps) {
                   </p>
                 </div>
                 {g.list.map(m => (
-                  <div key={m.id} className="flex items-center justify-between py-1">
-                    <p className="text-xs text-[var(--text)]">{m.meal_name}</p>
-                    <p className="text-[10px] text-[var(--muted)]">
-                      {m.calories ?? 0} kcal · {m.protein_g ?? 0}g P
-                    </p>
+                  <div key={m.id} className="py-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 text-xs text-[var(--text)]">{m.meal_name}</p>
+                      <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
+                        {m.calories ?? 0} kcal
+                      </p>
+                    </div>
+                    <MacroSplitBar
+                      protein={m.protein_g ?? 0}
+                      carbs={m.carbs_g ?? 0}
+                      fat={m.fat_g ?? 0}
+                    />
                   </div>
                 ))}
               </div>
@@ -553,6 +560,40 @@ const MEAL_LABELS: Record<MealCategory, string> = {
   supplement: 'Supplements',
   other: 'Other',
 };
+
+// Shared macro palette, consistent with the nutrition breakdown tab.
+const MACRO_COLORS = { protein: '#22c55e', carbs: '#6c63ff', fat: '#f59e0b' } as const;
+
+// A thin stacked bar showing where a dish's calories come from. Segments are
+// sized by calorie contribution (protein/carb ×4, fat ×9 kcal per gram) so a
+// carb- or fat-heavy dish visibly dominates the bar even when its protein
+// number looks fine.
+function MacroSplitBar({ protein, carbs, fat }: { protein: number; carbs: number; fat: number }) {
+  const pCal = protein * 4;
+  const cCal = carbs * 4;
+  const fCal = fat * 9;
+  const total = pCal + cCal + fCal;
+  const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="mt-1">
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--bg)]">
+        {total > 0 ? (
+          <>
+            <span style={{ width: `${pct(pCal)}%`, background: MACRO_COLORS.protein }} />
+            <span style={{ width: `${pct(cCal)}%`, background: MACRO_COLORS.carbs }} />
+            <span style={{ width: `${pct(fCal)}%`, background: MACRO_COLORS.fat }} />
+          </>
+        ) : null}
+      </div>
+      <div className="mt-1 flex gap-2.5 text-[9px] font-semibold">
+        <span style={{ color: MACRO_COLORS.protein }}>{Math.round(protein)}g P</span>
+        <span style={{ color: MACRO_COLORS.carbs }}>{Math.round(carbs)}g C</span>
+        <span style={{ color: MACRO_COLORS.fat }}>{Math.round(fat)}g F</span>
+      </div>
+    </div>
+  );
+}
 
 function NutritionTab({
   totals,
