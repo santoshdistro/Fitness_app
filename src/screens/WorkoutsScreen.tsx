@@ -24,6 +24,14 @@ import { PhotoBackdrop } from '../components/PhotoBackdrop';
 
 type SelectedExercise = { name: string; exerciseId?: string; sets: number; reps: string };
 
+type WorkoutsTab = 'workouts' | 'plan' | 'heatmap';
+
+// Persist the active tab across remounts. AppShell keys this screen by a
+// refreshKey that bumps whenever a workout is saved, which would otherwise
+// reset the tab back to "Workouts". Keeping it at module scope lets the
+// remounted component pick up where the user left off (Plan / Heat map).
+let persistedWorkoutsTab: WorkoutsTab = 'workouts';
+
 function formatWorkoutDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     month: 'short',
@@ -41,7 +49,11 @@ type Props = {
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
   const { records, lastByExercise } = useStrengthRecords();
-  const [tab, setTab] = useState<'workouts' | 'plan' | 'heatmap'>('workouts');
+  const [tab, setTabState] = useState<WorkoutsTab>(persistedWorkoutsTab);
+  const setTab = (next: WorkoutsTab) => {
+    persistedWorkoutsTab = next;
+    setTabState(next);
+  };
   const { handlers, change, animClass } = useTabSwipe(
     ['workouts', 'plan', 'heatmap'] as const,
     tab,
