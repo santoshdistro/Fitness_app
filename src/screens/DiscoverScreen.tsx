@@ -586,10 +586,10 @@ function MacroSplitBar({ protein, carbs, fat }: { protein: number; carbs: number
           </>
         ) : null}
       </div>
-      <div className="mt-1 flex gap-2.5 text-[9px] font-semibold">
-        <span style={{ color: MACRO_COLORS.protein }}>{Math.round(protein)}g P</span>
-        <span style={{ color: MACRO_COLORS.carbs }}>{Math.round(carbs)}g C</span>
-        <span style={{ color: MACRO_COLORS.fat }}>{Math.round(fat)}g F</span>
+      <div className="mt-1 flex justify-between text-[9px] font-semibold">
+        <span className="flex-1 text-left" style={{ color: MACRO_COLORS.protein }}>{Math.round(protein)}g P</span>
+        <span className="flex-1 text-center" style={{ color: MACRO_COLORS.carbs }}>{Math.round(carbs)}g C</span>
+        <span className="flex-1 text-right" style={{ color: MACRO_COLORS.fat }}>{Math.round(fat)}g F</span>
       </div>
     </div>
   );
