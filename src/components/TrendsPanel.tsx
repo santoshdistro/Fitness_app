@@ -43,7 +43,7 @@ export function TrendsPanel() {
         title="Weight"
         subtitle={weightPoints.length >= 2 ? `${weightPoints.length} weigh-ins` : undefined}
       >
-        <TrendChart points={weightPoints} type="line" overlay={weightOverlay} unit={wUnit} color="#6c63ff" />
+        <TrendChart points={weightPoints} type="line" overlay={weightOverlay} unit={wUnit} color="#6c63ff" decimals={1} />
         <p className="text-[10px] text-[var(--muted)]">
           Dashed line = 5-point average (smooths daily water-weight swings).
         </p>

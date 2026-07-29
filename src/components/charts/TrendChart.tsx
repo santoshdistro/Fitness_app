@@ -12,13 +12,16 @@ type Props = {
   goal?: number | null;
   unit?: string;
   height?: number;
+  /** Decimal places for the value labels (0 for calories/steps, 1 for weight). */
+  decimals?: number;
 };
 
 // Responsive SVG chart (line or bars) with a gradient fill, point markers,
 // an optional target line, and tap-to-inspect tooltips.
-export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, goal, unit = '', height = 120 }: Props) {
+export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, goal, unit = '', height = 120, decimals = 0 }: Props) {
   const gid = useId().replace(/:/g, '');
   const [active, setActive] = useState<number | null>(null);
+  const fmt = (v: number) => (decimals > 0 ? v.toFixed(decimals) : String(Math.round(v)));
 
   if (points.length === 0) {
     return <p className="py-4 text-center text-xs text-[var(--muted)]">Not enough data yet.</p>;
@@ -46,11 +49,11 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
     <div>
       <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--muted)]">
         <span>
-          {Math.round(max)}
+          {fmt(max)}
           {unit}
         </span>
         <span className="font-semibold text-[var(--text)]">
-          now {Math.round(latest)}
+          now {fmt(latest)}
           {unit}
         </span>
       </div>
@@ -162,7 +165,7 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
               background: color,
             }}
           >
-            {activePoint.label} · {Math.round(activePoint.value)}
+            {activePoint.label} · {fmt(activePoint.value)}
             {unit}
           </div>
         ) : null}
