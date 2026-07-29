@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sheet } from './Sheet';
-import type { FoodLog } from '../types/database';
+import type { FoodLog, MealCategory } from '../types/database';
+import { MEAL_CATEGORY_OPTIONS } from '../utils/mealCategory';
 
 export type MealEditMode = 'edit' | 'today';
 
@@ -20,12 +21,16 @@ export function MealEditSheet({
   mode: MealEditMode;
   saving: boolean;
   onClose: () => void;
-  onConfirm: (multiplier: number) => void;
+  onConfirm: (multiplier: number, category: MealCategory) => void;
 }) {
   const [mult, setMult] = useState(1);
+  const [category, setCategory] = useState<MealCategory>('breakfast');
 
   useEffect(() => {
-    if (meal) setMult(1);
+    if (meal) {
+      setMult(1);
+      setCategory(meal.meal_category);
+    }
   }, [meal]);
 
   const scale = (v: number | null | undefined) => Math.round((v ?? 0) * mult);
@@ -63,6 +68,28 @@ export function MealEditSheet({
                 <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{m.label}</p>
               </div>
             ))}
+          </div>
+
+          {/* Meal-time picker */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Meal</label>
+            <div className="flex flex-wrap gap-1.5">
+              {MEAL_CATEGORY_OPTIONS.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setCategory(o.value)}
+                  className="rounded-xl px-3 py-2 text-xs font-bold"
+                  style={
+                    category === o.value
+                      ? { background: 'var(--accent)', color: 'white' }
+                      : { background: 'var(--bg)', color: 'var(--muted)' }
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Quantity picker */}
@@ -103,7 +130,7 @@ export function MealEditSheet({
           <button
             type="button"
             disabled={saving || mult <= 0}
-            onClick={() => onConfirm(mult)}
+            onClick={() => onConfirm(mult, category)}
             className="rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
           >

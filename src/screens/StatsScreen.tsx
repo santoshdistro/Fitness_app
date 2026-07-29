@@ -170,7 +170,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
 
   // Apply a portion adjustment from the edit sheet. In 'edit' mode it updates
   // the existing row; in 'today' mode it logs a scaled copy into today.
-  async function applyMealChange(multiplier: number) {
+  async function applyMealChange(multiplier: number, category: MealCategory) {
     if (!session?.user || !editingMeal) return;
     const { meal, mode } = editingMeal;
     const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
@@ -188,13 +188,13 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
     };
     setSavingMeal(true);
     if (mode === 'edit') {
-      await supabase.from('food_logs').update(scaled).eq('id', meal.id);
+      await supabase.from('food_logs').update({ ...scaled, meal_category: category }).eq('id', meal.id);
       await refreshMeals();
     } else {
       await supabase.from('food_logs').insert({
         user_id: session.user.id,
         meal_name: meal.meal_name,
-        meal_category: meal.meal_category,
+        meal_category: category,
         ...scaled,
       });
       setAddedMealIds(prev => new Set(prev).add(meal.id));
