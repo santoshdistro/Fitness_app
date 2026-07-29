@@ -102,32 +102,51 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
       )}
     </div>
 
-    {/* Workouts done, ranked by volume (highest on top) */}
-    {data.exercises.length > 0 ? (
-      <div className="glass-card flex flex-col gap-1.5 p-5">
-        <p className="text-sm font-semibold text-[var(--text)]">
-          Workouts done · {period === 'today' ? 'today' : 'last 7 days'}
+    {/* Workouts done, ranked high -> low by volume */}
+    <div className="glass-card flex flex-col gap-1.5 p-5">
+      <p className="text-sm font-semibold text-[var(--text)]">
+        Workouts done · {period === 'today' ? 'today' : 'last 7 days'}
+      </p>
+      {loading ? (
+        <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
+      ) : data.exercises.length === 0 ? (
+        <p className="text-xs text-[var(--muted)]">
+          No workouts logged in this window. Log a session and every exercise ranks here — hardest
+          first.
         </p>
-        {data.exercises.map(ex => {
-          const top = data.exercises[0].volume || 1;
-          const t = Math.pow(ex.volume / top, 0.6);
-          return (
-            <div key={ex.name} className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(t) }} />
-              <span className="flex-1 truncate text-xs font-semibold capitalize text-[var(--text)]">
-                {ex.name}
-              </span>
-              <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
-                ×{ex.sets} · {ex.reps} reps
-              </span>
-            </div>
-          );
-        })}
-        <p className="mt-1 text-[9px] text-[var(--muted)]">
-          Ordered by volume — hardest-hit on top. ×sets · total reps.
-        </p>
-      </div>
-    ) : null}
+      ) : (
+        <>
+          {data.exercises.map(ex => {
+            const top = data.exercises[0].volume || 1;
+            const frac = ex.volume / top;
+            const t = Math.pow(frac, 0.6);
+            return (
+              <div key={ex.name} className="relative overflow-hidden rounded-xl bg-[var(--bg)]">
+                <div
+                  className="absolute inset-y-0 left-0"
+                  style={{
+                    width: `${Math.max(8, frac * 100)}%`,
+                    background: `color-mix(in srgb, ${muscleHeat(t)} 24%, transparent)`,
+                  }}
+                />
+                <div className="relative flex items-center gap-2.5 px-3 py-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(t) }} />
+                  <span className="flex-1 truncate text-xs font-semibold capitalize text-[var(--text)]">
+                    {ex.name}
+                  </span>
+                  <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
+                    ×{ex.sets} · {ex.reps} reps
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          <p className="mt-1 text-[9px] text-[var(--muted)]">
+            Bar length = training volume (weight × reps). Hardest-hit on top. ×sets · total reps.
+          </p>
+        </>
+      )}
+    </div>
 
       <Sheet
         open={selected != null}
