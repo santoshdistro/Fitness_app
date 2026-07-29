@@ -53,6 +53,11 @@ export function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           label="Avg steps"
           value={review.avgSteps != null ? review.avgSteps.toLocaleString() : '—'}
         />
+        <Stat
+          label="Avg active kcal"
+          value={review.avgActiveKcal != null ? review.avgActiveKcal.toLocaleString() : '—'}
+          hint="burned / day"
+        />
       </div>
 
       <p className="text-[11px] font-medium text-[var(--muted)]">{takeaway(review)}</p>

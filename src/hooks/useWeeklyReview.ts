@@ -9,6 +9,8 @@ export type WeeklyReview = {
   avgCalories: number | null;
   avgProtein: number | null;
   avgSteps: number | null;
+  /** Average active kcal burned per day that has an active-calorie reading. */
+  avgActiveKcal: number | null;
   /** Days (of those logged) where protein met the target. */
   proteinHitDays: number | null;
   /** Days (of those logged) within ±15% of the calorie target. */
@@ -86,6 +88,14 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
         ? Math.round(stepValues.reduce((s, v) => s + v, 0) / stepValues.length)
         : null;
 
+    const activeValues = dailies
+      .map(d => d.active_calories_burned)
+      .filter((v): v is number => v != null && v > 0);
+    const avgActiveKcal =
+      activeValues.length > 0
+        ? Math.round(activeValues.reduce((s, v) => s + v, 0) / activeValues.length)
+        : null;
+
     const weights = dailies.filter((d): d is DailyLog & { weight: number } => d.weight != null);
     const weightChangeKg =
       weights.length >= 2
@@ -97,6 +107,7 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       avgCalories,
       avgProtein,
       avgSteps,
+      avgActiveKcal,
       proteinHitDays,
       calorieOnTargetDays,
       weightChangeKg,
