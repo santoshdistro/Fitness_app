@@ -8,7 +8,7 @@ import { MuscleMap } from './MuscleMap';
 import { ExerciseDetail } from './ExerciseDetail';
 import { Sheet } from './Sheet';
 
-export function BodyMapCard() {
+export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [period, setPeriod] = useState<MusclePeriod>('week');
   const { data, loading } = useMuscleActivity(period);
   const { addExercise } = useWorkoutPlan();
@@ -37,6 +37,7 @@ export function BodyMapCard() {
   );
 
   return (
+    <div className="flex flex-col gap-4">
     <div className="glass-card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-[var(--text)]">Muscles worked</p>
@@ -62,7 +63,7 @@ export function BodyMapCard() {
         </div>
       </div>
 
-      <MuscleMap intensity={data.intensity} onSelect={setSelected} />
+      <MuscleMap intensity={data.intensity} onSelect={setSelected} large={large} />
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-2 text-[9px] text-[var(--muted)]">
@@ -99,6 +100,34 @@ export function BodyMapCard() {
           </p>
         </div>
       )}
+    </div>
+
+    {/* Workouts done, ranked by volume (highest on top) */}
+    {data.exercises.length > 0 ? (
+      <div className="glass-card flex flex-col gap-1.5 p-5">
+        <p className="text-sm font-semibold text-[var(--text)]">
+          Workouts done · {period === 'today' ? 'today' : 'last 7 days'}
+        </p>
+        {data.exercises.map(ex => {
+          const top = data.exercises[0].volume || 1;
+          const t = Math.pow(ex.volume / top, 0.6);
+          return (
+            <div key={ex.name} className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(t) }} />
+              <span className="flex-1 truncate text-xs font-semibold capitalize text-[var(--text)]">
+                {ex.name}
+              </span>
+              <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
+                ×{ex.sets} · {ex.reps} reps
+              </span>
+            </div>
+          );
+        })}
+        <p className="mt-1 text-[9px] text-[var(--muted)]">
+          Ordered by volume — hardest-hit on top. ×sets · total reps.
+        </p>
+      </div>
+    ) : null}
 
       <Sheet
         open={selected != null}

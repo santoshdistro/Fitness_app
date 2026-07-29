@@ -7,22 +7,30 @@ import type { ExerciseSet, WorkoutLog } from '../types/database';
 
 export type MusclePeriod = 'today' | 'week';
 
+export type ExerciseStat = { name: string; sets: number; reps: number; volume: number };
+
 export type MuscleActivity = {
   volumes: Partial<Record<MuscleKey, number>>;
   intensity: Partial<Record<MuscleKey, number>>; // 0..1, max-normalised
   maxVolume: number;
+  exercises: ExerciseStat[]; // logged exercises, highest volume first
 };
 
 export function useMuscleActivity(period: MusclePeriod) {
   const { session } = useAuth();
   const userId = session?.user?.id;
-  const [data, setData] = useState<MuscleActivity>({ volumes: {}, intensity: {}, maxVolume: 0 });
+  const [data, setData] = useState<MuscleActivity>({
+    volumes: {},
+    intensity: {},
+    maxVolume: 0,
+    exercises: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     if (!userId) {
-      setData({ volumes: {}, intensity: {}, maxVolume: 0 });
+      setData({ volumes: {}, intensity: {}, maxVolume: 0, exercises: [] });
       setLoading(false);
       return;
     }
@@ -39,15 +47,24 @@ export function useMuscleActivity(period: MusclePeriod) {
         if (cancelled) return;
         const workouts = (rows as Pick<WorkoutLog, 'session_timestamp' | 'exercise_data'>[]) ?? [];
         const volumes: Partial<Record<MuscleKey, number>> = {};
+        const exMap = new Map<string, ExerciseStat>();
         for (const w of workouts) {
           for (const set of (w.exercise_data ?? []) as ExerciseSet[]) {
-            const muscles = classifyMuscles(set.exercise || '');
-            if (muscles.length === 0) continue;
+            const name = (set.exercise || '').trim();
             // Bodyweight moves (weight 0) still count via reps.
             const vol = Math.max(1, set.weight || 0) * Math.max(1, set.reps || 1);
+            if (name) {
+              const cur = exMap.get(name) ?? { name, sets: 0, reps: 0, volume: 0 };
+              cur.sets += 1;
+              cur.reps += set.reps || 0;
+              cur.volume += vol;
+              exMap.set(name, cur);
+            }
+            const muscles = classifyMuscles(name);
             for (const m of muscles) volumes[m] = (volumes[m] ?? 0) + vol;
           }
         }
+        const exercises = [...exMap.values()].sort((a, b) => b.volume - a.volume);
         const maxVolume = Math.max(0, ...Object.values(volumes));
         const intensity: Partial<Record<MuscleKey, number>> = {};
         if (maxVolume > 0) {
@@ -56,7 +73,7 @@ export function useMuscleActivity(period: MusclePeriod) {
             intensity[m as MuscleKey] = Math.pow((v as number) / maxVolume, 0.6);
           }
         }
-        setData({ volumes, intensity, maxVolume });
+        setData({ volumes, intensity, maxVolume, exercises });
         setLoading(false);
       });
 

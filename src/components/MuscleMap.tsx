@@ -9,16 +9,18 @@ function Figure({
   label,
   intensity,
   onSelect,
+  large,
 }: {
   parts: BodyPart[];
   viewBox: string;
   label: string;
   intensity: Partial<Record<MuscleKey, number>>;
   onSelect: (m: MuscleKey) => void;
+  large?: boolean;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center">
-      <svg viewBox={viewBox} style={{ width: '100%', maxWidth: 170 }}>
+      <svg viewBox={viewBox} style={{ width: '100%', maxWidth: large ? 240 : 170 }}>
         {parts.map((part, i) =>
           part.paths.map((d, j) => (
             <path
@@ -42,14 +44,16 @@ function Figure({
 export function MuscleMap({
   intensity,
   onSelect,
+  large,
 }: {
   intensity: Partial<Record<MuscleKey, number>>;
   onSelect: (m: MuscleKey) => void;
+  large?: boolean;
 }) {
   return (
-    <div className="flex gap-2">
-      <Figure parts={FRONT_PARTS} viewBox={FRONT_VIEWBOX} label="Front" intensity={intensity} onSelect={onSelect} />
-      <Figure parts={BACK_PARTS} viewBox={BACK_VIEWBOX} label="Back" intensity={intensity} onSelect={onSelect} />
+    <div className="flex justify-center gap-2">
+      <Figure parts={FRONT_PARTS} viewBox={FRONT_VIEWBOX} label="Front" intensity={intensity} onSelect={onSelect} large={large} />
+      <Figure parts={BACK_PARTS} viewBox={BACK_VIEWBOX} label="Back" intensity={intensity} onSelect={onSelect} large={large} />
     </div>
   );
 }

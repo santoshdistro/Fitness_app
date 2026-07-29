@@ -40,7 +40,7 @@ type Props = {
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
   const { records, lastByExercise } = useStrengthRecords();
-  const [tab, setTab] = useState<'workouts' | 'plan'>('workouts');
+  const [tab, setTab] = useState<'workouts' | 'plan' | 'heatmap'>('workouts');
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
@@ -103,7 +103,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
       <div className="anim-fade-rise mt-4 flex rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.03s' }}>
         {([
           { key: 'workouts', label: 'Workouts' },
-          { key: 'plan', label: 'Workout Plan' },
+          { key: 'plan', label: 'Plan' },
+          { key: 'heatmap', label: 'Heat map' },
         ] as const).map(t => {
           const active = tab === t.key;
           return (
@@ -129,6 +130,10 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <WorkoutPlanner
             onStartGuided={(title, exercises) => setGuided({ title, exercises })}
           />
+        </div>
+      ) : tab === 'heatmap' ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
+          <BodyMapCard large />
         </div>
       ) : (
         <>
@@ -330,11 +335,6 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         ) : (
           <p className="text-xs text-[var(--muted)]">Pick an equipment type above to see a program.</p>
         )}
-      </div>
-
-      {/* Muscle map heatmap */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.085s' }}>
-        <BodyMapCard />
       </div>
 
       {/* Personal records */}
