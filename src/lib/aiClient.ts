@@ -120,6 +120,28 @@ export async function generateWorkoutPlan(
   return result;
 }
 
+export type WorkoutReviewInput = {
+  goal?: string | null;
+  level?: string | null;
+  workouts: { date: string; name?: string | null; sets: { ex: string; reps: number | string; kg: number }[] }[];
+  records: { ex: string; bestKg: number; e1rm: number; sessions: number }[];
+};
+export type WorkoutReviewResult = {
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  focus: string[];
+};
+
+export async function generateWorkoutReview(
+  userId: string,
+  input: WorkoutReviewInput,
+): Promise<WorkoutReviewResult> {
+  const { result, usage } = await postJson<WorkoutReviewResult>('/api/review', input);
+  if (usage) void logAiUsage(userId, 'workout_review', usage);
+  return result;
+}
+
 export async function generateNutritionPlan(
   userId: string,
   input: NutritionPreferences,

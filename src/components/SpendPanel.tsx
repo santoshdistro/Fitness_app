@@ -11,6 +11,7 @@ const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   nutrition_coach: 'Nutrition coach plans',
   diet_plan: '2-week diet plans',
   food_estimate: 'AI food estimates',
+  workout_review: 'AI workout reviews',
 };
 
 type AnthropicState =
