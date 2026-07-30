@@ -9,11 +9,21 @@ type Props = {
 };
 
 const BAR_TRACK_HEIGHT = 88;
+// Distance from the wrapper's top to the top of a bar track: pt-5 (20px) +
+// value label (~8px) + gap-1.5 (6px). Used to align the goal line to the bars.
+const TRACK_TOP = 34;
 
 function formatHours(hours: number): string {
   const whole = Math.floor(hours);
   const mins = Math.round((hours - whole) * 60);
   return mins === 0 ? `${whole}h` : `${whole}.${Math.round(mins / 6)}h`;
+}
+
+// Colour a bar by how close the night's sleep got to the goal.
+function barGradient(hours: number, goal: number): string {
+  if (hours >= goal) return 'linear-gradient(180deg, #34d399, #22c55e)'; // green — hit it
+  if (hours >= goal * 0.75) return 'linear-gradient(180deg, #fbbf24, #f59e0b)'; // amber — close
+  return 'linear-gradient(180deg, #f87171, #ef4444)'; // red — low
 }
 
 export function SleepBarChart({
@@ -22,7 +32,8 @@ export function SleepBarChart({
   maxScaleHours = 10,
   highlightIndex,
 }: Props) {
-  const goalOffsetPercent = Math.min(100, Math.max(0, (1 - goalHours / maxScaleHours) * 100));
+  // Align the goal line to the top of a bar that exactly meets the goal.
+  const goalLineTop = TRACK_TOP + (1 - Math.min(goalHours, maxScaleHours) / maxScaleHours) * BAR_TRACK_HEIGHT;
   const focus = highlightIndex ?? entries.length - 1;
 
   return (
@@ -35,8 +46,8 @@ export function SleepBarChart({
       <div className="relative">
         {/* Goal line */}
         <div
-          className="pointer-events-none absolute left-0 right-0 z-0 border-t border-dashed border-[var(--accent)]/30"
-          style={{ top: `${goalOffsetPercent + 16}px` }}
+          className="pointer-events-none absolute left-0 right-0 z-0 border-t border-dashed border-[var(--accent)]/40"
+          style={{ top: `${goalLineTop}px` }}
         />
 
         <div className="relative z-10 flex items-end justify-between px-1 pt-5">
@@ -44,7 +55,6 @@ export function SleepBarChart({
             const hasData = entry.hours != null;
             const heightPercent = Math.min(100, ((entry.hours ?? 0) / maxScaleHours) * 100);
             const isFocus = idx === focus;
-            const metGoal = (entry.hours ?? 0) >= goalHours;
             return (
               <div key={idx} className="flex w-8 flex-col items-center gap-1.5">
                 {/* value */}
@@ -70,12 +80,9 @@ export function SleepBarChart({
                       className="w-full rounded-full transition-all"
                       style={{
                         height: `${Math.max(heightPercent, 6)}%`,
-                        background: isFocus
-                          ? 'linear-gradient(180deg, #8b7dff, #6c63ff)'
-                          : metGoal
-                            ? 'linear-gradient(180deg, #34d399, #22c55e)'
-                            : 'linear-gradient(180deg, #c9cdec, #b4b9e0)',
-                        boxShadow: isFocus ? '0 4px 10px rgba(108,99,255,0.4)' : 'none',
+                        background: barGradient(entry.hours ?? 0, goalHours),
+                        boxShadow: isFocus ? '0 3px 9px rgba(0,0,0,0.25)' : 'none',
+                        opacity: isFocus || focus < 0 ? 1 : 0.82,
                       }}
                     />
                   ) : null}
