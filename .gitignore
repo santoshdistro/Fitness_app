@@ -15,6 +15,9 @@ dist-ssr/
 !.vscode/extensions.json
 .idea
 
+# Personal Claude Code settings (machine-specific permission overrides)
+.claude/settings.local.json
+
 # OS
 .DS_Store
 

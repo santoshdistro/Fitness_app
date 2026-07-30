@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { todayDateString } from '../utils/date';
 import type { DailyLog } from '../types/database';
 
-export function useTodayLog() {
+export function useTodayLog(dateStr: string = todayDateString()) {
   const { session } = useAuth();
   const [log, setLog] = useState<DailyLog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,11 +20,11 @@ export function useTodayLog() {
       .from('daily_logs')
       .select('*')
       .eq('user_id', session.user.id)
-      .eq('log_date', todayDateString())
+      .eq('log_date', dateStr)
       .maybeSingle();
     setLog(data as DailyLog | null);
     setLoading(false);
-  }, [session?.user]);
+  }, [session?.user, dateStr]);
 
   useEffect(() => {
     refresh();

@@ -1,7 +1,36 @@
-import { Bell, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
+import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
+import { useLoggingStreak } from '../hooks/useLoggingStreak';
+import { useTodayNutrition } from '../hooks/useTodayNutrition';
+import { useProfile } from '../hooks/useProfile';
+import { useSettings } from '../hooks/useSettings';
+import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
+import { useWeeklyReview } from '../hooks/useWeeklyReview';
+import { useStartWeight } from '../hooks/useStartWeight';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
+import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
+import { CoachCard } from '../components/CoachCard';
+import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
+import { GoalProgressCard } from '../components/GoalProgressCard';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { DateNavigator } from '../components/DateNavigator';
+import { addDays, isToday, todayDateString } from '../utils/date';
+import { initialsFromName } from '../utils/name';
+import { getSyncShortcutName, runSyncShortcut } from '../utils/healthShortcut';
+import { volumeParts } from '../utils/units';
+import {
+  ageFromBirthDate,
+  computeBMR,
+  computeDailyCalorieTarget,
+  computeGoalProgress,
+  computeSuggestedMacros,
+  computeTDEE,
+} from '../utils/calculations';
+
+const REFERENCE_CALORIE_TARGET = 2000;
 
 function formatSleepDuration(hours: number | null): string {
   if (!hours) return '--';
@@ -10,113 +39,338 @@ function formatSleepDuration(hours: number | null): string {
   return `${String(wholeHours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
 }
 
-function shortDayLabel(dateStr: string): string {
+function weekdayLetter(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString(undefined, { day: '2-digit' });
+  return date.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3);
+}
+
+function dayNumber(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00`);
+  return String(date.getDate());
 }
 
 type Props = {
   onNavigateStats: () => void;
+  onOpenProfile: () => void;
+  onOpenSettings: () => void;
 };
 
-export function HomeScreen({ onNavigateStats }: Props) {
-  const { log: todayLog, loading: todayLoading, refresh: refreshToday } = useTodayLog();
-  const { logs: recentLogs, loading: recentLoading, refresh: refreshRecent } =
-    useRecentDailyLogs(6);
+export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: Props) {
+  const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const [syncShortcut] = useState(getSyncShortcutName());
+  const viewingToday = isToday(selectedDate);
 
-  const refreshing = todayLoading || recentLoading;
-  const onRefresh = () => {
-    refreshToday();
+  const { log: dayLog, loading: dayLoading, refresh: refreshDay } = useTodayLog(selectedDate);
+  const { logs: recentLogs, loading: recentLoading, refresh: refreshRecent } =
+    useRecentDailyLogs(14);
+  const { streak } = useLoggingStreak();
+  const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
+  const { profile } = useProfile();
+  const { settings } = useSettings();
+  const startWeight = useStartWeight();
+  const { workouts } = useRecentWorkouts(20);
+
+  const refreshing = dayLoading || recentLoading;
+  const reloadData = () => {
+    refreshDay();
     refreshRecent();
+    refreshNutrition();
+  };
+  const onRefresh = () => {
+    // If a Health-sync Shortcut is configured, run it (jumps to Shortcuts,
+    // which posts today's metrics), then reload. When the user returns to the
+    // app the visibility handler below reloads again so fresh data shows.
+    if (syncShortcut) runSyncShortcut(syncShortcut);
+    reloadData();
   };
 
-  const waterLiters = todayLog?.water_ml ? (todayLog.water_ml / 1000).toFixed(2) : '--';
-  const sleepEntries = recentLogs.map(entry => ({
-    label: shortDayLabel(entry.log_date),
-    hours: entry.sleep_hours,
-  }));
-  const latestSleepHours = recentLogs[recentLogs.length - 1]?.sleep_hours ?? null;
+  // Reload whenever the app comes back to the foreground — e.g. after the
+  // Health-sync Shortcut ran and the user swiped back.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') reloadData();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const waterDisplay = volumeParts(dayLog?.water_ml ?? 0, settings.volumeUnit);
+  const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
+
+  // Continuous 7-day window ending on the selected date, so every day shows on
+  // the axis whether or not sleep was logged.
+  const sleepByDate = new Map(recentLogs.map(l => [l.log_date, l.sleep_hours]));
+  const sleepEntries = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(selectedDate, i - 6);
+    return {
+      weekday: weekdayLetter(date),
+      day: dayNumber(date),
+      hours: sleepByDate.get(date) ?? null,
+    };
+  });
+  const latestSleepHours = sleepByDate.get(selectedDate) ?? null;
+
+  const weightEntries = recentLogs.filter(
+    (l): l is typeof l & { weight: number } => l.weight != null,
+  );
+  const latestWeight = dayLog?.weight ?? weightEntries[weightEntries.length - 1]?.weight ?? null;
+  const weightTrend =
+    weightEntries.length >= 2
+      ? `${(weightEntries[weightEntries.length - 1].weight - weightEntries[0].weight).toFixed(1)}kg over last ${weightEntries.length} entries`
+      : null;
+
+  const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
+  const canComputeTarget = Boolean(
+    profile?.gender && profile?.height && profile?.birth_date && latestWeight,
+  );
+  const calorieTarget =
+    profile?.calorie_target_override ??
+    (canComputeTarget
+      ? computeDailyCalorieTarget({
+          tdee: computeTDEE(
+            computeBMR({
+              gender: profile!.gender!,
+              weightKg: latestWeight!,
+              heightCm: profile!.height!,
+              ageYears: ageFromBirthDate(profile!.birth_date!),
+            }),
+            profile!.activity_level,
+          ),
+          deficitKcal,
+        })
+      : REFERENCE_CALORIE_TARGET);
+  const suggestedMacros = canComputeTarget
+    ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
+    : null;
+  const proteinTarget = profile?.protein_target_g ?? suggestedMacros?.proteinG ?? null;
+
+  const goalProgress = computeGoalProgress({
+    goalType: profile?.goal_type,
+    startWeight,
+    currentWeight: latestWeight,
+    targetWeight: profile?.target_weight_kg,
+    weeklyRateKg: profile?.weekly_rate_kg,
+  });
+  const { review: weeklyReview } = useWeeklyReview({ calorieTarget, proteinTarget });
+
+  const proteinGoal = proteinTarget ?? Math.round((calorieTarget * 0.3) / 4);
+  const workoutToday = workouts.some(
+    w => new Date(w.session_timestamp).toLocaleDateString('en-CA') === selectedDate,
+  );
+  const steps = dayLog?.steps ?? 0;
+  const waterMl = dayLog?.water_ml ?? 0;
+  // Exercise "earns back" calorie budget: net intake = eaten − active kcal burned.
+  const burnedKcal = Math.max(0, Math.round(dayLog?.active_calories_burned ?? 0));
+  const netCalories = Math.max(0, Math.round(totals.calories - burnedKcal));
+  const gamePlan: GamePlanItem[] = [
+    {
+      key: 'calories',
+      label: 'Eat around your target',
+      detail:
+        burnedKcal > 0
+          ? `${Math.round(totals.calories)} − ${burnedKcal} = ${netCalories} / ${calorieTarget} kcal`
+          : `${Math.round(totals.calories)} / ${calorieTarget} kcal`,
+      done: netCalories >= calorieTarget * 0.85 && netCalories <= calorieTarget * 1.05,
+      progress: calorieTarget > 0 ? netCalories / calorieTarget : 0,
+    },
+    {
+      key: 'protein',
+      label: 'Hit your protein',
+      detail: `${Math.round(totals.protein_g)} / ${proteinGoal} g`,
+      done: totals.protein_g >= proteinGoal * 0.95,
+      progress: proteinGoal > 0 ? totals.protein_g / proteinGoal : 0,
+    },
+    {
+      key: 'steps',
+      label: 'Get your steps in',
+      detail: `${steps.toLocaleString()} / ${settings.stepGoal.toLocaleString()}`,
+      done: steps >= settings.stepGoal,
+      progress: settings.stepGoal > 0 ? steps / settings.stepGoal : 0,
+    },
+    {
+      key: 'water',
+      label: 'Stay hydrated',
+      detail: `${volumeParts(waterMl, settings.volumeUnit).value} / ${waterGoalDisplay.value} ${waterGoalDisplay.label}`,
+      done: waterMl >= settings.waterGoalMl,
+      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
+    },
+    {
+      key: 'workout',
+      label: 'Move your body',
+      detail: workoutToday ? 'Workout logged' : 'Not yet',
+      done: workoutToday,
+      progress: workoutToday ? 1 : 0,
+    },
+  ];
+
+  const rings: Ring[] = [
+    { label: 'Calories', value: netCalories, target: calorieTarget, color: '#6c63ff' },
+    {
+      label: 'Protein',
+      value: totals.protein_g,
+      target: proteinTarget ?? Math.round((calorieTarget * 0.3) / 4),
+      color: '#22c55e',
+      unit: 'g',
+    },
+    { label: 'Steps', value: dayLog?.steps ?? 0, target: settings.stepGoal, color: '#f97316' },
+  ];
+
+  const hasAnyData =
+    totals.mealCount > 0 ||
+    dayLog?.steps != null ||
+    dayLog?.water_ml != null ||
+    latestWeight != null;
+
+  const coachPayload: CoachPayload = {
+    goal: deficitKcal > 0 ? 'deficit' : deficitKcal < 0 ? 'surplus' : 'maintenance',
+    caloriesLogged: Math.round(totals.calories),
+    caloriesBurned: burnedKcal,
+    calorieTarget,
+    proteinLogged: Math.round(totals.protein_g),
+    proteinTarget,
+    carbsLogged: Math.round(totals.carbs_g),
+    fatLogged: Math.round(totals.fat_g),
+    steps: dayLog?.steps ?? null,
+    waterMl: dayLog?.water_ml ?? null,
+    latestWeight,
+    weightTrend,
+    streak,
+    mealCount: totals.mealCount,
+  };
+  // Only coach for today — a past day's "calories left" would be nonsensical.
+  const coach = useCoachInsight(coachPayload, hasAnyData && viewingToday);
+
 
   return (
-    <div className="min-h-full bg-[#EAECEF] px-6 pt-4 pb-8">
-      <div className="mt-2 flex items-center justify-between">
+    <div className="min-h-full px-6 pt-4 pb-8">
+      {/* Top bar */}
+      <div className="anim-drop-in mt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[#E5BA73]">
-            <span className="text-sm font-bold text-white">U</span>
-          </div>
-          <div className="flex items-center gap-1 rounded-full border border-gray-100 bg-white px-3 py-1.5">
-            <span className="text-xs font-medium text-gray-800">Today</span>
-            <ChevronDown size={14} color="#6b7280" />
-          </div>
+          <button
+            onClick={onOpenProfile}
+            aria-label="Edit profile"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)]"
+          >
+            <span className="text-sm font-bold text-white">{initialsFromName(profile?.name)}</span>
+          </button>
+          {streak > 0 ? (
+            <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
+              <Flame size={13} className="text-orange-500" />
+              <span className="text-xs font-bold text-orange-500">{streak}</span>
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white"
+            aria-label={syncShortcut ? 'Sync Health & refresh' : 'Refresh'}
+            className="glass flex h-10 w-10 items-center justify-center rounded-full"
           >
-            <RefreshCw size={15} color="#374151" className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={15}
+              className={`${syncShortcut ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} ${refreshing ? 'animate-spin' : ''}`}
+            />
           </button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white">
-            <Bell size={16} color="#374151" />
-          </div>
+          <button
+            onClick={onOpenSettings}
+            aria-label="Settings"
+            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+          >
+            <Settings size={16} className="text-[var(--muted)]" />
+          </button>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex flex-col gap-5">
-          <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">
-              {todayLog?.steps ?? '--'}
-            </p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Steps
-            </p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">{waterLiters}</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Water (L)
-            </p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">
-              {todayLog?.active_calories_burned ?? '--'}
-            </p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Cals
-            </p>
-          </div>
+      {/* Date navigator: title + calendar + week strip */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
+      </div>
+
+      {/* Today's game plan (today only) */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
+          <TodayGamePlan items={gamePlan} />
+        </div>
+      ) : null}
+
+      {/* Activity rings dashboard */}
+      <div
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-5 p-5"
+        style={{ animationDelay: '0.1s' }}
+      >
+        <ActivityRings rings={rings} />
+        <div className="flex-1">
+          <RingLegend rings={rings} />
           <button
             onClick={onNavigateStats}
-            className="mt-2 flex items-center gap-1 text-xs font-semibold text-teal-600"
+            className="mt-3 flex items-center gap-1 text-xs font-semibold"
+            style={{ color: 'var(--accent)' }}
           >
-            See data
-            <ChevronRight size={14} color="#0d9488" />
+            See full stats
+            <ChevronRight size={14} />
           </button>
-        </div>
-
-        <div className="relative flex h-[220px] w-[160px] items-center justify-center">
-          <div className="absolute h-40 w-40 rounded-full bg-teal-100/40" />
-          <svg width={140} height={140} viewBox="0 0 100 100" className="relative">
-            <circle cx={50} cy={30} r={10} stroke="#f43f5e" strokeWidth={1.5} fill="none" />
-            <line x1={50} y1={40} x2={50} y2={70} stroke="#f43f5e" strokeWidth={2} />
-            <line x1={50} y1={48} x2={32} y2={35} stroke="#f43f5e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={48} x2={68} y2={35} stroke="#e2e8f0" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={40} y2={90} stroke="#f43f5e" strokeWidth={2} strokeLinecap="round" />
-            <line x1={50} y1={70} x2={60} y2={90} stroke="#e2e8f0" strokeWidth={2} strokeLinecap="round" />
-          </svg>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-4 rounded-[2rem] border border-gray-100/50 bg-white p-5">
+      {/* Goal progress (today only) */}
+      {viewingToday && goalProgress ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
+          <GoalProgressCard progress={goalProgress} weightUnit={settings.weightUnit} />
+        </div>
+      ) : null}
+
+      {/* Coach (today only) */}
+      {viewingToday ? (
+        <div className="mt-4">
+          <CoachCard
+            status={coach.status}
+            insight={coach.status === 'ready' ? coach.insight : undefined}
+          />
+        </div>
+      ) : null}
+
+      {/* Weekly review (today only) */}
+      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
+          <WeeklyReviewCard review={weeklyReview} />
+        </div>
+      ) : null}
+
+      {/* Water + active kcal */}
+      <div className="anim-fade-rise mt-4 flex gap-3" style={{ animationDelay: '0.28s' }}>
+        <div className="glass-card flex-1 p-4">
+          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            {dayLog?.water_ml != null ? waterDisplay.value : '--'}
+          </p>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+            Water / {waterGoalDisplay.value}
+            {waterGoalDisplay.label}
+          </p>
+        </div>
+        <div className="glass-card flex-1 p-4">
+          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            {dayLog?.active_calories_burned ?? '--'}
+          </p>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+            Active kcal
+          </p>
+        </div>
+      </div>
+
+      {/* Sleep */}
+      <div
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-4 p-5"
+        style={{ animationDelay: '0.32s' }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
               <span>🌙</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Sleep</p>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-sm font-semibold text-[var(--text)]">Sleep</p>
+              <p className="text-[11px] text-[var(--muted)]">
                 {latestSleepHours && latestSleepHours < 7
                   ? 'You slept too little last night'
                   : latestSleepHours
@@ -125,7 +379,7 @@ export function HomeScreen({ onNavigateStats }: Props) {
               </p>
             </div>
           </div>
-          <p className="text-sm font-bold text-gray-900">
+          <p className="text-sm font-bold text-[var(--text)]">
             {formatSleepDuration(latestSleepHours)}
           </p>
         </div>

@@ -1,0 +1,127 @@
+import { useEffect, useRef, useState } from 'react';
+import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import { Barcode } from 'lucide-react';
+import { lookupBarcode } from '../../lib/openFoodFacts';
+import { defaultMealCategoryForNow } from '../../utils/mealCategory';
+import { MealForm, type MealInitial } from './MealForm';
+import { errorTextClass } from './formStyles';
+
+type Props = {
+  onSaved: () => void;
+};
+
+type Stage =
+  | { step: 'scanning' }
+  | { step: 'looking'; code: string }
+  | { step: 'error'; message: string }
+  | { step: 'review'; initial: MealInitial };
+
+export function BarcodeScanForm({ onSaved }: Props) {
+  const [stage, setStage] = useState<Stage>({ step: 'scanning' });
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+  const handledRef = useRef(false);
+
+  // Start / stop the camera scanner while we're on the scanning step.
+  useEffect(() => {
+    if (stage.step !== 'scanning') return;
+    handledRef.current = false;
+    const reader = new BrowserMultiFormatReader();
+    let cancelled = false;
+
+    reader
+      .decodeFromVideoDevice(undefined, videoRef.current ?? undefined, (result, _err, controls) => {
+        controlsRef.current = controls;
+        if (result && !handledRef.current) {
+          handledRef.current = true;
+          controls.stop();
+          void handleCode(result.getText());
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStage({
+            step: 'error',
+            message: 'Could not open the camera. Allow camera access and try again.',
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controlsRef.current?.stop();
+    };
+  }, [stage.step]);
+
+  async function handleCode(code: string) {
+    setStage({ step: 'looking', code });
+    try {
+      const product = await lookupBarcode(code);
+      if (!product) {
+        setStage({ step: 'error', message: `No product found for barcode ${code}.` });
+        return;
+      }
+      const p = product.per100g;
+      setStage({
+        step: 'review',
+        initial: {
+          mealName: product.brand ? `${product.brand} ${product.name}` : product.name,
+          category: defaultMealCategoryForNow(),
+          calories: String(p.calories),
+          protein: String(p.protein_g),
+          carbs: String(p.carbs_g),
+          fat: String(p.fat_g),
+          fiber: String(p.fiber_g),
+          sodium: String(p.sodium_mg),
+          servingNote: `Per 100g${product.servingSize ? ` · serving ${product.servingSize}` : ''} · adjust amounts below`,
+        },
+      });
+    } catch (err) {
+      setStage({ step: 'error', message: err instanceof Error ? err.message : 'Lookup failed.' });
+    }
+  }
+
+  if (stage.step === 'review') {
+    return (
+      <div>
+        <div className="mb-4 flex items-center gap-2 rounded-2xl bg-[var(--accent)]/10 px-3 py-2.5">
+          <Barcode size={15} style={{ color: 'var(--accent)' }} />
+          <p className="text-xs font-medium text-[var(--text)]">Found it — check the amount and save.</p>
+        </div>
+        <MealForm onSaved={onSaved} initial={stage.initial} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-1">
+      {stage.step === 'scanning' ? (
+        <>
+          <div className="relative h-56 w-full overflow-hidden rounded-2xl bg-black">
+            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+            <div className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-1/2 bg-[var(--accent)]/80" />
+          </div>
+          <p className="text-center text-sm text-[var(--muted)]">
+            Point your camera at a barcode to log the product.
+          </p>
+        </>
+      ) : stage.step === 'looking' ? (
+        <div className="flex items-center gap-2 py-8 text-sm font-medium text-[var(--muted)]">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
+          Looking up {stage.code}…
+        </div>
+      ) : (
+        <>
+          <p className={`${errorTextClass} py-6 text-center`}>{stage.message}</p>
+          <button
+            type="button"
+            onClick={() => setStage({ step: 'scanning' })}
+            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          >
+            Scan again
+          </button>
+        </>
+      )}
+    </div>
+  );
+}

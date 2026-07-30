@@ -13,21 +13,22 @@ export function CalorieGauge({ percent, valueLabel, unitLabel = 'kcal' }: Props)
         <path
           d="M 10 50 A 40 40 0 0 1 90 50"
           fill="none"
-          stroke="#F1F3F5"
+          stroke="#eef0f6"
           strokeWidth={8}
           strokeLinecap="round"
         />
         <path
           d={gaugeArcPath(percent)}
           fill="none"
-          stroke="#1E293B"
+          stroke="#6c63ff"
           strokeWidth={8}
           strokeLinecap="round"
         />
       </svg>
       <div className="absolute bottom-1 text-center">
-        <p className="text-base font-extrabold text-gray-900">
-          {valueLabel} <span className="text-xs text-gray-500 font-semibold">{unitLabel}</span>
+        <p className="text-base font-extrabold text-[var(--text)]">
+          {valueLabel}{' '}
+          <span className="text-xs font-semibold text-[var(--muted)]">{unitLabel}</span>
         </p>
       </div>
     </div>
