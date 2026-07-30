@@ -72,6 +72,21 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Append several items to a date at once (e.g. a whole predefined day).
+  const addItems = useCallback(
+    (date: string, itemsToAdd: DietPlanItem[]) => {
+      const list = plan.byDate[date] ?? [];
+      persist({
+        ...plan,
+        byDate: {
+          ...plan.byDate,
+          [date]: [...list, ...itemsToAdd.map(it => ({ ...it, id: newId() }))],
+        },
+      });
+    },
+    [plan, persist],
+  );
+
   // Lay an AI result (a handful of unique days) across `span` days starting at
   // `startDate`, cycling through the source days. Only the affected dates are
   // overwritten — plans on other dates are kept.
@@ -102,5 +117,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, removeItem, applyAiPlan, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, applyAiPlan, clearDate, clearAll };
 }

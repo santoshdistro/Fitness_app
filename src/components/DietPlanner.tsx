@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
+import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
 
@@ -46,7 +47,7 @@ export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, itemsFor, addItem, removeItem, applyAiPlan, clearDate, clearAll } =
+  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, applyAiPlan, clearDate, clearAll } =
     useDietPlan();
 
   const today = todayDateString();
@@ -54,6 +55,7 @@ export function DietPlanner() {
   const [stripStart, setStripStart] = useState(today);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [predefinedOpen, setPredefinedOpen] = useState(false);
 
   const items = itemsFor(viewDate);
 
@@ -91,28 +93,28 @@ export function DietPlanner() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Build with AI */}
-      <button
-        type="button"
-        onClick={() => setBuilderOpen(true)}
-        className="flex w-full items-center gap-3 overflow-hidden p-4 text-left"
-        style={{
-          borderRadius: 'var(--radius-card)',
-          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
-          boxShadow: '0 12px 28px -12px rgba(108,99,255,0.6)',
-        }}
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-          <Sparkles size={18} className="text-white" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-white">Build a 2-week plan with AI</p>
-          <p className="text-[11px] text-white/80">
-            Fills {PLAN_SPAN} days from {fmt(stripStart, { day: 'numeric', month: 'short' })} around your
-            goal & macros.
-          </p>
-        </div>
-      </button>
+      {/* Two ways to plan: predefined day-plans or AI */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setPredefinedOpen(true)}
+          className="glass-card flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold text-[var(--text)]"
+        >
+          <Utensils size={15} className="text-[var(--accent)]" /> Predefined plans
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderOpen(true)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-white"
+          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        >
+          <Sparkles size={15} /> Build with AI
+        </button>
+      </div>
+      <p className="-mt-2 text-[10px] text-[var(--muted)]">
+        Predefined = drop a ready-made day (or single meals) onto any date. AI = fills {PLAN_SPAN} days
+        from {fmt(stripStart, { day: 'numeric', month: 'short' })} around your goal & macros.
+      </p>
 
       {plan.summary ? (
         <p className="rounded-2xl bg-[var(--bg)] px-4 py-3 text-xs leading-relaxed text-[var(--muted)]">
@@ -280,6 +282,23 @@ export function DietPlanner() {
         />
       </Sheet>
 
+      <Sheet open={predefinedOpen} onClose={() => setPredefinedOpen(false)} title="Predefined plans">
+        <PredefinedPlanPicker
+          defaultDate={viewDate}
+          onAddDay={(date, planItems) => {
+            addItems(date, planItems);
+            setViewDate(date);
+            setStripStart(date);
+            setPredefinedOpen(false);
+          }}
+          onAddItem={(date, item) => {
+            addItem(date, item);
+            setViewDate(date);
+            setStripStart(date);
+          }}
+        />
+      </Sheet>
+
       <Sheet open={builderOpen} onClose={() => setBuilderOpen(false)} title="Build 2-week plan">
         <PlanBuilderForm
           userId={session?.user?.id}
@@ -324,6 +343,175 @@ function MacroBar({
           className="h-full rounded-full"
           style={{ width: `${pct ?? 0}%`, background: 'var(--accent)' }}
         />
+      </div>
+    </div>
+  );
+}
+
+function PredefinedPlanPicker({
+  defaultDate,
+  onAddDay,
+  onAddItem,
+}: {
+  defaultDate: string;
+  onAddDay: (date: string, items: DietPlanItem[]) => void;
+  onAddItem: (date: string, item: DietPlanItem) => void;
+}) {
+  const [selected, setSelected] = useState<DietPlan | null>(null);
+  const [date, setDate] = useState(defaultDate);
+  const [section, setSection] = useState<string>(MEALS[0]);
+  const [addedDay, setAddedDay] = useState(false);
+  const [addedItems, setAddedItems] = useState<Set<number>>(new Set());
+
+  if (!selected) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-[var(--muted)]">
+          Pick a ready-made day — add the whole thing to a date, or just the meals you want.
+        </p>
+        {DIET_PLANS.map(p => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => {
+              setSelected(p);
+              setAddedDay(false);
+              setAddedItems(new Set());
+            }}
+            className="glass-card flex items-center gap-3 p-3 text-left"
+          >
+            <span className="text-2xl">{p.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-[var(--text)]">{p.name}</p>
+              <p className="text-[11px] text-[var(--muted)]">{p.focus}</p>
+            </div>
+            <ChevronRight size={16} className="shrink-0 text-[var(--muted)]" />
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const t = selected.items.reduce(
+    (acc, it) => ({
+      kcal: acc.kcal + it.calories,
+      p: acc.p + it.protein_g,
+      c: acc.c + it.carbs_g,
+      f: acc.f + it.fat_g,
+    }),
+    { kcal: 0, p: 0, c: 0, f: 0 },
+  );
+  const dateLabel = fmt(date, { day: 'numeric', month: 'short' });
+
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setSelected(null)}
+        className="flex items-center gap-1 self-start text-xs font-semibold text-[var(--accent)]"
+      >
+        <ChevronLeft size={14} /> All plans
+      </button>
+
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{selected.emoji}</span>
+        <div>
+          <p className="text-sm font-bold text-[var(--text)]">{selected.name}</p>
+          <p className="text-[11px] text-[var(--muted)]">{selected.focus}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 text-center">
+        {[
+          { label: 'kcal', value: Math.round(t.kcal) },
+          { label: 'P', value: `${Math.round(t.p)}g` },
+          { label: 'C', value: `${Math.round(t.c)}g` },
+          { label: 'F', value: `${Math.round(t.f)}g` },
+        ].map(m => (
+          <div key={m.label} className="rounded-xl bg-[var(--bg)] p-2">
+            <p className="text-sm font-black text-[var(--text)]">{m.value}</p>
+            <p className="text-[9px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label className={labelClass}>Date</label>
+        <input
+          className={inputClass}
+          type="date"
+          value={date}
+          onChange={e => e.target.value && setDate(e.target.value)}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          onAddDay(date, selected.items);
+          setAddedDay(true);
+        }}
+        className={submitButtonClass}
+      >
+        {addedDay ? (
+          <>
+            <Check size={15} className="mr-2" /> Added to {dateLabel}
+          </>
+        ) : (
+          `Add whole day to ${dateLabel}`
+        )}
+      </button>
+
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-[var(--text)]">Or add single meals as</span>
+        <select
+          value={section}
+          onChange={e => setSection(e.target.value)}
+          className="rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-xs font-semibold text-[var(--text)] outline-none"
+        >
+          {MEALS.map(m => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {selected.items.map((it, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-[var(--text)]">{it.name}</p>
+              <p className="text-[10px] text-[var(--muted)]">
+                {it.meal} · {it.calories} kcal · {it.protein_g}P/{it.carbs_g}C/{it.fat_g}F
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onAddItem(date, { ...it, meal: section });
+                setAddedItems(prev => new Set(prev).add(i));
+              }}
+              disabled={addedItems.has(i)}
+              className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-bold disabled:opacity-70"
+              style={
+                addedItems.has(i)
+                  ? { background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#16a34a' }
+                  : { background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }
+              }
+            >
+              {addedItems.has(i) ? (
+                <>
+                  <Check size={12} /> Added
+                </>
+              ) : (
+                <>
+                  <Plus size={12} /> Add
+                </>
+              )}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
