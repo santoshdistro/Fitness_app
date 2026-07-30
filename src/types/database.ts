@@ -22,6 +22,9 @@ export type Measurement = {
   chest: number | null;
   biceps: number | null;
   thighs: number | null;
+  belly: number | null;
+  calves: number | null;
+  forearms: number | null;
   calculated_body_fat: number | null;
 };
 

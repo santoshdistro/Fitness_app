@@ -18,6 +18,9 @@ export function MeasurementsForm({ onSaved }: Props) {
   const [chest, setChest] = useState('');
   const [biceps, setBiceps] = useState('');
   const [thighs, setThighs] = useState('');
+  const [belly, setBelly] = useState('');
+  const [calves, setCalves] = useState('');
+  const [forearms, setForearms] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +52,9 @@ export function MeasurementsForm({ onSaved }: Props) {
       chest: chest ? Number(chest) : null,
       biceps: biceps ? Number(biceps) : null,
       thighs: thighs ? Number(thighs) : null,
+      belly: belly ? Number(belly) : null,
+      calves: calves ? Number(calves) : null,
+      forearms: forearms ? Number(forearms) : null,
       calculated_body_fat: calculatedBodyFat,
     });
 
@@ -156,6 +162,48 @@ export function MeasurementsForm({ onSaved }: Props) {
             step="any"
             value={thighs}
             onChange={e => setThighs(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="belly-input">
+            Belly (in) - optional
+          </label>
+          <input
+            id="belly-input"
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            step="any"
+            value={belly}
+            onChange={e => setBelly(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="calves-input">
+            Calves (in) - optional
+          </label>
+          <input
+            id="calves-input"
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            step="any"
+            value={calves}
+            onChange={e => setCalves(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="forearms-input">
+            Forearms (in) - optional
+          </label>
+          <input
+            id="forearms-input"
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            step="any"
+            value={forearms}
+            onChange={e => setForearms(e.target.value)}
           />
         </div>
       </div>

@@ -15,6 +15,7 @@ import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
+import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -691,6 +692,11 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               : 'No measurements logged yet'}
           </p>
         </div>
+      </div>
+
+      {/* Per-site progress trends */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.28s' }}>
+        <MeasurementProgressCard />
       </div>
 
       {/* Measurement history */}
