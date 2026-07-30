@@ -11,6 +11,7 @@ import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout'
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { BodyMapCard } from '../components/BodyMapCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { weeklyProgress } from '../utils/weeklyProgression';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -61,7 +62,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   );
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
-  const { plan: aiPlan, clearPlan } = useAiWorkoutPlan();
+  const { plan: aiPlan, clearPlan, restartWeek, currentWeek } = useAiWorkoutPlan();
+  const week = currentWeek ? weeklyProgress(currentWeek) : null;
   const recommended = getProgram(profile?.equipment_preference);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentPreference | null>(
     recommended?.equipment ?? null,
@@ -215,6 +217,25 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             </button>
           </div>
 
+          {week ? (
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-white/15 p-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black text-white">
+                  {week.label}
+                  {week.deload ? '' : ` · progressive overload`}
+                </p>
+                <p className="text-[11px] leading-snug text-white/85">{week.note}</p>
+              </div>
+              <button
+                type="button"
+                onClick={restartWeek}
+                className="shrink-0 rounded-full bg-white/20 px-3 py-1.5 text-[10px] font-semibold text-white"
+              >
+                Restart
+              </button>
+            </div>
+          ) : null}
+
           <div className="mt-3 flex flex-col gap-2">
             {aiPlan.days.map(day => (
               <div key={day.day} className="rounded-2xl bg-white/12 p-3">
@@ -222,14 +243,20 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                   {day.day} <span className="font-medium text-white/75">· {day.focus}</span>
                 </p>
                 <div className="mt-1.5 flex flex-col gap-1">
-                  {day.exercises.map(ex => (
-                    <div key={ex.name} className="flex items-center justify-between">
-                      <p className="text-xs text-white/95">{ex.name}</p>
-                      <p className="text-[10px] text-white/70">
-                        {ex.sets} × {ex.reps}
-                      </p>
-                    </div>
-                  ))}
+                  {day.exercises.map(ex => {
+                    const sets = week ? week.setsFor(ex.sets) : ex.sets;
+                    return (
+                      <div key={ex.name} className="flex items-center justify-between">
+                        <p className="text-xs text-white/95">{ex.name}</p>
+                        <p className="text-[10px] text-white/70">
+                          {sets} × {ex.reps}
+                          {week && sets !== ex.sets ? (
+                            <span className="text-white/50"> (was {ex.sets})</span>
+                          ) : null}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
