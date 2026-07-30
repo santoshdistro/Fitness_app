@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Dumbbell, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronRight, Dumbbell, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useStrengthRecords } from '../hooks/useStrengthRecords';
 import { useProfile } from '../hooks/useProfile';
@@ -12,6 +12,13 @@ import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { BodyMapCard } from '../components/BodyMapCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
+import {
+  buildCuratedPlan,
+  CURATED_GOALS,
+  CURATED_LEVELS,
+  type CuratedGoal,
+  type CuratedLevel,
+} from '../utils/curatedPlan';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -62,8 +69,9 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   );
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
-  const { plan: aiPlan, clearPlan, restartWeek, currentWeek } = useAiWorkoutPlan();
+  const { plan: aiPlan, savePlan, clearPlan, restartWeek, currentWeek } = useAiWorkoutPlan();
   const week = currentWeek ? weeklyProgress(currentWeek) : null;
+  const [curatedOpen, setCuratedOpen] = useState(false);
   const recommended = getProgram(profile?.equipment_preference);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentPreference | null>(
     recommended?.equipment ?? null,
@@ -310,6 +318,16 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         </button>
       )}
 
+      {/* Instant, no-AI curated program */}
+      <button
+        type="button"
+        onClick={() => setCuratedOpen(true)}
+        className="anim-fade-rise mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold text-[var(--accent)]"
+        style={{ animationDelay: '0.07s' }}
+      >
+        <Wand2 size={14} /> {aiPlan ? 'Swap for a quick program (no AI)' : 'Or build one instantly (no AI)'}
+      </button>
+
       {/* Workout programs */}
       <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.08s' }}>
         <div>
@@ -538,6 +556,15 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         ) : null}
       </Sheet>
 
+      <Sheet open={curatedOpen} onClose={() => setCuratedOpen(false)} title="Quick program (no AI)">
+        <CuratedPlanForm
+          onBuild={(goal, level, days) => {
+            savePlan(buildCuratedPlan(goal, level, days));
+            setCuratedOpen(false);
+          }}
+        />
+      </Sheet>
+
       <Sheet
         open={selectedExercise != null}
         onClose={() => setSelectedExercise(null)}
@@ -552,6 +579,97 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           />
         ) : null}
       </Sheet>
+    </div>
+  );
+}
+
+function CuratedPlanForm({
+  onBuild,
+}: {
+  onBuild: (goal: CuratedGoal, level: CuratedLevel, days: number) => void;
+}) {
+  const [goal, setGoal] = useState<CuratedGoal>('build');
+  const [level, setLevel] = useState<CuratedLevel>('Novice');
+  const [days, setDays] = useState(4);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-[var(--muted)]">
+        Instantly assembles a split from built-in templates — no AI credit. It picks up the same
+        week-by-week progression once saved.
+      </p>
+
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-[var(--text)]">Goal</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CURATED_GOALS.map(g => (
+            <button
+              key={g.value}
+              type="button"
+              onClick={() => setGoal(g.value)}
+              className="rounded-xl px-3 py-2 text-xs font-bold"
+              style={
+                goal === g.value
+                  ? { background: 'var(--accent)', color: 'white' }
+                  : { background: 'var(--bg)', color: 'var(--muted)' }
+              }
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-[var(--text)]">Gym level</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CURATED_LEVELS.map(l => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLevel(l)}
+              className="rounded-xl px-3 py-2 text-xs font-bold"
+              style={
+                level === l
+                  ? { background: 'var(--accent)', color: 'white' }
+                  : { background: 'var(--bg)', color: 'var(--muted)' }
+              }
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-[var(--text)]">Days / week</p>
+        <div className="flex gap-1.5">
+          {[2, 3, 4, 5, 6].map(d => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDays(d)}
+              className="flex-1 rounded-xl py-2 text-xs font-bold"
+              style={
+                days === d
+                  ? { background: 'var(--accent)', color: 'white' }
+                  : { background: 'var(--bg)', color: 'var(--muted)' }
+              }
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onBuild(goal, level, days)}
+        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
+        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+      >
+        <Wand2 size={15} /> Build my program
+      </button>
     </div>
   );
 }
