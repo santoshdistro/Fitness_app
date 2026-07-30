@@ -11,7 +11,8 @@ type Props = {
 
 export function ActivityForm({ onSaved }: Props) {
   const { session } = useAuth();
-  const { log: todayLog } = useTodayLog();
+  const [logDate, setLogDate] = useState(todayDateString());
+  const { log: dayLog } = useTodayLog(logDate);
   const [steps, setSteps] = useState('');
   const [water, setWater] = useState('');
   const [sleepH, setSleepH] = useState('');
@@ -23,21 +24,25 @@ export function ActivityForm({ onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fully sync the fields to the selected day's log (clearing when it's empty),
+  // so switching dates never leaves another day's numbers behind.
   useEffect(() => {
-    if (!todayLog) return;
-    if (todayLog.steps != null) setSteps(String(todayLog.steps));
-    if (todayLog.water_ml != null) setWater(String(todayLog.water_ml));
-    if (todayLog.sleep_hours != null) {
-      const h = Math.floor(todayLog.sleep_hours);
-      const m = Math.round((todayLog.sleep_hours - h) * 60);
+    setSteps(dayLog?.steps != null ? String(dayLog.steps) : '');
+    setWater(dayLog?.water_ml != null ? String(dayLog.water_ml) : '');
+    if (dayLog?.sleep_hours != null) {
+      const h = Math.floor(dayLog.sleep_hours);
+      const m = Math.round((dayLog.sleep_hours - h) * 60);
       setSleepH(String(h));
       setSleepM(m ? String(m) : '');
+    } else {
+      setSleepH('');
+      setSleepM('');
     }
-    if (todayLog.active_calories_burned != null) setActiveKcal(String(todayLog.active_calories_burned));
-    if (todayLog.caffeine_mg != null) setCaffeine(String(todayLog.caffeine_mg));
-    if (todayLog.mood != null) setMood(todayLog.mood);
-    if (todayLog.energy != null) setEnergy(todayLog.energy);
-  }, [todayLog]);
+    setActiveKcal(dayLog?.active_calories_burned != null ? String(dayLog.active_calories_burned) : '');
+    setCaffeine(dayLog?.caffeine_mg != null ? String(dayLog.caffeine_mg) : '');
+    setMood(dayLog?.mood ?? null);
+    setEnergy(dayLog?.energy ?? null);
+  }, [dayLog]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -47,7 +52,7 @@ export function ActivityForm({ onSaved }: Props) {
 
     const payload: Record<string, unknown> = {
       user_id: session.user.id,
-      log_date: todayDateString(),
+      log_date: logDate,
     };
     if (steps) payload.steps = Number(steps);
     if (water) payload.water_ml = Math.round(Number(water));
@@ -73,6 +78,25 @@ export function ActivityForm({ onSaved }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="log-date-input">
+          Day
+        </label>
+        <input
+          id="log-date-input"
+          className={inputClass}
+          type="date"
+          value={logDate}
+          max={todayDateString()}
+          onChange={e => e.target.value && setLogDate(e.target.value)}
+        />
+        {logDate !== todayDateString() ? (
+          <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+            Backfilling a past day — this updates that day's log.
+          </p>
+        ) : null}
+      </div>
+
       <div className="mb-3">
         <label className={labelClass} htmlFor="steps-input">
           Steps
