@@ -34,6 +34,13 @@ import type { FoodLog, MealCategory } from '../types/database';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
+const ACTIVITY_SHORT: Record<string, string> = {
+  sedentary: 'Sedentary',
+  light: 'Lightly active',
+  moderate: 'Moderately active',
+  very_active: 'Very active',
+};
+
 const MEAL_CATEGORIES: { key: MealCategory; label: string }[] = [
   { key: 'breakfast', label: 'Breakfast' },
   { key: 'lunch', label: 'Lunch' },
@@ -373,6 +380,14 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               Estimates from your BMR + activity. Losing faster than ~1 kg/week or eating below
               ~1500 kcal isn't usually recommended.
             </p>
+            {latestWeight != null && profile?.height && profile?.birth_date && profile?.gender ? (
+              <div className="mt-2 grid grid-cols-2 gap-x-3 border-t border-[var(--card-border)] pt-1.5 text-[9px] text-[var(--muted)]">
+                <span>* Weight {weightValue(latestWeight, wUnit)}{wUnit}</span>
+                <span>Height {Math.round(profile.height)} cm</span>
+                <span>Age {ageFromBirthDate(profile.birth_date)} yr · {profile.gender}</span>
+                <span>{ACTIVITY_SHORT[profile.activity_level ?? 'light'] ?? 'Lightly active'}</span>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
