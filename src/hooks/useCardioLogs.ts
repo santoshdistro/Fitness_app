@@ -36,6 +36,7 @@ export function useCardioLogs(limit = 30) {
       distance_km: number | null;
       duration_min: number | null;
       calories: number | null;
+      session_timestamp?: string;
     }) => {
       if (!userId) return { error: new Error('Not signed in') };
       const { error } = await supabase.from('cardio_logs').insert({ user_id: userId, ...entry });
