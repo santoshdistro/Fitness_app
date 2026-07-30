@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Loader2, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { haptic } from '../utils/haptics';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -70,6 +72,14 @@ export function AppShell() {
   const { savePlan } = useAiWorkoutPlan();
   const { profile, loading: profileLoading, refresh: refreshProfile } = useProfile();
 
+  // Pull-to-refresh: dragging down from the top remounts the screens (each is
+  // keyed by refreshKey), which re-runs their data hooks.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { pull, refreshing } = usePullToRefresh(scrollRef, () => {
+    refreshProfile();
+    setRefreshKey(key => key + 1);
+  });
+
   function closeSheet() {
     setActiveSheet(null);
   }
@@ -105,7 +115,25 @@ export function AppShell() {
 
   return (
     <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
-      <div className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
+      <div ref={scrollRef} className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Pull-to-refresh indicator */}
+        {pull > 0 || refreshing ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center"
+            style={{ transform: `translateY(${(refreshing ? 40 : pull) - 34}px)`, opacity: refreshing ? 1 : Math.min(1, pull / 68) }}
+          >
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--card)] shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)]"
+              style={{ border: '1px solid var(--card-border)' }}
+            >
+              <Loader2
+                size={18}
+                className={refreshing ? 'animate-spin text-[var(--accent)]' : 'text-[var(--muted)]'}
+                style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+              />
+            </span>
+          </div>
+        ) : null}
         {activeTab === 'home' && (
           <HomeScreen
             key={refreshKey}
@@ -135,7 +163,10 @@ export function AppShell() {
 
       <button
         type="button"
-        onClick={() => setActiveSheet('quickAdd')}
+        onClick={() => {
+          haptic('light');
+          setActiveSheet('quickAdd');
+        }}
         aria-label="Quick add"
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
         style={{
@@ -167,7 +198,10 @@ export function AppShell() {
             return (
               <button
                 key={key}
-                onClick={() => setActiveTab(key)}
+                onClick={() => {
+                  if (key !== activeTab) haptic('light');
+                  setActiveTab(key);
+                }}
                 className="relative z-10 flex flex-1 flex-col items-center gap-1 py-1"
                 style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
               >
