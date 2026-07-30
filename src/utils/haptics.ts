@@ -16,26 +16,25 @@ const PATTERNS: Record<HapticKind, number | number[]> = {
 
 let switchLabel: HTMLLabelElement | null = null;
 
-function ensureSwitch(): void {
-  if (switchLabel || typeof document === 'undefined') return;
-  const hidden = 'position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+// The iOS haptic only fires when a <label> that WRAPS an <input switch> is
+// clicked — the input must be a child of the label, not merely associated by id.
+function ensureSwitch(): HTMLLabelElement | null {
+  if (typeof document === 'undefined') return null;
+  if (switchLabel) return switchLabel;
+
+  const label = document.createElement('label');
+  label.setAttribute('aria-hidden', 'true');
+  label.style.display = 'none';
 
   const input = document.createElement('input');
   input.type = 'checkbox';
-  input.id = 'fb-haptic-switch';
-  input.setAttribute('switch', ''); // iOS-only attribute that carries the haptic
-  input.setAttribute('aria-hidden', 'true');
+  input.setAttribute('switch', ''); // iOS 17.4+ attribute that carries the haptic
   input.tabIndex = -1;
-  input.style.cssText = hidden;
 
-  const label = document.createElement('label');
-  label.htmlFor = 'fb-haptic-switch';
-  label.setAttribute('aria-hidden', 'true');
-  label.style.cssText = hidden;
-
-  document.body.appendChild(input);
+  label.appendChild(input);
   document.body.appendChild(label);
   switchLabel = label;
+  return label;
 }
 
 /** Fire a short tap. Must be called inside a user gesture to work on iOS. */
@@ -44,10 +43,18 @@ export function haptic(kind: HapticKind = 'light'): void {
     navigator.vibrate(PATTERNS[kind]);
     return;
   }
-  ensureSwitch();
   try {
-    switchLabel?.click();
+    ensureSwitch()?.click();
   } catch {
     /* no-op */
   }
+}
+
+/**
+ * Prime the iOS haptic element during the first real user gesture. The very
+ * first programmatic click sometimes doesn't fire until the switch has been
+ * toggled once inside a genuine touch — call this from a one-time listener.
+ */
+export function warmHaptics(): void {
+  ensureSwitch();
 }
