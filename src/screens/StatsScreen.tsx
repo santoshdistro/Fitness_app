@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Camera, Check, ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from 'lucide-react';
+import { Activity, Camera, Check, ChevronLeft, ChevronRight, Copy, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
@@ -86,9 +86,10 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { session } = useAuth();
   const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
-  const { logs: weightLogs, clearWeight } = useRecentDailyLogs(14);
+  const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(14);
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
-  const { log: todayLog } = useTodayLog();
+  const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
+  const [refreshingWeight, setRefreshingWeight] = useState(false);
   const { profile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
   const { data: adaptiveTdee } = useAdaptiveTdee();
@@ -318,10 +319,25 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               </p>
             </div>
           </div>
-          <p className="text-sm font-bold text-[var(--text)]">
-            {Math.round(totals.calories)}{' '}
-            <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
-          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setRefreshingWeight(true);
+                await Promise.all([refreshWeightLogs(), refreshTodayLog()]);
+                setRefreshingWeight(false);
+              }}
+              aria-label="Refresh with latest weight"
+              title="Pull my latest weigh-in"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--bg)]"
+            >
+              <RefreshCw size={14} className={refreshingWeight ? 'animate-spin' : ''} />
+            </button>
+            <p className="text-sm font-bold text-[var(--text)]">
+              {Math.round(totals.calories)}{' '}
+              <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2">
