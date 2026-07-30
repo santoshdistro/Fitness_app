@@ -41,12 +41,21 @@ function shortDate(d: string): string {
   return new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' });
 }
 
+// Value of a metric as of the snapshot date (latest point on or before it),
+// plus the point immediately before that, for the change figure.
+function asOf(history: Point[], iso: string): { current?: Point; prev?: Point; upto: Point[] } {
+  const cutoff = new Date(iso).getTime();
+  const upto = history.filter(p => new Date(p.date).getTime() <= cutoff);
+  return { current: upto[upto.length - 1], prev: upto[upto.length - 2], upto };
+}
+
 export function MeasurementProgressCard() {
   const { measurements, loading } = useRecentMeasurements(30);
-  const { logs } = useRecentDailyLogs(30);
+  const { logs } = useRecentDailyLogs(60);
   const { profile } = useProfile();
   const { settings } = useSettings();
   const [open, setOpen] = useState<Metric | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   if (loading) return null;
 
@@ -86,7 +95,6 @@ export function MeasurementProgressCard() {
     }
   }
 
-  // Height is static — pulled from the profile, shown for a complete picture.
   const heightText =
     profile?.height != null
       ? settings.heightUnit === 'ft'
@@ -99,16 +107,39 @@ export function MeasurementProgressCard() {
 
   if (metrics.length === 0 && !heightText) return null;
 
+  // Snapshot dates come from the body-measurement recordings, newest first.
+  const snapshotDates = chrono.map(m => m.entry_timestamp).reverse();
+  const activeDate = selected ?? snapshotDates[0] ?? new Date().toISOString();
+
   return (
     <div className="glass-card flex flex-col gap-3 p-5">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10">
-          <Ruler size={16} style={{ color: 'var(--accent)' }} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10">
+            <Ruler size={16} style={{ color: 'var(--accent)' }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Body measurements</p>
+            <p className="text-[11px] text-[var(--muted)]">
+              {snapshotDates.length > 0 ? `As of ${shortDate(activeDate)}` : 'No recordings yet'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--text)]">Body measurements</p>
-          <p className="text-[11px] text-[var(--muted)]">Everything in one place · tap a row for history</p>
-        </div>
+        {snapshotDates.length > 1 ? (
+          <select
+            value={activeDate}
+            onChange={e => setSelected(e.target.value)}
+            className="max-w-[7.5rem] shrink-0 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-[11px] font-semibold text-[var(--text)] outline-none"
+            aria-label="Select recording date"
+          >
+            {snapshotDates.map((d, i) => (
+              <option key={d} value={d}>
+                {shortDate(d)}
+                {i === 0 ? ' (latest)' : ''}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
 
       <div className="flex flex-col divide-y divide-[var(--card-border)]">
@@ -120,12 +151,19 @@ export function MeasurementProgressCard() {
         ) : null}
 
         {metrics.map(m => {
-          const current = m.history[m.history.length - 1].value;
-          const first = m.history[0].value;
-          const delta = Math.round((current - first) * 10) / 10;
-          const improved = m.goodDown == null ? null : m.goodDown ? delta < 0 : delta > 0;
+          const { current, prev, upto } = asOf(m.history, activeDate);
+          if (!current) {
+            return (
+              <div key={m.key} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+                <p className="text-xs font-semibold text-[var(--text)]">{m.label}</p>
+                <p className="text-[10px] text-[var(--muted)]">—</p>
+              </div>
+            );
+          }
+          const delta = prev ? Math.round((current.value - prev.value) * 10) / 10 : null;
+          const improved = delta == null || m.goodDown == null ? null : m.goodDown ? delta < 0 : delta > 0;
           const deltaColor =
-            delta === 0 || improved == null ? 'var(--muted)' : improved ? GREEN : RED;
+            delta == null || delta === 0 || improved == null ? 'var(--muted)' : improved ? GREEN : RED;
           return (
             <button
               key={m.key}
@@ -135,25 +173,25 @@ export function MeasurementProgressCard() {
             >
               <div className="w-20 shrink-0">
                 <p className="text-xs font-semibold text-[var(--text)]">{m.label}</p>
-                <p className="text-[10px] text-[var(--muted)]">{m.history.length} logged</p>
+                <p className="text-[10px] text-[var(--muted)]">{upto.length} logged</p>
               </div>
               <div className="min-w-0 flex-1">
-                {m.history.length >= 2 ? (
-                  <WeightSparkline values={m.history.map(p => p.value)} width={110} height={30} color={m.color} />
+                {upto.length >= 2 ? (
+                  <WeightSparkline values={upto.map(p => p.value)} width={110} height={30} color={m.color} />
                 ) : (
                   <p className="text-[10px] text-[var(--muted)]">Log again to see a trend</p>
                 )}
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-sm font-black text-[var(--text)]">
-                  {current}
+                  {current.value}
                   {m.unit}
                 </p>
-                {m.history.length >= 2 ? (
+                {delta != null ? (
                   <p className="text-[10px] font-bold" style={{ color: deltaColor }}>
                     {delta > 0 ? '+' : ''}
-                    {delta}
-                    {m.unit} total
+                    {delta === 0 ? '±0' : delta}
+                    {m.unit} vs last
                   </p>
                 ) : null}
               </div>
@@ -163,7 +201,7 @@ export function MeasurementProgressCard() {
       </div>
 
       <p className="text-[10px] text-[var(--muted)]">
-        Green = moving the right way (muscles up; waist/belly/hips down). Weight follows your calorie goal.
+        Green = moving the right way (muscles up; waist/belly/hips down). Tap a row for full history.
       </p>
 
       <Sheet open={open != null} onClose={() => setOpen(null)} title={open ? `${open.label} history` : 'History'}>
