@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../hooks/useSettings';
-import { unitToKg } from '../../utils/units';
+import { useTodayLog } from '../../hooks/useTodayLog';
+import { kgToUnit, unitToKg } from '../../utils/units';
 import { todayDateString } from '../../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
@@ -13,9 +14,20 @@ type Props = {
 export function WeightForm({ onSaved }: Props) {
   const { session } = useAuth();
   const { settings } = useSettings();
+  const [logDate, setLogDate] = useState(todayDateString());
+  const { log: dayLog } = useTodayLog(logDate);
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Show the weight already logged for the selected day (blank if none).
+  useEffect(() => {
+    setWeight(
+      dayLog?.weight != null
+        ? String(Math.round(kgToUnit(dayLog.weight, settings.weightUnit) * 10) / 10)
+        : '',
+    );
+  }, [dayLog, settings.weightUnit]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -27,7 +39,7 @@ export function WeightForm({ onSaved }: Props) {
     const { error: saveError } = await supabase
       .from('daily_logs')
       .upsert(
-        { user_id: session.user.id, log_date: todayDateString(), weight: weightKg },
+        { user_id: session.user.id, log_date: logDate, weight: weightKg },
         { onConflict: 'user_id,log_date' },
       );
 
@@ -41,8 +53,26 @@ export function WeightForm({ onSaved }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <label className={labelClass} htmlFor="weight-date-input">
+        Day
+      </label>
+      <input
+        id="weight-date-input"
+        className={inputClass}
+        style={{ marginBottom: logDate !== todayDateString() ? '0.25rem' : '1rem' }}
+        type="date"
+        value={logDate}
+        max={todayDateString()}
+        onChange={e => e.target.value && setLogDate(e.target.value)}
+      />
+      {logDate !== todayDateString() ? (
+        <p className="mb-4 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+          Backfilling a past day.
+        </p>
+      ) : null}
+
       <label className={labelClass} htmlFor="weight-input">
-        Today's weight ({settings.weightUnit})
+        Weight ({settings.weightUnit})
       </label>
       <input
         id="weight-input"

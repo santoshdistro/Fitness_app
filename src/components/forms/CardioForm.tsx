@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useCardioLogs } from '../../hooks/useCardioLogs';
+import { todayDateString } from '../../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 const TYPES = ['run', 'walk', 'cycle', 'swim', 'other'];
@@ -28,6 +29,7 @@ export function CardioForm({ onSaved }: Props) {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [calories, setCalories] = useState('');
+  const [logDate, setLogDate] = useState(todayDateString());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +44,7 @@ export function CardioForm({ onSaved }: Props) {
       distance_km: distance ? Number(distance) : null,
       duration_min: duration ? Number(duration) : null,
       calories: calories ? Number(calories) : null,
+      session_timestamp: new Date(`${logDate}T12:00:00`).toISOString(),
     });
     setSaving(false);
     if (saveError) {
@@ -57,6 +60,22 @@ export function CardioForm({ onSaved }: Props) {
   return (
     <div>
       <form onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label className={labelClass} htmlFor="cardio-date">Day</label>
+          <input
+            id="cardio-date"
+            className={inputClass}
+            type="date"
+            value={logDate}
+            max={todayDateString()}
+            onChange={e => e.target.value && setLogDate(e.target.value)}
+          />
+          {logDate !== todayDateString() ? (
+            <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+              Logging for a past day.
+            </p>
+          ) : null}
+        </div>
         <div className="mb-3">
           <label className={labelClass} htmlFor="cardio-type">Activity</label>
           <select id="cardio-type" className={inputClass} value={type} onChange={e => setType(e.target.value)}>

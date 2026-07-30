@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { cmToInches, computeNavyBodyFatPercent } from '../../utils/calculations';
+import { todayDateString } from '../../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -21,6 +22,7 @@ export function MeasurementsForm({ onSaved }: Props) {
   const [belly, setBelly] = useState('');
   const [calves, setCalves] = useState('');
   const [forearms, setForearms] = useState('');
+  const [logDate, setLogDate] = useState(todayDateString());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +48,7 @@ export function MeasurementsForm({ onSaved }: Props) {
 
     const { error: saveError } = await supabase.from('measurements').insert({
       user_id: session.user.id,
+      entry_timestamp: new Date(`${logDate}T12:00:00`).toISOString(),
       neck: Number(neck),
       waist: Number(waist),
       hips: hips ? Number(hips) : null,
@@ -75,6 +78,25 @@ export function MeasurementsForm({ onSaved }: Props) {
           Add your height and gender in Profile to auto-calculate body fat %.
         </p>
       ) : null}
+
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="measure-date-input">
+          Day
+        </label>
+        <input
+          id="measure-date-input"
+          className={inputClass}
+          type="date"
+          value={logDate}
+          max={todayDateString()}
+          onChange={e => e.target.value && setLogDate(e.target.value)}
+        />
+        {logDate !== todayDateString() ? (
+          <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+            Recording for a past day.
+          </p>
+        ) : null}
+      </div>
 
       <div className="mb-3 grid grid-cols-2 gap-3">
         <div>
