@@ -9,10 +9,13 @@ type Row = { feature: AiFeature; cost_usd: number };
 
 const FEATURE_ORDER: AiFeature[] = [
   'coach',
+  'chat',
   'food_scan',
+  'food_estimate',
   'body_scan',
   'workout_plan',
   'nutrition_coach',
+  'diet_plan',
 ];
 
 function monthStartIso(): string {
@@ -55,9 +58,11 @@ export function useAiSpend() {
       map.set(row.feature, existing);
     }
 
-    setByFeature(
-      FEATURE_ORDER.filter(f => map.has(f)).map(f => map.get(f)!),
-    );
+    // Known features first (in display order), then any others so a new
+    // feature can never be silently dropped from the breakdown.
+    const ordered = FEATURE_ORDER.filter(f => map.has(f)).map(f => map.get(f)!);
+    const extras = [...map.values()].filter(row => !FEATURE_ORDER.includes(row.feature));
+    setByFeature([...ordered, ...extras]);
     setTotalUsd(total);
     setLoading(false);
   }, [userId]);
