@@ -1,5 +1,6 @@
-// Open Food Facts: free, open, no API key, CORS-enabled. Barcode -> product.
-// Nutriments are per 100g. Called directly from the browser at runtime.
+// Open Food Facts: free, open, no API key. Barcode -> product and free-text
+// search. Routed through our /api/off proxy so OFF gets a proper User-Agent
+// (it rate-limits / blocks anonymous browser requests). Nutriments are per 100g.
 
 import type { FoodSearchResult } from './usdaFoodApi';
 
@@ -44,18 +45,11 @@ type OffSearchProduct = {
 // Free-text search of the global Open Food Facts catalogue (great for branded &
 // regional products the US-only USDA set misses). Values are per 100g.
 export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResult[]> {
-  const url =
-    'https://world.openfoodfacts.org/cgi/search.pl?' +
-    new URLSearchParams({
-      search_terms: query,
-      search_simple: '1',
-      action: 'process',
-      json: '1',
-      page_size: '20',
-      fields: 'code,product_name,brands,serving_size,nutriments',
-    }).toString();
-
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch('/api/off', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ search: query }),
+  });
   if (!res.ok) throw new Error('Open Food Facts search failed.');
   const data = (await res.json()) as { products?: OffSearchProduct[] };
 
@@ -91,11 +85,11 @@ export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResu
 }
 
 export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | null> {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(
-    barcode,
-  )}.json?fields=product_name,brands,serving_size,nutriments`;
-
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch('/api/off', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: barcode }),
+  });
   if (!res.ok) throw new Error('Could not reach the barcode database.');
 
   const data = (await res.json()) as OffResponse;
