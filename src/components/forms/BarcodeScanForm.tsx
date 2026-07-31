@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Barcode } from 'lucide-react';
 import { lookupBarcode } from '../../lib/openFoodFacts';
 import { defaultMealCategoryForNow } from '../../utils/mealCategory';
@@ -8,6 +9,35 @@ import { errorTextClass } from './formStyles';
 
 type Props = {
   onSaved: () => void;
+};
+
+// Only look for retail (product) barcode formats. Restricting the format list
+// makes decoding far faster and more reliable than ZXing's default "try every
+// symbology" mode, which struggles to lock onto a 1D barcode.
+const SCAN_HINTS = new Map<DecodeHintType, unknown>([
+  [
+    DecodeHintType.POSSIBLE_FORMATS,
+    [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.ITF,
+    ],
+  ],
+  [DecodeHintType.TRY_HARDER, true],
+]);
+
+// Prefer the rear camera at a decent resolution so the barcode is sharp enough
+// to decode quickly.
+const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
+  video: {
+    facingMode: { ideal: 'environment' },
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+  },
 };
 
 type Stage =
@@ -48,11 +78,11 @@ export function BarcodeScanForm({ onSaved }: Props) {
   useEffect(() => {
     if (stage.step !== 'scanning') return;
     handledRef.current = false;
-    const reader = new BrowserMultiFormatReader();
+    const reader = new BrowserMultiFormatReader(SCAN_HINTS);
     let cancelled = false;
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current ?? undefined, (result, _err, controls) => {
+      .decodeFromConstraints(CAMERA_CONSTRAINTS, videoRef.current ?? undefined, (result, _err, controls) => {
         controlsRef.current = controls;
         if (result && !handledRef.current) {
           handledRef.current = true;
