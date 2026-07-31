@@ -128,6 +128,11 @@ export function BarcodeScanForm({ onSaved }: Props) {
           fat: String(p.fat_g),
           fiber: String(p.fiber_g),
           sodium: String(p.sodium_mg),
+          sugar: String(p.sugar_g),
+          satFat: String(p.sat_fat_g),
+          monoFat: String(p.mono_fat_g),
+          polyFat: String(p.poly_fat_g),
+          transFat: String(p.trans_fat_g),
           servingNote: `Per 100g${product.servingSize ? ` · serving ${product.servingSize}` : ''} · adjust amounts below`,
         },
       });

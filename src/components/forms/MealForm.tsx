@@ -22,8 +22,55 @@ export type MealInitial = {
   fat?: string;
   fiber?: string;
   sodium?: string;
+  sugar?: string;
+  satFat?: string;
+  monoFat?: string;
+  polyFat?: string;
+  transFat?: string;
   servingNote?: string;
 };
+
+// Detailed sub-nutrients (sugar + fat breakdown) for the selected/base food,
+// kept per base unit so we can scale them by the same ratio as the macros.
+type DetailBase = {
+  baseCalories: number;
+  sugar: number;
+  satFat: number;
+  monoFat: number;
+  polyFat: number;
+  transFat: number;
+};
+
+function detailFromInitial(initial?: MealInitial): DetailBase | null {
+  if (!initial?.calories) return null;
+  if (
+    !initial.sugar &&
+    !initial.satFat &&
+    !initial.monoFat &&
+    !initial.polyFat &&
+    !initial.transFat
+  )
+    return null;
+  return {
+    baseCalories: Number(initial.calories) || 0,
+    sugar: Number(initial.sugar) || 0,
+    satFat: Number(initial.satFat) || 0,
+    monoFat: Number(initial.monoFat) || 0,
+    polyFat: Number(initial.polyFat) || 0,
+    transFat: Number(initial.transFat) || 0,
+  };
+}
+
+function detailFromResult(result: FoodSearchResult): DetailBase {
+  return {
+    baseCalories: result.calories,
+    sugar: result.sugar,
+    satFat: result.satFat,
+    monoFat: result.monoFat,
+    polyFat: result.polyFat,
+    transFat: result.transFat,
+  };
+}
 
 type Props = {
   onSaved: () => void;
@@ -70,6 +117,7 @@ export function MealForm({ onSaved, initial }: Props) {
   // Per-portion base (a single serving / scanned plate) + a quantity multiplier.
   const [perServing, setPerServing] = useState<PerGramMacros | null>(() => baseFromInitial(initial));
   const [servings, setServings] = useState('1');
+  const [detailBase, setDetailBase] = useState<DetailBase | null>(() => detailFromInitial(initial));
 
   const [mealName, setMealName] = useState(initial?.mealName ?? '');
   const [category, setCategory] = useState<MealCategory>(initial?.category ?? defaultMealCategoryForNow());
@@ -115,6 +163,7 @@ export function MealForm({ onSaved, initial }: Props) {
       setResults([]);
       setQuery('');
       setPerGram(null);
+      setDetailBase(null);
       setPerServing({
         calories: r.calories,
         protein: r.protein_g,
@@ -142,6 +191,7 @@ export function MealForm({ onSaved, initial }: Props) {
     setMealName(result.description);
     setResults([]);
     setQuery('');
+    setDetailBase(detailFromResult(result));
 
     if (result.isPerServing) {
       setPerGram(null);
@@ -190,6 +240,7 @@ export function MealForm({ onSaved, initial }: Props) {
     setCategory(suggestion.category);
     setPerGram(null);
     setPerServing(null);
+    setDetailBase(null);
     setServingNote(null);
     setResults([]);
     setQuery('');
@@ -231,6 +282,13 @@ export function MealForm({ onSaved, initial }: Props) {
     setSaving(true);
     setError(null);
 
+    // Scale the detailed sub-nutrients by the same ratio as the final calories
+    // vs the base food, so sugar and the fat breakdown are recorded (not 0).
+    const finalCalories = calories ? Number(calories) : 0;
+    const ratio =
+      detailBase && detailBase.baseCalories > 0 ? finalCalories / detailBase.baseCalories : null;
+    const scale = (v: number) => (ratio != null ? Math.round(v * ratio * 10) / 10 : null);
+
     const { error: saveError } = await supabase.from('food_logs').insert({
       user_id: session.user.id,
       meal_name: mealName,
@@ -241,6 +299,11 @@ export function MealForm({ onSaved, initial }: Props) {
       fat_g: fat ? Number(fat) : null,
       fiber_g: fiber ? Number(fiber) : null,
       sodium_mg: sodium ? Number(sodium) : null,
+      sugar_g: detailBase ? scale(detailBase.sugar) : null,
+      saturated_fat_g: detailBase ? scale(detailBase.satFat) : null,
+      mono_fat_g: detailBase ? scale(detailBase.monoFat) : null,
+      poly_fat_g: detailBase ? scale(detailBase.polyFat) : null,
+      trans_fat_g: detailBase ? scale(detailBase.transFat) : null,
     });
 
     setSaving(false);

@@ -14,6 +14,11 @@ export type BarcodeProduct = {
     fat_g: number;
     fiber_g: number;
     sodium_mg: number;
+    sugar_g: number;
+    sat_fat_g: number;
+    mono_fat_g: number;
+    poly_fat_g: number;
+    trans_fat_g: number;
   };
   servingSize: string | null;
 };
@@ -115,6 +120,11 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | n
       fat_g: num(n['fat_100g']),
       fiber_g: num(n['fiber_100g']),
       sodium_mg: Number.isFinite(sodiumG) ? Math.round(sodiumG * 1000) : 0,
+      sugar_g: num(n['sugars_100g']),
+      sat_fat_g: num(n['saturated-fat_100g']),
+      mono_fat_g: num(n['monounsaturated-fat_100g']),
+      poly_fat_g: num(n['polyunsaturated-fat_100g']),
+      trans_fat_g: num(n['trans-fat_100g']),
     },
   };
 }
