@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Loader2, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
-import { haptic } from '../utils/haptics';
 import { CoachChat } from '../components/CoachChat';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
@@ -165,10 +164,7 @@ export function AppShell() {
 
       <button
         type="button"
-        onClick={() => {
-          haptic('light');
-          setCoachOpen(true);
-        }}
+        onClick={() => setCoachOpen(true)}
         aria-label="Ask AI coach"
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-[var(--accent)] shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
         style={{
@@ -182,10 +178,7 @@ export function AppShell() {
 
       <button
         type="button"
-        onClick={() => {
-          haptic('light');
-          setActiveSheet('quickAdd');
-        }}
+        onClick={() => setActiveSheet('quickAdd')}
         aria-label="Quick add"
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
         style={{
@@ -219,10 +212,7 @@ export function AppShell() {
             return (
               <button
                 key={key}
-                onClick={() => {
-                  if (key !== activeTab) haptic('light');
-                  setActiveTab(key);
-                }}
+                onClick={() => setActiveTab(key)}
                 className="relative z-10 flex flex-1 flex-col items-center gap-1 py-1"
                 style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
               >

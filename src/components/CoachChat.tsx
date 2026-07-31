@@ -8,7 +8,6 @@ import { useTrends } from '../hooks/useTrends';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useStrengthRecords } from '../hooks/useStrengthRecords';
 import { GOAL_OPTIONS } from '../utils/calculations';
-import { haptic } from '../utils/haptics';
 
 const QUICK_PROMPTS = [
   { label: 'Validate my workouts', text: 'Look at my recent workouts. Are they good for my goal, and what should I change?' },
@@ -107,7 +106,6 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
   function submit(text: string) {
     const value = text.trim();
     if (!value || sending) return;
-    haptic('light');
     setInput('');
     void send(value, context);
   }
@@ -135,10 +133,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
           {messages.length > 0 ? (
             <button
               type="button"
-              onClick={() => {
-                haptic('warning');
-                clear();
-              }}
+              onClick={() => clear()}
               className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"
               style={{ border: '1px solid var(--card-border)' }}
             >

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { haptic } from '../utils/haptics';
 
 const THRESHOLD = 68; // px of pull needed to trigger
 const MAX = 104; // clamp so the indicator can't fly off
@@ -61,7 +60,6 @@ export function usePullToRefresh(
         st.busy = true;
         setRefreshing(true);
         setPull(THRESHOLD);
-        haptic('medium');
         const result = onRefresh();
         if (result && typeof (result as Promise<void>).then === 'function') {
           (result as Promise<void>).finally(() => window.setTimeout(finish, 300));
