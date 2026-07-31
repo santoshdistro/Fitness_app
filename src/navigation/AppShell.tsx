@@ -170,14 +170,14 @@ export function AppShell() {
           setCoachOpen(true);
         }}
         aria-label="Ask AI coach"
-        className="fixed right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full text-[var(--accent)] shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-[var(--accent)] shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
         style={{
           background: 'var(--card)',
           border: '1px solid var(--card-border)',
-          bottom: 'calc(env(safe-area-inset-bottom) + 8.5rem)',
+          bottom: 'calc(env(safe-area-inset-bottom) + 9.75rem)',
         }}
       >
-        <Sparkles size={22} strokeWidth={2.5} />
+        <Sparkles size={24} strokeWidth={2.5} />
       </button>
 
       <button
