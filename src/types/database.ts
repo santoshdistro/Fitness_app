@@ -70,6 +70,10 @@ export type BodyScan = {
   user_id: string;
   summary: string;
   focus_areas: string[];
+  strengths: string[] | null;
+  weak_points: string[] | null;
+  action_plan: string[] | null;
+  since_last: string | null;
   training_focus: string | null;
   nutrition_focus: string | null;
   created_at: string;

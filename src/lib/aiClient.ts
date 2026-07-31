@@ -14,9 +14,13 @@ export type FoodResult = {
 
 export type BodyResult = {
   summary: string;
+  strengths: string[];
+  weakPoints: string[];
   focusAreas: string[];
+  actionPlan: string[];
   trainingFocus: string;
   nutritionFocus: string;
+  sinceLast: string;
 };
 
 export type WorkoutPlanExercise = { name: string; sets: number; reps: string };
@@ -100,7 +104,13 @@ export async function estimateFood(userId: string, query: string): Promise<FoodR
 export async function analyzeBody(
   userId: string,
   image: EncodedImage,
-  context: { goal?: string; bodyFatPercent?: number | null },
+  context: {
+    goal?: string;
+    bodyFatPercent?: number | null;
+    weightKg?: number | null;
+    lastScanSummary?: string | null;
+    lastScanWeakPoints?: string[] | null;
+  },
 ): Promise<BodyResult> {
   const { result, usage } = await postJson<BodyResult>('/api/vision-body', {
     imageBase64: image.data,

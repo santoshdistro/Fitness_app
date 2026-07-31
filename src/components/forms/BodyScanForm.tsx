@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, ImagePlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useRecentMeasurements } from '../../hooks/useRecentMeasurements';
+import { useRecentDailyLogs } from '../../hooks/useRecentDailyLogs';
 import { useBodyScans } from '../../hooks/useBodyScans';
+import { useProgressPhotos } from '../../hooks/useProgressPhotos';
 import { analyzeBody, type BodyResult } from '../../lib/aiClient';
 import { fileToDownscaledBase64 } from '../../utils/image';
+import { todayDateString } from '../../utils/date';
 import { BodyScanReadout } from '../BodyScanReadout';
 import { errorTextClass } from './formStyles';
 
@@ -25,21 +28,35 @@ export function BodyScanForm() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const { measurements } = useRecentMeasurements(1);
-  const { addScan } = useBodyScans();
+  const { logs } = useRecentDailyLogs(30);
+  const { scans, addScan } = useBodyScans();
+  const { addPhoto } = useProgressPhotos();
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
+  const [savePhoto, setSavePhoto] = useState<'idle' | 'saving' | 'saved'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastFileRef = useRef<File | null>(null);
 
   const deficit = profile?.calorie_deficit_kcal ?? 500;
   const goal = deficit > 0 ? GOAL_LABEL.deficit : deficit < 0 ? GOAL_LABEL.surplus : GOAL_LABEL.maintenance;
   const bodyFat = measurements[0]?.calculated_body_fat ?? null;
+  const latestWeight = [...logs].reverse().find(l => l.weight != null)?.weight ?? null;
+  const lastScan = scans[0] ?? null;
 
   async function runScan(file: File) {
     if (!session?.user) return;
+    lastFileRef.current = file;
+    setSavePhoto('idle');
     const preview = URL.createObjectURL(file);
     setStage({ step: 'scanning', preview });
     try {
       const image = await fileToDownscaledBase64(file);
-      const result = await analyzeBody(session.user.id, image, { goal, bodyFatPercent: bodyFat });
+      const result = await analyzeBody(session.user.id, image, {
+        goal,
+        bodyFatPercent: bodyFat,
+        weightKg: latestWeight,
+        lastScanSummary: lastScan?.summary ?? null,
+        lastScanWeakPoints: lastScan?.weak_points ?? lastScan?.focus_areas ?? null,
+      });
       void addScan(result);
       setStage({ step: 'result', preview, result });
     } catch (err) {
@@ -49,6 +66,14 @@ export function BodyScanForm() {
         message: err instanceof Error ? err.message : 'Could not analyse that photo.',
       });
     }
+  }
+
+  async function saveToProgress() {
+    const file = lastFileRef.current;
+    if (!file || savePhoto !== 'idle') return;
+    setSavePhoto('saving');
+    const { error } = await addPhoto(file, { takenOn: todayDateString(), weightKg: latestWeight });
+    setSavePhoto(error ? 'idle' : 'saved');
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -66,8 +91,9 @@ export function BodyScanForm() {
             <Camera size={30} style={{ color: 'var(--accent)' }} />
           </div>
           <p className="text-center text-sm text-[var(--muted)]">
-            Upload a physique photo and the AI gives you a training and diet focus for your goal.
-            It's directional coaching, not a medical assessment — your photo isn't stored.
+            Upload a physique photo and the AI coach gives you an honest read — what looks good,
+            what's lagging, and exactly what to do next for your goal. It compares against your last
+            scan too. Your photo isn't saved unless you choose to add it to Progress photos.
           </p>
           <button
             type="button"
@@ -102,8 +128,24 @@ export function BodyScanForm() {
               <BodyScanReadout result={stage.result} />
               <button
                 type="button"
+                onClick={saveToProgress}
+                disabled={savePhoto !== 'idle'}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-white disabled:opacity-60 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+              >
+                <ImagePlus size={15} />
+                {savePhoto === 'saved'
+                  ? 'Saved to Progress photos ✓'
+                  : savePhoto === 'saving'
+                    ? 'Saving…'
+                    : 'Save this photo to Progress'}
+              </button>
+              <p className="mt-1.5 text-center text-[10px] text-[var(--muted)]">
+                Optional — you can delete it anytime from Progress photos.
+              </p>
+              <button
+                type="button"
                 onClick={() => setStage({ step: 'pick' })}
-                className="mt-4 w-full rounded-2xl border border-[var(--card-border)] py-3 text-xs font-semibold"
+                className="mt-3 w-full rounded-2xl border border-[var(--card-border)] py-3 text-xs font-semibold"
                 style={{ color: 'var(--accent)' }}
               >
                 Scan another photo
