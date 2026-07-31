@@ -14,7 +14,7 @@ type Stage =
   | { step: 'scanning' }
   | { step: 'looking'; code: string }
   | { step: 'error'; message: string }
-  | { step: 'review'; initial: MealInitial };
+  | { step: 'review'; initial: MealInitial; notFound?: boolean };
 
 export function BarcodeScanForm({ onSaved }: Props) {
   const [stage, setStage] = useState<Stage>({ step: 'scanning' });
@@ -67,7 +67,17 @@ export function BarcodeScanForm({ onSaved }: Props) {
     try {
       const product = await lookupBarcode(code);
       if (!product) {
-        setStage({ step: 'error', message: `No product found for barcode ${code}.` });
+        // Not in Open Food Facts — let the user enter the details by hand rather
+        // than dead-ending, so a missing product is still loggable.
+        setStage({
+          step: 'review',
+          notFound: true,
+          initial: {
+            mealName: '',
+            category: defaultMealCategoryForNow(),
+            servingNote: `Barcode ${code} not in the database · enter the details below`,
+          },
+        });
         return;
       }
       const p = product.per100g;
@@ -95,7 +105,11 @@ export function BarcodeScanForm({ onSaved }: Props) {
       <div>
         <div className="mb-4 flex items-center gap-2 rounded-2xl bg-[var(--accent)]/10 px-3 py-2.5">
           <Barcode size={15} style={{ color: 'var(--accent)' }} />
-          <p className="text-xs font-medium text-[var(--text)]">Found it — check the amount and save.</p>
+          <p className="text-xs font-medium text-[var(--text)]">
+            {stage.notFound
+              ? 'Not in the database — enter the details and save.'
+              : 'Found it — check the amount and save.'}
+          </p>
         </div>
         <MealForm onSaved={onSaved} initial={stage.initial} />
       </div>

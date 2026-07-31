@@ -86,12 +86,16 @@ export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
     const upstream = await fetch(url, {
       headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
     });
-    if (!upstream.ok) {
+    // OFF returns HTTP 404 with a JSON body ({ status: 0 }) when a barcode isn't
+    // in its catalogue — that's "not found", not a reachability failure. Pass any
+    // JSON body straight through (200) so the client can tell the two apart; only
+    // a non-JSON response or a thrown fetch is a genuine "could not reach".
+    const text = await upstream.text();
+    try {
+      res.status(200).json(JSON.parse(text));
+    } catch {
       res.status(502).json({ error: `Open Food Facts returned ${upstream.status}.` });
-      return;
     }
-    const data = await upstream.json();
-    res.status(200).json(data);
   } catch {
     res.status(502).json({ error: 'Could not reach Open Food Facts.' });
   }
