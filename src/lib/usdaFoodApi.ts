@@ -1,5 +1,3 @@
-const BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
-
 const NUTRIENT_ID = {
   ENERGY_KCAL: 1008,
   PROTEIN_G: 1003,
@@ -111,10 +109,13 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
 }
 
 export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
-  const apiKey = import.meta.env.VITE_USDA_API_KEY || 'DEMO_KEY';
-  const url = `${BASE_URL}/foods/search?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query)}&pageSize=15`;
-
-  const response = await fetch(url);
+  // Goes through our serverless proxy (/api/usda-search) so the USDA_API_KEY
+  // stays on the server instead of being bundled into the client.
+  const response = await fetch('/api/usda-search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
   if (!response.ok) {
     throw new Error(`USDA FoodData Central search failed (${response.status})`);
   }
