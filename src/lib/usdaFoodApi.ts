@@ -109,12 +109,12 @@ function toSearchResult(food: UsdaFood): FoodSearchResult {
 }
 
 export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
-  // Goes through our serverless proxy (/api/usda-search) so the USDA_API_KEY
-  // stays on the server instead of being bundled into the client.
-  const response = await fetch('/api/usda-search', {
+  // Goes through our serverless proxy (/api/food-db) so the USDA_API_KEY stays
+  // on the server instead of being bundled into the client.
+  const response = await fetch('/api/food-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ usdaQuery: query }),
   });
   if (!response.ok) {
     throw new Error(`USDA FoodData Central search failed (${response.status})`);

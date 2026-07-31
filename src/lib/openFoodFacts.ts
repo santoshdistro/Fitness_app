@@ -1,5 +1,5 @@
 // Open Food Facts: free, open, no API key. Barcode -> product and free-text
-// search. Routed through our /api/off proxy so OFF gets a proper User-Agent
+// search. Routed through our /api/food-db proxy so OFF gets a proper User-Agent
 // (it rate-limits / blocks anonymous browser requests). Nutriments are per 100g.
 
 import type { FoodSearchResult } from './usdaFoodApi';
@@ -45,7 +45,7 @@ type OffSearchProduct = {
 // Free-text search of the global Open Food Facts catalogue (great for branded &
 // regional products the US-only USDA set misses). Values are per 100g.
 export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResult[]> {
-  const res = await fetch('/api/off', {
+  const res = await fetch('/api/food-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ search: query }),
@@ -85,7 +85,7 @@ export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResu
 }
 
 export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | null> {
-  const res = await fetch('/api/off', {
+  const res = await fetch('/api/food-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code: barcode }),
