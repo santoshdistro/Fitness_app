@@ -120,25 +120,14 @@ export async function generateWorkoutPlan(
   return result;
 }
 
-export type WorkoutReviewInput = {
-  goal?: string | null;
-  level?: string | null;
-  workouts: { date: string; name?: string | null; sets: { ex: string; reps: number | string; kg: number }[] }[];
-  records: { ex: string; bestKg: number; e1rm: number; sessions: number }[];
-};
-export type WorkoutReviewResult = {
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  focus: string[];
-};
+export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
-export async function generateWorkoutReview(
+export async function chatCoach(
   userId: string,
-  input: WorkoutReviewInput,
-): Promise<WorkoutReviewResult> {
-  const { result, usage } = await postJson<WorkoutReviewResult>('/api/review', input);
-  if (usage) void logAiUsage(userId, 'workout_review', usage);
+  input: { context: string; messages: ChatMessage[] },
+): Promise<{ reply: string }> {
+  const { result, usage } = await postJson<{ reply: string }>('/api/chat', input);
+  if (usage) void logAiUsage(userId, 'chat', usage);
   return result;
 }
 

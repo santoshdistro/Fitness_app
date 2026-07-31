@@ -10,7 +10,6 @@ import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { BodyMapCard } from '../components/BodyMapCard';
-import { WorkoutReviewCard } from '../components/WorkoutReviewCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
 import {
@@ -167,11 +166,6 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         </div>
       ) : (
         <>
-      {/* AI coach review of recorded workouts */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.03s' }}>
-        <WorkoutReviewCard />
-      </div>
-
       {/* Predefined goal programs */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Choose a program</p>

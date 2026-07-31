@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Loader2, Plus, Ruler, ScanLine, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Loader2, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { haptic } from '../utils/haptics';
+import { CoachChat } from '../components/CoachChat';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
@@ -68,6 +69,7 @@ const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
+  const [coachOpen, setCoachOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { savePlan } = useAiWorkoutPlan();
   const { profile, loading: profileLoading, refresh: refreshProfile } = useProfile();
@@ -165,6 +167,23 @@ export function AppShell() {
         type="button"
         onClick={() => {
           haptic('light');
+          setCoachOpen(true);
+        }}
+        aria-label="Ask AI coach"
+        className="fixed right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full text-[var(--accent)] shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--card-border)',
+          bottom: 'calc(env(safe-area-inset-bottom) + 8.5rem)',
+        }}
+      >
+        <Sparkles size={22} strokeWidth={2.5} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          haptic('light');
           setActiveSheet('quickAdd');
         }}
         aria-label="Quick add"
@@ -176,6 +195,8 @@ export function AppShell() {
       >
         <Plus size={24} strokeWidth={2.5} />
       </button>
+
+      {coachOpen ? <CoachChat onClose={() => setCoachOpen(false)} /> : null}
 
       <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div
