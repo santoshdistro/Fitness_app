@@ -14,6 +14,7 @@ type Stage =
   | { step: 'scanning' }
   | { step: 'looking'; code: string }
   | { step: 'error'; message: string }
+  | { step: 'notfound'; code: string }
   | { step: 'review'; initial: MealInitial; notFound?: boolean };
 
 export function BarcodeScanForm({ onSaved }: Props) {
@@ -29,6 +30,18 @@ export function BarcodeScanForm({ onSaved }: Props) {
     controlsRef.current?.stop();
     handledRef.current = true;
     void handleCode(code);
+  }
+
+  function enterManually(code: string) {
+    setStage({
+      step: 'review',
+      notFound: true,
+      initial: {
+        mealName: '',
+        category: defaultMealCategoryForNow(),
+        servingNote: `Barcode ${code} not in the database · enter the details below`,
+      },
+    });
   }
 
   // Start / stop the camera scanner while we're on the scanning step.
@@ -67,17 +80,10 @@ export function BarcodeScanForm({ onSaved }: Props) {
     try {
       const product = await lookupBarcode(code);
       if (!product) {
-        // Not in Open Food Facts — let the user enter the details by hand rather
-        // than dead-ending, so a missing product is still loggable.
-        setStage({
-          step: 'review',
-          notFound: true,
-          initial: {
-            mealName: '',
-            category: defaultMealCategoryForNow(),
-            servingNote: `Barcode ${code} not in the database · enter the details below`,
-          },
-        });
+        // The scan worked — the product just isn't in the database. Say so
+        // clearly (rather than looking like a failed scan) and let the user
+        // enter the details by hand.
+        setStage({ step: 'notfound', code });
         return;
       }
       const p = product.per100g;
@@ -112,6 +118,35 @@ export function BarcodeScanForm({ onSaved }: Props) {
           </p>
         </div>
         <MealForm onSaved={onSaved} initial={stage.initial} />
+      </div>
+    );
+  }
+
+  if (stage.step === 'notfound') {
+    return (
+      <div className="flex flex-col items-center gap-4 py-2">
+        <div className="flex flex-col items-center gap-1 py-4 text-center">
+          <Barcode size={22} style={{ color: 'var(--muted)' }} />
+          <p className="text-sm font-semibold text-[var(--text)]">No data available</p>
+          <p className="text-xs text-[var(--muted)]">
+            Barcode {stage.code} scanned fine, but it isn’t in the food database yet.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => enterManually(stage.code)}
+          className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+        >
+          Enter details manually
+        </button>
+        <button
+          type="button"
+          onClick={() => setStage({ step: 'scanning' })}
+          className="w-full rounded-2xl py-3 text-sm font-semibold text-[var(--text)]"
+          style={{ border: '1px solid var(--card-border)' }}
+        >
+          Scan again
+        </button>
       </div>
     );
   }
