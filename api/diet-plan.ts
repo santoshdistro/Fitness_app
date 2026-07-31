@@ -36,6 +36,7 @@ type PlanResult = { summary: string; days: PlanDay[] };
 const PROMPT = `You are a practical diet planner. Build a realistic, varied day-by-day eating plan the user can actually follow.
 Respect their diet type, likes and dislikes at all times — never include a disliked or off-diet food.
 Keep each day's totals close to any calorie and protein targets provided.
+Use cooked / ready-to-eat portions (that is what people serve and weigh), and make the state explicit in each item name, e.g. "White rice (cooked, 200g)" or "Chicken breast (grilled, 150g)". Remember cooking adds water, not calories, so give the calories for the cooked portion.
 Respond with ONLY a JSON object, no markdown and no prose, with exactly these keys:
 "summary" (2 short sentences on the approach, string),
 "days" (array — one entry per day requested) where each day is:

@@ -18,9 +18,18 @@ type Stage =
 
 export function BarcodeScanForm({ onSaved }: Props) {
   const [stage, setStage] = useState<Stage>({ step: 'scanning' });
+  const [manualCode, setManualCode] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const handledRef = useRef(false);
+
+  function submitManual() {
+    const code = manualCode.replace(/\D/g, '');
+    if (code.length < 6) return;
+    controlsRef.current?.stop();
+    handledRef.current = true;
+    void handleCode(code);
+  }
 
   // Start / stop the camera scanner while we're on the scanning step.
   useEffect(() => {
@@ -104,6 +113,12 @@ export function BarcodeScanForm({ onSaved }: Props) {
           <p className="text-center text-sm text-[var(--muted)]">
             Point your camera at a barcode to log the product.
           </p>
+          <ManualEntry
+            value={manualCode}
+            onChange={setManualCode}
+            onSubmit={submitManual}
+            hint="Barcode won’t scan (blurry, curved, damaged)? Type the number under it."
+          />
         </>
       ) : stage.step === 'looking' ? (
         <div className="flex items-center gap-2 py-8 text-sm font-medium text-[var(--muted)]">
@@ -120,8 +135,57 @@ export function BarcodeScanForm({ onSaved }: Props) {
           >
             Scan again
           </button>
+          <ManualEntry
+            value={manualCode}
+            onChange={setManualCode}
+            onSubmit={submitManual}
+            hint="Or enter the barcode number manually."
+          />
         </>
       )}
+    </div>
+  );
+}
+
+function ManualEntry({
+  value,
+  onChange,
+  onSubmit,
+  hint,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  hint: string;
+}) {
+  return (
+    <div className="w-full">
+      <p className="mb-2 text-center text-xs text-[var(--muted)]">{hint}</p>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        className="flex gap-2"
+      >
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="e.g. 5000112637922"
+          className="flex-1 rounded-2xl px-4 py-3 text-sm text-[var(--text)] outline-none"
+          style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
+        />
+        <button
+          type="submit"
+          disabled={value.replace(/\D/g, '').length < 6}
+          className="shrink-0 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        >
+          Look up
+        </button>
+      </form>
     </div>
   );
 }
