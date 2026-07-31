@@ -14,6 +14,16 @@ const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   chat: 'AI coach chat',
 };
 
+// Readable name for any feature — including retired/legacy ones (e.g. a stray
+// "workout_review" logged before that feature was removed) that have no entry
+// above. Turns "workout_review" into "Workout review".
+function featureLabel(feature: string): string {
+  return (
+    FEATURE_LABEL[feature as FeatureSpend['feature']] ??
+    feature.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
+  );
+}
+
 type AnthropicState =
   | { status: 'loading' }
   | { status: 'unconfigured' }
@@ -80,7 +90,7 @@ export function SpendPanel() {
             byFeature.map(row => (
               <div key={row.feature} className="flex items-center justify-between text-xs">
                 <span className="text-[var(--text)]">
-                  {FEATURE_LABEL[row.feature]}
+                  {featureLabel(row.feature)}
                   <span className="text-[var(--muted)]"> · {row.calls}×</span>
                 </span>
                 <span className="font-semibold text-[var(--text)]">{formatUsd(row.costUsd)}</span>
