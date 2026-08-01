@@ -17,6 +17,7 @@ import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
 import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { StepsTotalsCard, StepsBenchmarkCard } from '../components/StepsSummary';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
@@ -343,6 +344,18 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
           <WeeklyReviewCard review={weeklyReview} />
         </div>
+      ) : null}
+
+      {/* Step totals + benchmark (today only) */}
+      {viewingToday ? (
+        <>
+          <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.22s' }}>
+            <StepsTotalsCard />
+          </div>
+          <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.24s' }}>
+            <StepsBenchmarkCard steps={steps} goal={settings.stepGoal} />
+          </div>
+        </>
       ) : null}
 
       {/* Water + active kcal */}
