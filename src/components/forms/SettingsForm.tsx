@@ -12,11 +12,13 @@ export function SettingsForm({ onSaved }: Props) {
   const { settings, save } = useSettings();
   const [stepGoal, setStepGoal] = useState(String(settings.stepGoal));
   const [waterGoal, setWaterGoal] = useState(String(settings.waterGoalMl));
+  const [burnGoal, setBurnGoal] = useState(String(settings.activeCalorieGoal));
 
   function handleSave() {
     save({
       stepGoal: Math.max(0, Number(stepGoal) || 0),
       waterGoalMl: Math.max(0, Number(waterGoal) || 0),
+      activeCalorieGoal: Math.max(0, Number(burnGoal) || 0),
     });
     onSaved();
   }
@@ -111,6 +113,21 @@ export function SettingsForm({ onSaved }: Props) {
           step="any"
           value={waterGoal}
           onChange={e => setWaterGoal(e.target.value)}
+        />
+      </div>
+
+      <div className="mb-4">
+        <label className={labelClass} htmlFor="setting-burn">
+          Daily active-calorie burn goal (kcal)
+        </label>
+        <input
+          id="setting-burn"
+          className={inputClass}
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={burnGoal}
+          onChange={e => setBurnGoal(e.target.value)}
         />
       </div>
 

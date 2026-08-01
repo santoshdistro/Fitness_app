@@ -97,7 +97,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const waterDisplay = volumeParts(dayLog?.water_ml ?? 0, settings.volumeUnit);
   const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
 
   // Continuous 7-day window ending on the selected date, so every day shows on
@@ -198,6 +197,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
     },
     {
+      key: 'burn',
+      label: 'Burn active calories',
+      detail: `${burnedKcal} / ${settings.activeCalorieGoal} kcal`,
+      done: settings.activeCalorieGoal > 0 && burnedKcal >= settings.activeCalorieGoal,
+      progress: settings.activeCalorieGoal > 0 ? burnedKcal / settings.activeCalorieGoal : 0,
+    },
+    {
       key: 'workout',
       label: 'Move your body',
       detail: workoutToday ? 'Workout logged' : 'Not yet',
@@ -216,6 +222,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       unit: 'g',
     },
     { label: 'Steps', value: dayLog?.steps ?? 0, target: settings.stepGoal, color: '#f97316' },
+    { label: 'Water', value: waterMl, target: settings.waterGoalMl, color: '#0ea5e9', unit: 'ml' },
   ];
 
   const hasAnyData =
@@ -352,27 +359,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <StepsCard steps={steps} goal={settings.stepGoal} />
         </div>
       ) : null}
-
-      {/* Water + active kcal */}
-      <div className="anim-fade-rise mt-4 flex gap-3" style={{ animationDelay: '0.28s' }}>
-        <div className="glass-card flex-1 p-4">
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            {dayLog?.water_ml != null ? waterDisplay.value : '--'}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Water / {waterGoalDisplay.value}
-            {waterGoalDisplay.label}
-          </p>
-        </div>
-        <div className="glass-card flex-1 p-4">
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            {dayLog?.active_calories_burned ?? '--'}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Active kcal
-          </p>
-        </div>
-      </div>
 
       {/* Sleep */}
       <div

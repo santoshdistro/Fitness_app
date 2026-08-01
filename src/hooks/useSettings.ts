@@ -9,6 +9,7 @@ export type HeightUnit = 'cm' | 'ft';
 export type Settings = {
   stepGoal: number;
   waterGoalMl: number;
+  activeCalorieGoal: number;
   theme: Theme;
   weightUnit: WeightUnit;
   volumeUnit: VolumeUnit;
@@ -19,6 +20,7 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   stepGoal: 10000,
   waterGoalMl: 2500,
+  activeCalorieGoal: 500,
   theme: 'light',
   weightUnit: 'kg',
   volumeUnit: 'l',
