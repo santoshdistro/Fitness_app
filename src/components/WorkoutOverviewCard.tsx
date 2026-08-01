@@ -69,12 +69,18 @@ export function WorkoutOverviewCard() {
         <p className="text-2xl font-black leading-none tracking-tight text-[var(--text)]">{scorePct}%</p>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-1.5" style={{ height: 68 }}>
+      <div className="mt-3 flex items-end justify-between gap-1.5" style={{ height: 96 }}>
         {days.map((d, i) => {
           const active = i === peakIndex;
           const h = Math.max(6, Math.round(d.ratio * 52));
           return (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
+              <span
+                className="text-[8px] font-bold leading-none"
+                style={{ color: active ? 'var(--accent)' : 'var(--muted)' }}
+              >
+                {d.future ? '' : `${d.pct}%`}
+              </span>
               <div
                 className="w-full rounded-full"
                 style={{
