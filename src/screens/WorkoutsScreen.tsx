@@ -10,6 +10,7 @@ import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { BodyMapCard } from '../components/BodyMapCard';
+import { AnatomyCard } from '../components/AnatomyCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
 import {
@@ -161,7 +162,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           />
         </div>
       ) : tab === 'heatmap' ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
+        <div className="anim-fade-rise mt-4 flex flex-col gap-4" style={{ animationDelay: '0.04s' }}>
+          <AnatomyCard />
           <BodyMapCard large />
         </div>
       ) : (
