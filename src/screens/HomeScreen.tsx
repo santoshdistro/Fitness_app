@@ -22,7 +22,6 @@ import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
 import { getSyncShortcutName, runSyncShortcut } from '../utils/healthShortcut';
-import { volumeParts } from '../utils/units';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -97,7 +96,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
 
   // Continuous 7-day window ending on the selected date, so every day shows on
   // the axis whether or not sleep was logged.
@@ -188,13 +186,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       detail: `${steps.toLocaleString()} / ${settings.stepGoal.toLocaleString()}`,
       done: steps >= settings.stepGoal,
       progress: settings.stepGoal > 0 ? steps / settings.stepGoal : 0,
-    },
-    {
-      key: 'water',
-      label: 'Stay hydrated',
-      detail: `${volumeParts(waterMl, settings.volumeUnit).value} / ${waterGoalDisplay.value} ${waterGoalDisplay.label}`,
-      done: waterMl >= settings.waterGoalMl,
-      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
     },
     {
       key: 'burn',
@@ -312,10 +303,10 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
 
       {/* Activity rings dashboard */}
       <div
-        className="glass-card anim-fade-rise mt-4 flex items-center gap-5 p-5"
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-4 p-4"
         style={{ animationDelay: '0.1s' }}
       >
-        <ActivityRings rings={rings} />
+        <ActivityRings rings={rings} size={108} />
         <div className="flex-1">
           <RingLegend rings={rings} />
           <button
