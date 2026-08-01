@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sparkles, Sun } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { RemindersForm } from './RemindersForm';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
@@ -37,6 +37,12 @@ export function SettingsForm({ onSaved }: Props) {
             icon={<Moon size={16} />}
             label="Dark"
             onClick={() => save({ theme: 'dark' })}
+          />
+          <ThemeButton
+            active={settings.theme === 'midnight'}
+            icon={<Sparkles size={16} />}
+            label="Midnight"
+            onClick={() => save({ theme: 'midnight' })}
           />
         </div>
       </div>

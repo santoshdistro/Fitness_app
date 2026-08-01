@@ -24,7 +24,7 @@ export function AdaptiveTdeeCard({ data, formulaTdee }: { data: AdaptiveTdee; fo
       className="overflow-hidden p-5 text-white"
       style={{
         borderRadius: 'var(--radius-card)',
-        background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+        background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
         boxShadow: '0 12px 28px -12px rgba(75,63,224,0.6)',
       }}
     >

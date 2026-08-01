@@ -182,7 +182,7 @@ export function AppShell() {
         aria-label="Quick add"
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
         style={{
-          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+          background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
           bottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
         }}
       >

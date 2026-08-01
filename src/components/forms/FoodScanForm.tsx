@@ -86,7 +86,7 @@ export function FoodScanForm({ onSaved }: Props) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,var(--accent),var(--accent-dark))]"
           >
             Take / choose photo
           </button>
@@ -105,7 +105,7 @@ export function FoodScanForm({ onSaved }: Props) {
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+                className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,var(--accent),var(--accent-dark))]"
               >
                 Try another photo
               </button>

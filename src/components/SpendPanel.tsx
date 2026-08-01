@@ -65,7 +65,7 @@ export function SpendPanel() {
         className="overflow-hidden p-5 text-center"
         style={{
           borderRadius: 'var(--radius-card)',
-          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+          background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
         }}
       >
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'midnight';
 export type WeightUnit = 'kg' | 'lb';
 export type VolumeUnit = 'ml' | 'l';
 export type FoodUnit = 'g' | 'oz';

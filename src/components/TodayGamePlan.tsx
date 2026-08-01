@@ -27,7 +27,7 @@ export function TodayGamePlan({ items }: { items: GamePlanItem[] }) {
           style={{
             background: allDone
               ? 'linear-gradient(135deg, #22c55e, #15803d)'
-              : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+              : 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
           }}
         >
           <span className="text-sm font-black leading-none">{doneCount}</span>

@@ -119,8 +119,8 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center gap-2">
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            className="coach-orb flex h-8 w-8 items-center justify-center rounded-full text-white"
+            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}
           >
             <Sparkles size={16} />
           </span>
@@ -158,8 +158,8 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-4 pt-4">
             <div className="text-center">
               <span
-                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-white"
-                style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+                className="coach-orb mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-white"
+                style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}
               >
                 <Sparkles size={26} />
               </span>
@@ -194,7 +194,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
                   className="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
                   style={
                     m.role === 'user'
-                      ? { background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)', color: '#fff' }
+                      ? { background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))', color: '#fff' }
                       : { background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }
                   }
                 >
@@ -249,7 +249,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
             disabled={!input.trim() || sending}
             aria-label="Send"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}
           >
             <Send size={18} />
           </button>

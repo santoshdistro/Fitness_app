@@ -7,7 +7,8 @@ import App from './App';
 try {
   const saved = localStorage.getItem('app_settings');
   const theme = saved ? (JSON.parse(saved).theme as string) : 'light';
-  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  const known = ['light', 'dark', 'midnight'];
+  document.documentElement.setAttribute('data-theme', known.includes(theme) ? theme : 'light');
 } catch {
   document.documentElement.setAttribute('data-theme', 'light');
 }

@@ -41,7 +41,7 @@ export function FastingPanel() {
             borderRadius: 'var(--radius-card)',
             background: reached
               ? 'linear-gradient(135deg, #22c55e, #15803d)'
-              : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+              : 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
           }}
         >
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
@@ -58,7 +58,7 @@ export function FastingPanel() {
         <button
           type="button"
           onClick={end}
-          className="rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,var(--accent),var(--accent-dark))]"
         >
           End fast &amp; log it
         </button>
@@ -101,7 +101,7 @@ export function FastingPanel() {
         <button
           type="button"
           onClick={() => start(target)}
-          className="w-full rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,var(--accent),var(--accent-dark))]"
         >
           Start {target}h fast
         </button>

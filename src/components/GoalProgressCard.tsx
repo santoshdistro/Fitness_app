@@ -26,7 +26,7 @@ export function GoalProgressCard({
         borderRadius: 'var(--radius-card)',
         background: progress.reached
           ? 'linear-gradient(135deg, #22c55e, #15803d)'
-          : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+          : 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
         boxShadow: '0 12px 28px -12px rgba(75,63,224,0.6)',
       }}
     >

@@ -106,7 +106,7 @@ export function DietPlanner() {
           type="button"
           onClick={() => setBuilderOpen(true)}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}
         >
           <Sparkles size={15} /> Build with AI
         </button>
