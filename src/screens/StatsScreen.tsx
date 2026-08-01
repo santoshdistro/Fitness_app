@@ -548,78 +548,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         )}
       </div>
 
-      {/* Weight */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
-        style={{
-          animationDelay: '0.18s',
-          background: 'linear-gradient(160deg, rgba(108,99,255,0.1), rgba(108,99,255,0.02))',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
-            <Activity size={16} style={{ color: 'var(--accent)' }} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text)]">Weight</p>
-            <p className="text-[10px] font-medium text-[var(--muted)]">
-              {weightValues.length >= 2
-                ? `${weightValue(weightValues[0], wUnit)}${wUnit} -> ${weightValue(latestWeight, wUnit)}${wUnit} over last ${weightValues.length} entries`
-                : 'Log your weight to start a trend'}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex h-16 items-end justify-between">
-          <p className="text-5xl font-black tracking-tighter text-[var(--text)]">
-            {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
-            {latestWeight != null ? (
-              <span className="text-lg font-bold text-[var(--muted)]"> {wUnit}</span>
-            ) : null}
-          </p>
-          {weightValues.length >= 2 ? <WeightSparkline values={weightValues} /> : null}
-        </div>
-      </div>
-
-      {/* Weight history */}
-      {weightEntries.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-[var(--text)]">Recent Weigh-ins</p>
-            {weightEntries.length > 2 ? (
-              <span className="text-[10px] text-[var(--muted)]">scroll for more</span>
-            ) : null}
-          </div>
-          {/* Show ~2 rows; the rest scroll so the page can't grow unbounded. */}
-          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 108 }}>
-            {weightEntries
-              .slice()
-              .reverse()
-              .map(entry => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-                >
-                  <p className="text-sm text-[var(--text)]">
-                    {formatShortDate(entry.log_date)} ·{' '}
-                    <span className="font-semibold">
-                      {weightValue(entry.weight, wUnit)}
-                      {wUnit}
-                    </span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => clearWeight(entry.id)}
-                    aria-label="Delete weight entry"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
-          </div>
-        </div>
-      ) : null}
 
       {/* Progress photos */}
       <button
@@ -711,6 +639,74 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               : 'No measurements logged yet'}
           </p>
         </div>
+      </div>
+
+      {/* Weight (compact) — grouped with body measurements */}
+      <div className="glass-card anim-fade-rise mt-4 p-4" style={{ animationDelay: '0.26s' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
+              <Activity size={14} style={{ color: 'var(--accent)' }} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[var(--text)]">Weight</p>
+              <p className="text-[10px] text-[var(--muted)]">
+                {weightValues.length >= 2 ? `${weightValues.length} entries` : 'Log to start a trend'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {weightValues.length >= 2 ? (
+              <WeightSparkline values={weightValues} width={90} height={30} />
+            ) : null}
+            <p className="text-2xl font-black tracking-tight text-[var(--text)]">
+              {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
+              {latestWeight != null ? (
+                <span className="text-sm font-bold text-[var(--muted)]"> {wUnit}</span>
+              ) : null}
+            </p>
+          </div>
+        </div>
+
+        {weightEntries.length > 0 ? (
+          <div className="mt-3 border-t border-[var(--card-border)] pt-2">
+            <div className="mb-1 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Recent weigh-ins
+              </p>
+              {weightEntries.length > 2 ? (
+                <span className="text-[10px] text-[var(--muted)]">scroll for more</span>
+              ) : null}
+            </div>
+            <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 92 }}>
+              {weightEntries
+                .slice()
+                .reverse()
+                .map(entry => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between border-b border-[var(--card-border)] py-2 last:border-b-0"
+                  >
+                    <p className="text-xs text-[var(--text)]">
+                      {formatShortDate(entry.log_date)} ·{' '}
+                      <span className="font-semibold">
+                        {weightValue(entry.weight, wUnit)}
+                        {wUnit}
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => clearWeight(entry.id)}
+                      aria-label="Delete weight entry"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Per-site progress trends */}

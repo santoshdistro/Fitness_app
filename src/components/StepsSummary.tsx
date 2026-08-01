@@ -41,24 +41,12 @@ export function StepsBenchmarkCard({ steps, goal }: { steps: number; goal: numbe
   const goalK = safeGoal % 1000 === 0 ? `${safeGoal / 1000}K` : fmt(safeGoal);
 
   return (
-    <div className="glass-card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10">
-            <Target size={16} style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="text-sm font-semibold text-[var(--text)]">Benchmark</p>
-        </div>
-        <p className="text-sm font-black text-[var(--text)]">
-          {fmt(steps)}
-          <span className="text-[11px] font-semibold text-[var(--muted)]">/{goalK} steps</span>
-        </p>
-      </div>
-      <div className="grid grid-cols-10 gap-1.5">
+    <div className="glass-card flex items-center gap-4 p-4">
+      <div className="grid shrink-0 grid-cols-10 gap-[3px]">
         {Array.from({ length: 100 }, (_, i) => (
           <span
             key={i}
-            className="aspect-square rounded-[4px]"
+            className="h-2 w-2 rounded-[2px]"
             style={{
               background:
                 i < filled ? 'var(--accent)' : 'color-mix(in srgb, var(--muted) 20%, transparent)',
@@ -66,9 +54,19 @@ export function StepsBenchmarkCard({ steps, goal }: { steps: number; goal: numbe
           />
         ))}
       </div>
-      <p className="mt-2 text-[10px] text-[var(--muted)]">
-        {filled >= 100 ? 'Goal smashed today 🎉' : `${filled}% of today’s goal · each dot = ${fmt(Math.round(safeGoal / 100))} steps`}
-      </p>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <Target size={14} style={{ color: 'var(--accent)' }} />
+          <p className="text-xs font-semibold text-[var(--text)]">Benchmark</p>
+        </div>
+        <p className="mt-1 text-lg font-black leading-tight text-[var(--text)]">
+          {fmt(steps)}
+          <span className="text-[11px] font-semibold text-[var(--muted)]">/{goalK}</span>
+        </p>
+        <p className="text-[10px] text-[var(--muted)]">
+          {filled >= 100 ? 'Goal smashed 🎉' : `${filled}% of today’s goal`}
+        </p>
+      </div>
     </div>
   );
 }
