@@ -584,32 +584,40 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       {/* Weight history */}
       {weightEntries.length > 0 ? (
         <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Weigh-ins</p>
-          {weightEntries
-            .slice()
-            .reverse()
-            .map(entry => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-              >
-                <p className="text-sm text-[var(--text)]">
-                  {formatShortDate(entry.log_date)} ·{' '}
-                  <span className="font-semibold">
-                    {weightValue(entry.weight, wUnit)}
-                    {wUnit}
-                  </span>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => clearWeight(entry.id)}
-                  aria-label="Delete weight entry"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-[var(--text)]">Recent Weigh-ins</p>
+            {weightEntries.length > 2 ? (
+              <span className="text-[10px] text-[var(--muted)]">scroll for more</span>
+            ) : null}
+          </div>
+          {/* Show ~2 rows; the rest scroll so the page can't grow unbounded. */}
+          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 108 }}>
+            {weightEntries
+              .slice()
+              .reverse()
+              .map(entry => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
                 >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
+                  <p className="text-sm text-[var(--text)]">
+                    {formatShortDate(entry.log_date)} ·{' '}
+                    <span className="font-semibold">
+                      {weightValue(entry.weight, wUnit)}
+                      {wUnit}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => clearWeight(entry.id)}
+                    aria-label="Delete weight entry"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+          </div>
         </div>
       ) : null}
 
@@ -641,66 +649,46 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
             a medical assessment
           </p>
 
-          {/* Latest, expanded */}
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
-              {formatScanDate(bodyScans[0].created_at)} · latest
-            </p>
-            <button
-              type="button"
-              onClick={() => removeScan(bodyScans[0].id)}
-              aria-label="Delete scan"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-          <BodyScanReadout result={scanToResult(bodyScans[0])} />
-
-          {/* Earlier scans — tap to expand */}
-          {bodyScans.length > 1 ? (
-            <div className="mt-4 border-t border-[var(--card-border)] pt-3">
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
-                Earlier
-              </p>
-              {bodyScans.slice(1).map(scan => {
-                const open = openScanId === scan.id;
-                return (
-                  <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOpenScanId(open ? null : scan.id)}
-                        className="flex flex-1 items-center justify-between text-left"
-                      >
-                        <span className="text-xs text-[var(--text)]">{formatScanDate(scan.created_at)}</span>
-                        <ChevronRight
-                          size={14}
-                          className="text-[var(--muted)] transition-transform"
-                          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeScan(scan.id)}
-                        aria-label="Delete scan"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                    {open ? (
-                      <div className="mt-2">
-                        <BodyScanReadout result={scanToResult(scan)} />
-                      </div>
-                    ) : (
-                      <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</p>
-                    )}
+          {/* Scans — all collapsed by default, tap to expand (latest first) */}
+          {bodyScans.map((scan, i) => {
+            const open = openScanId === scan.id;
+            return (
+              <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenScanId(open ? null : scan.id)}
+                    className="flex flex-1 items-center justify-between text-left"
+                  >
+                    <span className="text-xs text-[var(--text)]">
+                      {formatScanDate(scan.created_at)}
+                      {i === 0 ? <span className="text-[var(--muted)]"> · latest</span> : null}
+                    </span>
+                    <ChevronRight
+                      size={14}
+                      className="text-[var(--muted)] transition-transform"
+                      style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeScan(scan.id)}
+                    aria-label="Delete scan"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                {open ? (
+                  <div className="mt-2">
+                    <BodyScanReadout result={scanToResult(scan)} />
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
+                ) : (
+                  <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
