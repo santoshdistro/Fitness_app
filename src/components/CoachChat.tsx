@@ -157,11 +157,8 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
         {messages.length === 0 ? (
           <div className="flex flex-col gap-4 pt-4">
             <div className="text-center">
-              <span
-                className="coach-orb mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-white"
-                style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}
-              >
-                <Sparkles size={26} />
+              <span className="ai-orb mx-auto mb-4 flex h-24 w-24 items-center justify-center text-white">
+                <Sparkles size={30} className="drop-shadow" />
               </span>
               <p className="text-base font-bold text-[var(--text)]">Ask your coach anything</p>
               <p className="mx-auto mt-1 max-w-xs text-xs text-[var(--muted)]">

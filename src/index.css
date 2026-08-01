@@ -36,14 +36,23 @@
   --accent-dark: #1e50d6;
 }
 
-/* Frosted-glass cards + a soft blue aurora behind the app in Midnight. */
+/* Frosted-glass cards with real depth: a top-lit gradient fill, a bright inner
+   hairline, and a deep soft drop shadow so cards feel like they float. */
+:root[data-theme='midnight'] {
+  --radius-card: 26px;
+}
+
 :root[data-theme='midnight'] .glass-card,
 :root[data-theme='midnight'] .glass {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 30px 60px -26px rgba(0, 0, 0, 0.9);
 }
 
 :root[data-theme='midnight'] .app-bg,
@@ -60,6 +69,45 @@
   box-shadow:
     0 0 6px rgba(61, 123, 255, 0.8),
     0 0 26px rgba(61, 123, 255, 0.55);
+}
+
+/* Big animated plasma orb for the AI assistant empty state. */
+.ai-orb {
+  position: relative;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 35% 30%, #9fc2ff, #3d7bff 45%, #1230a0 78%, #0a1740 100%);
+  box-shadow:
+    0 0 40px rgba(61, 123, 255, 0.6),
+    0 0 90px rgba(61, 123, 255, 0.35),
+    inset 0 0 30px rgba(255, 255, 255, 0.25);
+  animation: orbPulse 3.4s ease-in-out infinite;
+}
+
+.ai-orb::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(61, 123, 255, 0.35), transparent 65%);
+  animation: orbHalo 3.4s ease-in-out infinite;
+}
+
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.06); filter: brightness(1.18); }
+}
+
+@keyframes orbHalo {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb,
+  .ai-orb::before {
+    animation: none;
+  }
 }
 
 html,

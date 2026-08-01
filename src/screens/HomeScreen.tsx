@@ -15,6 +15,7 @@ import { ActivityRings, RingLegend, type Ring } from '../components/charts/Activ
 import { CoachCard } from '../components/CoachCard';
 import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
 import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
+import { HomeHero } from '../components/HomeHero';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
@@ -282,6 +283,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           </button>
         </div>
       </div>
+
+      {/* Photo hero */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.04s' }}>
+          <HomeHero name={profile?.name} />
+        </div>
+      ) : null}
 
       {/* Date navigator: title + calendar + week strip */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
