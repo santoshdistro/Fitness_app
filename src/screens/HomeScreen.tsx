@@ -14,6 +14,7 @@ import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
 import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
+import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { DateNavigator } from '../components/DateNavigator';
@@ -286,6 +287,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.05s' }}>
         <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
+
+      {/* Weekly overview hero (today only) */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.07s' }}>
+          <WorkoutOverviewCard />
+        </div>
+      ) : null}
 
       {/* Today's game plan (today only) */}
       {viewingToday ? (
