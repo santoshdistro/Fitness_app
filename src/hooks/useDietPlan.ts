@@ -131,6 +131,22 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Copy one day's meals across the whole span — handy when you eat the same
+  // thing most days and don't want variety.
+  const repeatDay = useCallback(
+    (sourceDate: string, startDate: string, span = PLAN_SPAN) => {
+      const items = plan.byDate[sourceDate] ?? [];
+      if (!items.length) return;
+      const byDate = { ...plan.byDate };
+      for (let i = 0; i < span; i++) {
+        const date = addDays(startDate, i);
+        byDate[date] = items.map(it => ({ ...it, id: newId() }));
+      }
+      persist({ ...plan, byDate });
+    },
+    [plan, persist],
+  );
+
   const clearDate = useCallback(
     (date: string) => {
       const byDate = { ...plan.byDate };
@@ -144,5 +160,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, repeatDay, clearDate, clearAll };
 }

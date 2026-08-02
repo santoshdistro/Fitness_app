@@ -74,7 +74,7 @@ export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, clearDate, clearAll } =
+  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, repeatDay, clearDate, clearAll } =
     useDietPlan();
   const { split, setDay } = useDietSplit();
   const { status: pushStatus, prefs, enable, savePrefs } = usePushReminders();
@@ -328,6 +328,8 @@ export function DietPlanner() {
         ) : (
           mealOrder
             .filter(meal => byMeal.get(meal)?.length)
+            // Show meals in the order you actually eat them, by clock time.
+            .sort((a, b) => mealTimeOf(a, byMeal.get(a)!).localeCompare(mealTimeOf(b, byMeal.get(b)!)))
             .map(meal => {
               const groupItems = byMeal.get(meal)!;
               const time = mealTimeOf(meal, groupItems);
@@ -382,13 +384,22 @@ export function DietPlanner() {
           <Plus size={16} /> Add food
         </button>
         {items.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => clearDate(viewDate)}
-            className="text-center text-[11px] font-semibold text-[var(--muted)]"
-          >
-            Clear this day
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => repeatDay(viewDate, stripStart)}
+              className="text-center text-[11px] font-semibold text-[var(--accent)]"
+            >
+              Repeat this day all fortnight
+            </button>
+            <button
+              type="button"
+              onClick={() => clearDate(viewDate)}
+              className="text-center text-[11px] font-semibold text-[var(--muted)]"
+            >
+              Clear this day
+            </button>
+          </div>
         ) : null}
       </div>
 
