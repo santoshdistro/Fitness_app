@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
+import { Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
@@ -11,9 +11,10 @@ import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
 import { useWeeklyReview } from '../hooks/useWeeklyReview';
 import { useStartWeight } from '../hooks/useStartWeight';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
-import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
+import { type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
-import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
+import { type GamePlanItem } from '../components/TodayGamePlan';
+import { TodayDashboard } from '../components/TodayDashboard';
 import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
@@ -287,12 +288,10 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
-      {/* Today's game plan (today only) */}
-      {viewingToday ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
-          <TodayGamePlan items={gamePlan} />
-        </div>
-      ) : null}
+      {/* Rings + game plan, merged */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
+        <TodayDashboard rings={rings} items={gamePlan} onNavigateStats={onNavigateStats} />
+      </div>
 
       {/* Weekly overview (today only) */}
       {viewingToday ? (
@@ -300,25 +299,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <WorkoutOverviewCard />
         </div>
       ) : null}
-
-      {/* Activity rings dashboard */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex items-center gap-4 p-4"
-        style={{ animationDelay: '0.1s' }}
-      >
-        <ActivityRings rings={rings} size={108} />
-        <div className="flex-1">
-          <RingLegend rings={rings} />
-          <button
-            onClick={onNavigateStats}
-            className="mt-3 flex items-center gap-1 text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
-          >
-            See full stats
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
 
       {/* Goal progress (today only) */}
       {viewingToday && goalProgress ? (
