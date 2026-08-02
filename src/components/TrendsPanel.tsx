@@ -143,19 +143,6 @@ export function TrendsPanel() {
         </Section>
       ) : null}
 
-      {trends.waist.length > 0 ? (
-        <Section
-          title="Waist"
-          subtitle={(() => {
-            const d = seriesDelta(trends.waist);
-            return d != null ? `${d > 0 ? '+' : ''}${d}" over period` : `${trends.waist.length} readings`;
-          })()}
-        >
-          <TrendChart points={trends.waist} type="line" unit={'"'} color="#0ea5e9" decimals={1} />
-          <p className="text-[10px] text-[var(--muted)]">A shrinking waist is the clearest fat-loss signal.</p>
-        </Section>
-      ) : null}
-
       <Section title="Calories" subtitle={trends.avgCalories != null ? `avg ${trends.avgCalories}/day` : undefined}>
         <TrendChart points={trends.calories} type="bar" unit="" color="#6c63ff" goal={targets.calorieTarget} />
       </Section>

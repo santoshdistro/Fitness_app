@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeftRight, Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
@@ -45,9 +45,27 @@ type Item = Macros & {
   key: string;
   name: string;
   grams: number; // the amount: grams when unit==='g', number of servings when 'serving'
-  per: Macros;
+  per: Macros; // macros per 1 of the current unit (per gram, or per serving)
   unit: 'g' | 'serving';
+  gramsPerServing?: number; // known serving weight, enables the g ⇄ serving toggle
 };
+
+// Scale every macro of a per-unit base by a factor (used when switching units).
+function scalePer(per: Macros, f: number): Macros {
+  return {
+    calories: per.calories * f,
+    protein: per.protein * f,
+    carbs: per.carbs * f,
+    fat: per.fat * f,
+    fiber: per.fiber * f,
+    sodium: per.sodium * f,
+    sugar: per.sugar * f,
+    satFat: per.satFat * f,
+    transFat: per.transFat * f,
+    polyFat: per.polyFat * f,
+    monoFat: per.monoFat * f,
+  };
+}
 
 type Tab = 'add' | 'nutrition' | 'macros';
 
@@ -269,6 +287,9 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     const unit: 'g' | 'serving' = r.isPerServing && r.servingSizeUnit === 'serving' ? 'serving' : 'g';
     const base = r.isPerServing && r.servingSize ? r.servingSize : 100;
     const grams = base; // default amount = one serving / 100g
+    // A known gram serving weight lets you flip the row between g and servings.
+    const gramsPerServing =
+      r.servingSize && r.servingSizeUnit !== 'serving' ? r.servingSize : undefined;
     const per: Macros = {
       calories: r.calories / base,
       protein: r.protein / base,
@@ -284,7 +305,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     };
     setItems(prev => [
       ...prev,
-      { key: `${r.fdcId}-${Date.now()}`, name: r.description, grams, per, unit, ...scaled(per, grams) },
+      { key: `${r.fdcId}-${Date.now()}`, name: r.description, grams, per, unit, gramsPerServing, ...scaled(per, grams) },
     ]);
     setResults([]);
     setQuery('');
@@ -292,6 +313,23 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
 
   function updateGrams(key: string, grams: number) {
     setItems(prev => prev.map(i => (i.key === key ? { ...i, grams, ...scaled(i.per, grams) } : i)));
+  }
+
+  // Flip a row between grams and servings, keeping the same real portion.
+  function toggleUnit(key: string) {
+    setItems(prev =>
+      prev.map(i => {
+        if (i.key !== key || !i.gramsPerServing) return i;
+        if (i.unit === 'g') {
+          const per = scalePer(i.per, i.gramsPerServing); // per serving = per gram × grams/serving
+          const grams = i.grams / i.gramsPerServing; // grams -> servings
+          return { ...i, unit: 'serving', per, grams, ...scaled(per, grams) };
+        }
+        const per = scalePer(i.per, 1 / i.gramsPerServing); // per gram
+        const grams = i.grams * i.gramsPerServing; // servings -> grams
+        return { ...i, unit: 'g', per, grams, ...scaled(per, grams) };
+      }),
+    );
   }
 
   function removeItem(key: string) {
@@ -445,6 +483,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
           addResult={addResult}
           items={items}
           updateGrams={updateGrams}
+          toggleUnit={toggleUnit}
           removeItem={removeItem}
           totals={totals}
           saving={saving}
@@ -499,6 +538,7 @@ type AddMealProps = {
   addResult: (r: FoodSearchResult) => void;
   items: Item[];
   updateGrams: (key: string, grams: number) => void;
+  toggleUnit: (key: string) => void;
   removeItem: (key: string) => void;
   totals: Macros;
   saving: boolean;
@@ -614,31 +654,40 @@ function AddMealTab(p: AddMealProps) {
               </div>
               <div className="flex items-center gap-1">
                 {i.unit === 'serving' ? (
-                  <>
-                    <input
-                      className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="any"
-                      value={i.grams}
-                      onChange={e => p.updateGrams(i.key, Number(e.target.value) || 0)}
-                    />
-                    <span className="text-[10px] text-[var(--muted)]">{i.grams === 1 ? 'serving' : 'servings'}</span>
-                  </>
+                  <input
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={i.grams}
+                    onChange={e => p.updateGrams(i.key, Number(e.target.value) || 0)}
+                  />
                 ) : (
-                  <>
-                    <input
-                      className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="any"
-                      value={p.foodUnit === 'oz' ? Math.round(gToUnit(i.grams, 'oz') * 10) / 10 : i.grams}
-                      onChange={e => p.updateGrams(i.key, unitToG(Number(e.target.value) || 0, p.foodUnit))}
-                    />
-                    <span className="text-[10px] text-[var(--muted)]">{p.foodUnit}</span>
-                  </>
+                  <input
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={p.foodUnit === 'oz' ? Math.round(gToUnit(i.grams, 'oz') * 10) / 10 : i.grams}
+                    onChange={e => p.updateGrams(i.key, unitToG(Number(e.target.value) || 0, p.foodUnit))}
+                  />
+                )}
+                {i.gramsPerServing ? (
+                  <button
+                    type="button"
+                    onClick={() => p.toggleUnit(i.key)}
+                    aria-label="Switch between grams and servings"
+                    className="flex items-center gap-0.5 rounded-lg bg-[var(--bg)] px-1.5 py-1 text-[10px] font-semibold text-[var(--accent)]"
+                  >
+                    {i.unit === 'serving' ? (i.grams === 1 ? 'serving' : 'servings') : p.foodUnit}
+                    <ArrowLeftRight size={10} />
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-[var(--muted)]">
+                    {i.unit === 'serving' ? (i.grams === 1 ? 'serving' : 'servings') : p.foodUnit}
+                  </span>
                 )}
               </div>
               <button
