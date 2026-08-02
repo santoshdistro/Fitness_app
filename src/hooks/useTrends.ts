@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays, startOfDateIso, todayDateString } from '../utils/date';
-import type { CardioLog, DailyLog, FoodLog, WorkoutLog } from '../types/database';
+import { addDays, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
+import type { CardioLog, DailyLog, FoodLog, Measurement, WorkoutLog } from '../types/database';
 
 export type Series = { label: string; value: number; date: string }[];
 
@@ -17,6 +17,10 @@ export type Trends = {
   volume: Series; // per workout session
   cardioDistance: Series; // km per cardio session
   totalKm: number;
+  waist: Series; // inches, per recording
+  bodyFat: Series; // %, per recording
+  workoutsPerWeek: Series; // sessions per week (Mon-anchored)
+  totalWorkouts: number; // sessions in window
   avgCalories: number | null;
   avgProtein: number | null;
   avgSteps: number | null;
@@ -81,7 +85,13 @@ export function useTrends() {
         .eq('user_id', userId)
         .gte('session_timestamp', startOfDateIso(start))
         .order('session_timestamp', { ascending: true }),
-    ]).then(([dailyRes, foodRes, workoutRes, cardioRes]) => {
+      supabase
+        .from('measurements')
+        .select('entry_timestamp, waist, calculated_body_fat')
+        .eq('user_id', userId)
+        .gte('entry_timestamp', startOfDateIso(start))
+        .order('entry_timestamp', { ascending: true }),
+    ]).then(([dailyRes, foodRes, workoutRes, cardioRes, measureRes]) => {
       if (cancelled) return;
       const dailies =
         (dailyRes.data as Pick<DailyLog, 'log_date' | 'weight' | 'steps' | 'caffeine_mg'>[]) ?? [];
@@ -153,6 +163,33 @@ export function useTrends() {
         });
       const totalKm = Math.round(cardioDistance.reduce((s, p) => s + p.value, 0) * 10) / 10;
 
+      // Body composition from measurements.
+      const measures =
+        (measureRes.data as Pick<Measurement, 'entry_timestamp' | 'waist' | 'calculated_body_fat'>[]) ?? [];
+      const waist: Series = measures
+        .filter(m => m.waist != null)
+        .map(m => {
+          const date = m.entry_timestamp.slice(0, 10);
+          return { label: shortLabel(date), value: m.waist as number, date };
+        });
+      const bodyFat: Series = measures
+        .filter(m => m.calculated_body_fat != null)
+        .map(m => {
+          const date = m.entry_timestamp.slice(0, 10);
+          return { label: shortLabel(date), value: Math.round((m.calculated_body_fat as number) * 10) / 10, date };
+        });
+
+      // Workout sessions grouped per Monday-anchored week.
+      const weekCounts = new Map<string, number>();
+      for (const w of workouts) {
+        const wk = startOfWeek(w.session_timestamp.slice(0, 10));
+        weekCounts.set(wk, (weekCounts.get(wk) ?? 0) + 1);
+      }
+      const workoutsPerWeek: Series = Array.from(weekCounts.entries())
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+        .map(([wk, count]) => ({ label: shortLabel(wk), value: count, date: wk }));
+      const totalWorkouts = workouts.length;
+
       setTrends({
         weight,
         weightMovingAvg,
@@ -164,6 +201,10 @@ export function useTrends() {
         volume,
         cardioDistance,
         totalKm,
+        waist,
+        bodyFat,
+        workoutsPerWeek,
+        totalWorkouts,
         avgCalories: avgLogged(kcalMap, WINDOW),
         avgProtein: avgLogged(proteinMap, WINDOW),
         avgSteps: avgLogged(stepsMap, WINDOW),

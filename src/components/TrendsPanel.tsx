@@ -1,4 +1,4 @@
-import { useTrends } from '../hooks/useTrends';
+import { useTrends, type Series } from '../hooks/useTrends';
 import { useSettings } from '../hooks/useSettings';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { kgToUnit } from '../utils/units';
@@ -25,6 +25,43 @@ function Section({
   );
 }
 
+// Change between the first and last point of a series (null if <2 points).
+function seriesDelta(s: Series): number | null {
+  if (s.length < 2) return null;
+  return Math.round((s[s.length - 1].value - s[0].value) * 10) / 10;
+}
+
+function StatTile({
+  label,
+  value,
+  unit,
+  sub,
+  subColor,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  sub?: string;
+  subColor?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 rounded-2xl bg-[var(--bg)] px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className="text-lg font-bold leading-none text-[var(--text)]">
+        {value}
+        {unit ? <span className="ml-0.5 text-xs font-semibold text-[var(--muted)]">{unit}</span> : null}
+      </p>
+      {sub ? (
+        <p className="text-[10px] font-semibold" style={{ color: subColor ?? 'var(--muted)' }}>
+          {sub}
+        </p>
+      ) : (
+        <p className="text-[10px] text-[var(--muted)]">—</p>
+      )}
+    </div>
+  );
+}
+
 export function TrendsPanel() {
   const { trends, loading } = useTrends();
   const { settings } = useSettings();
@@ -37,8 +74,52 @@ export function TrendsPanel() {
   const weightPoints = trends.weight.map(p => ({ ...p, value: Math.round(kgToUnit(p.value, wUnit) * 10) / 10 }));
   const weightOverlay = trends.weightMovingAvg.map(v => Math.round(kgToUnit(v, wUnit) * 10) / 10);
 
+  // Hero summary tiles.
+  const weightNow = weightPoints.length ? weightPoints[weightPoints.length - 1].value : null;
+  const weightChange = seriesDelta(weightPoints);
+  const calPct =
+    trends.avgCalories != null && targets.calorieTarget
+      ? Math.round((trends.avgCalories / targets.calorieTarget) * 100)
+      : null;
+  const proPct =
+    trends.avgProtein != null && targets.proteinTarget
+      ? Math.round((trends.avgProtein / targets.proteinTarget) * 100)
+      : null;
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="glass-card grid grid-cols-2 gap-2 p-3">
+        <StatTile
+          label="Weight"
+          value={weightNow != null ? String(weightNow) : '—'}
+          unit={weightNow != null ? wUnit : undefined}
+          sub={
+            weightChange != null
+              ? `${weightChange > 0 ? '▲' : weightChange < 0 ? '▼' : ''} ${Math.abs(weightChange)} ${wUnit} · period`
+              : undefined
+          }
+        />
+        <StatTile
+          label="Calories"
+          value={trends.avgCalories != null ? trends.avgCalories.toLocaleString() : '—'}
+          sub={calPct != null ? `${calPct}% of target · avg/day` : 'avg/day'}
+          subColor={calPct != null && Math.abs(calPct - 100) <= 10 ? '#22c55e' : undefined}
+        />
+        <StatTile
+          label="Protein"
+          value={trends.avgProtein != null ? String(trends.avgProtein) : '—'}
+          unit={trends.avgProtein != null ? 'g' : undefined}
+          sub={proPct != null ? `${proPct}% of target · avg/day` : 'avg/day'}
+          subColor={proPct != null && proPct >= 90 ? '#22c55e' : undefined}
+        />
+        <StatTile
+          label="Training"
+          value={String(trends.totalWorkouts)}
+          unit="sessions"
+          sub={trends.totalWorkouts ? 'last 90 days' : 'log a workout'}
+        />
+      </div>
+
       <Section
         title="Weight"
         subtitle={weightPoints.length >= 2 ? `${weightPoints.length} weigh-ins` : undefined}
@@ -48,6 +129,32 @@ export function TrendsPanel() {
           Dashed line = 5-point average (smooths daily water-weight swings).
         </p>
       </Section>
+
+      {trends.bodyFat.length > 0 ? (
+        <Section
+          title="Body fat"
+          subtitle={(() => {
+            const d = seriesDelta(trends.bodyFat);
+            return d != null ? `${d > 0 ? '+' : ''}${d}% over period` : `${trends.bodyFat.length} readings`;
+          })()}
+        >
+          <TrendChart points={trends.bodyFat} type="line" unit="%" color="#f59e0b" decimals={1} />
+          <p className="text-[10px] text-[var(--muted)]">Estimated from your logged measurements.</p>
+        </Section>
+      ) : null}
+
+      {trends.waist.length > 0 ? (
+        <Section
+          title="Waist"
+          subtitle={(() => {
+            const d = seriesDelta(trends.waist);
+            return d != null ? `${d > 0 ? '+' : ''}${d}" over period` : `${trends.waist.length} readings`;
+          })()}
+        >
+          <TrendChart points={trends.waist} type="line" unit={'"'} color="#0ea5e9" decimals={1} />
+          <p className="text-[10px] text-[var(--muted)]">A shrinking waist is the clearest fat-loss signal.</p>
+        </Section>
+      ) : null}
 
       <Section title="Calories" subtitle={trends.avgCalories != null ? `avg ${trends.avgCalories}/day` : undefined}>
         <TrendChart points={trends.calories} type="bar" unit="" color="#6c63ff" goal={targets.calorieTarget} />
@@ -60,6 +167,16 @@ export function TrendsPanel() {
       <Section title="Steps" subtitle={trends.avgSteps != null ? `avg ${trends.avgSteps.toLocaleString()}/day` : undefined}>
         <TrendChart points={trends.steps} type="bar" color="#f97316" goal={settings.stepGoal} />
       </Section>
+
+      {trends.workoutsPerWeek.length > 0 ? (
+        <Section
+          title="Workout frequency"
+          subtitle={`${trends.totalWorkouts} sessions · ${trends.workoutsPerWeek.length} wks`}
+        >
+          <TrendChart points={trends.workoutsPerWeek} type="bar" unit="" color="#ec4899" goal={4} />
+          <p className="text-[10px] text-[var(--muted)]">Sessions per week — consistency beats intensity.</p>
+        </Section>
+      ) : null}
 
       <Section
         title="Training volume"
