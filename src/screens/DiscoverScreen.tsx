@@ -8,6 +8,7 @@ import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../lib/openFoodFacts';
 import { searchIndianFoods } from '../data/indianFoods';
+import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult } from '../hooks/useFoodSuggestions';
 import { estimateFood } from '../lib/aiClient';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
@@ -79,6 +80,7 @@ export function DiscoverScreen() {
   const { profile } = useProfile();
   const { logs: recentLogs } = useRecentDailyLogs(14);
   const { settings } = useSettings();
+  const { all: myFoods } = useFoodSuggestions();
   const foodUnit = settings.foodUnit;
 
   const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
@@ -143,12 +145,14 @@ export function DiscoverScreen() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
+    const mine = searchMyFoods(myFoods, query.trim()).map(suggestionToSearchResult);
     const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
       searchFoods(query.trim()),
     ]);
     const merged = [
+      ...mine,
       ...indian,
       ...(off.status === 'fulfilled' ? off.value : []),
       ...(usda.status === 'fulfilled' ? usda.value : []),

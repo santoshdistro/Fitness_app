@@ -6,7 +6,7 @@ import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
 import { searchIndianFoods } from '../../data/indianFoods';
 import { estimateFood } from '../../lib/aiClient';
-import { useFoodSuggestions, searchMyFoods, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
+import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
 import { gToUnit, unitToG } from '../../utils/units';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/mealCategory';
@@ -72,27 +72,6 @@ function detailFromResult(result: FoodSearchResult): DetailBase {
   };
 }
 
-// A previously-logged food becomes a per-serving search result, so anything you
-// scanned / estimated / typed once is findable by name later with its macros.
-function myFoodToResult(s: FoodSuggestion, i: number): FoodSearchResult {
-  return {
-    fdcId: -200000 - i,
-    description: s.mealName,
-    brandOwner: 'Your foods',
-    calories: s.calories ?? 0,
-    protein: s.protein_g ?? 0,
-    carbs: s.carbs_g ?? 0,
-    fat: s.fat_g ?? 0,
-    fiber: s.fiber_g ?? 0,
-    sodium: s.sodium_mg ?? 0,
-    sugar: s.sugar_g ?? 0,
-    satFat: s.saturated_fat_g ?? 0,
-    transFat: s.trans_fat_g ?? 0,
-    polyFat: s.poly_fat_g ?? 0,
-    monoFat: s.mono_fat_g ?? 0,
-    isPerServing: true,
-  };
-}
 
 type Props = {
   onSaved: () => void;
@@ -153,7 +132,7 @@ export function MealForm({ onSaved, initial }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // Your previously-logged foods that match what you're typing (live).
-  const myMatches = query.trim() ? searchMyFoods(myFoods, query.trim()).map(myFoodToResult) : [];
+  const myMatches = query.trim() ? searchMyFoods(myFoods, query.trim()).map(suggestionToSearchResult) : [];
 
   async function handleSearch() {
     if (!query.trim()) return;

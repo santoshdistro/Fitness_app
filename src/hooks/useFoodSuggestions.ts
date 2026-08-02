@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { FoodLog, MealCategory } from '../types/database';
+import type { FoodSearchResult } from '../lib/usdaFoodApi';
 
 export type FoodSuggestion = {
   key: string;
@@ -116,4 +117,28 @@ export function searchMyFoods(all: FoodSuggestion[], query: string, limit = 8): 
     .filter(x => x.score > 0)
     .sort((a, b) => b.score - a.score);
   return scored.slice(0, limit).map(x => x.f);
+}
+
+// A previously-logged food as a per-serving search result, so it can be
+// re-added from the food search anywhere with its saved macros.
+export function suggestionToSearchResult(s: FoodSuggestion, i: number): FoodSearchResult {
+  return {
+    fdcId: -200000 - i,
+    description: s.mealName,
+    brandOwner: 'Your foods',
+    calories: s.calories ?? 0,
+    protein: s.protein_g ?? 0,
+    carbs: s.carbs_g ?? 0,
+    fat: s.fat_g ?? 0,
+    fiber: s.fiber_g ?? 0,
+    sodium: s.sodium_mg ?? 0,
+    sugar: s.sugar_g ?? 0,
+    satFat: s.saturated_fat_g ?? 0,
+    transFat: s.trans_fat_g ?? 0,
+    polyFat: s.poly_fat_g ?? 0,
+    monoFat: s.mono_fat_g ?? 0,
+    isPerServing: true,
+    servingSize: 1,
+    servingSizeUnit: 'serving',
+  };
 }
