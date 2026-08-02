@@ -7,6 +7,7 @@ import { usePushReminders } from '../hooks/usePushReminders';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { useDietSplit, DIET_DAY_OPTIONS, DIET_WEEKDAYS, type DietDayType } from '../hooks/useDietSplit';
 import { dayTemplateItems } from '../data/dietDayTemplates';
+import { DayScheduleCard } from './DayScheduleCard';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem, type DietPlanResult } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
@@ -173,6 +174,9 @@ export function DietPlanner() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Daily eating & wellness schedule */}
+      <DayScheduleCard userId={session?.user?.id} goal={goalDefault(profile?.goal_type)} />
+
       {/* Two ways to plan: predefined day-plans or AI */}
       <div className="flex gap-2">
         <button

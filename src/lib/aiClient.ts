@@ -172,6 +172,20 @@ export async function generateDietPlan(
   return result;
 }
 
+// Daily eating & wellness schedule — shares the diet-plan function
+// (kind:'schedule'). Returns the same shape as the curated builder.
+export async function generateDaySchedule(
+  userId: string,
+  input: { wake: string; gym: string | null; lastMeal: string; sleep: string; hasWorkout: boolean; goal?: string; diet?: string },
+): Promise<import('./daySchedule').DaySchedule> {
+  const { result, usage } = await postJson<import('./daySchedule').DaySchedule>('/api/diet-plan', {
+    ...input,
+    kind: 'schedule',
+  });
+  if (usage) void logAiUsage(userId, 'diet_plan', usage);
+  return result;
+}
+
 // Weekend batch-cook planner — shares the diet-plan function (kind:'prep') to
 // stay within the serverless function budget.
 export async function generateMealPrep(
