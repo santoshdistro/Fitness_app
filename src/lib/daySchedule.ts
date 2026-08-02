@@ -39,6 +39,22 @@ function toStr(mins: number): string {
   return `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(v % 60).padStart(2, '0')}`;
 }
 
+// Clock times for standard meals derived from wake & last-meal, so the diet
+// plan lines up with the day schedule (breakfast soon after waking, dinner =
+// last meal, lunch/snack spaced between).
+export function mealTimesFromSchedule(input: { wake: string; lastMeal: string }): Record<string, string> {
+  const wake = toMin(input.wake);
+  const lastMeal = toMin(input.lastMeal);
+  const lunch = Math.max(wake + 300, toMin('13:00'));
+  const snack = Math.min(lunch + 210, lastMeal - 180);
+  return {
+    Breakfast: toStr(wake + 45),
+    Lunch: toStr(lunch),
+    Snack: toStr(snack),
+    Dinner: toStr(lastMeal),
+  };
+}
+
 export function buildDaySchedule(input: ScheduleInput): DaySchedule {
   const wake = toMin(input.wake);
   const sleep = toMin(input.sleep);

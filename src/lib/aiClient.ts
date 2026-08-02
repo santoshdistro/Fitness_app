@@ -176,7 +176,7 @@ export async function generateDietPlan(
 // (kind:'schedule'). Returns the same shape as the curated builder.
 export async function generateDaySchedule(
   userId: string,
-  input: { wake: string; gym: string | null; lastMeal: string; sleep: string; hasWorkout: boolean; goal?: string; diet?: string },
+  input: { wake: string; gym: string | null; lastMeal: string; sleep: string; hasWorkout: boolean; goal?: string; diet?: string; notes?: string },
 ): Promise<import('./daySchedule').DaySchedule> {
   const { result, usage } = await postJson<import('./daySchedule').DaySchedule>('/api/diet-plan', {
     ...input,

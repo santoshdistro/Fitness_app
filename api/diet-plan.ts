@@ -27,6 +27,7 @@ type Body = {
   lastMeal?: string;
   sleep?: string;
   hasWorkout?: boolean;
+  notes?: string;
 };
 
 type PlanItem = {
@@ -101,6 +102,7 @@ export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
         `Sleep time: ${body.sleep || '23:00'}`,
         `Goal: ${body.goal || 'general health'}`,
         `Diet preference: ${body.diet || 'no restrictions'}`,
+        body.notes ? `Requested changes (follow these): ${body.notes}` : '',
       ]
         .filter(Boolean)
         .join('\n');

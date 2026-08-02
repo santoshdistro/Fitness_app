@@ -8,6 +8,8 @@ import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { useDietSplit, DIET_DAY_OPTIONS, DIET_WEEKDAYS, type DietDayType } from '../hooks/useDietSplit';
 import { dayTemplateItems } from '../data/dietDayTemplates';
 import { DayScheduleCard } from './DayScheduleCard';
+import { useDaySchedule } from '../hooks/useDaySchedule';
+import { mealTimesFromSchedule } from '../lib/daySchedule';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem, type DietPlanResult } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
@@ -78,6 +80,7 @@ export function DietPlanner() {
   const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, repeatDay, clearDate, clearAll } =
     useDietPlan();
   const { split, setDay } = useDietSplit();
+  const { inputs: scheduleInputs, update: updateSchedule } = useDaySchedule();
   const { status: pushStatus, prefs, enable, savePrefs } = usePushReminders();
 
   const today = todayDateString();
@@ -127,7 +130,16 @@ export function DietPlanner() {
   // Non-AI build: assemble the fortnight instantly from curated day-templates
   // that match each weekday's chosen style.
   function quickFillFromSplit() {
-    const days = split.map(type => ({ items: dayTemplateItems(type) }));
+    // Line meal times up with your day schedule (breakfast soon after waking,
+    // dinner = last meal). IF / OMAD days keep their own eating-window times.
+    const times = mealTimesFromSchedule(scheduleInputs);
+    const days = split.map(type => {
+      const keepTimes = type === 'IF 16:8' || type === 'Fasting (OMAD)';
+      const items = dayTemplateItems(type).map(it =>
+        !keepTimes && times[it.meal] ? { ...it, time: times[it.meal] } : it,
+      );
+      return { items };
+    });
     applyWeeklyPlan(
       { summary: 'Curated week from your diet split — every meal stays editable.', days },
       stripStart,
@@ -175,7 +187,12 @@ export function DietPlanner() {
   return (
     <div className="flex flex-col gap-4">
       {/* Daily eating & wellness schedule */}
-      <DayScheduleCard userId={session?.user?.id} goal={goalDefault(profile?.goal_type)} />
+      <DayScheduleCard
+        userId={session?.user?.id}
+        goal={goalDefault(profile?.goal_type)}
+        inputs={scheduleInputs}
+        onUpdate={updateSchedule}
+      />
 
       {/* Two ways to plan: predefined day-plans or AI */}
       <div className="flex gap-2">

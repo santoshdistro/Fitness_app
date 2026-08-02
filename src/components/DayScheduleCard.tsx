@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ChevronDown,
   Droplet,
@@ -13,10 +13,7 @@ import {
 } from 'lucide-react';
 import { buildDaySchedule, type ScheduleEntry, type ScheduleKind, type DaySchedule } from '../lib/daySchedule';
 import { generateDaySchedule } from '../lib/aiClient';
-
-type Inputs = { wake: string; gym: string; lastMeal: string; sleep: string; hasWorkout: boolean };
-
-const DEFAULTS: Inputs = { wake: '07:00', gym: '18:00', lastMeal: '20:00', sleep: '23:00', hasWorkout: true };
+import { type DayScheduleInputs } from '../hooks/useDaySchedule';
 
 const KIND_STYLE: Record<ScheduleKind, { color: string; Icon: typeof Utensils }> = {
   wake: { color: '#f59e0b', Icon: Sunrise },
@@ -42,29 +39,21 @@ export function DayScheduleCard({
   userId,
   goal,
   diet,
+  inputs,
+  onUpdate,
 }: {
   userId?: string;
   goal?: string;
   diet?: string;
+  inputs: DayScheduleInputs;
+  onUpdate: (partial: Partial<DayScheduleInputs>) => void;
 }) {
-  const storageKey = userId ? `day_schedule:${userId}` : null;
   const [open, setOpen] = useState(false);
-  const [inputs, setInputs] = useState<Inputs>(() => {
-    if (!storageKey) return DEFAULTS;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Inputs>) } : DEFAULTS;
-    } catch {
-      return DEFAULTS;
-    }
-  });
   const [ai, setAi] = useState<DaySchedule | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(inputs));
-  }, [storageKey, inputs]);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [notes, setNotes] = useState('');
 
   const curated = useMemo(
     () =>
@@ -80,8 +69,8 @@ export function DayScheduleCard({
 
   const schedule = ai ?? curated;
 
-  function set<K extends keyof Inputs>(key: K, value: Inputs[K]) {
-    setInputs(prev => ({ ...prev, [key]: value }));
+  function set<K extends keyof DayScheduleInputs>(key: K, value: DayScheduleInputs[K]) {
+    onUpdate({ [key]: value } as Partial<DayScheduleInputs>);
     setAi(null); // inputs changed — fall back to the fresh curated schedule
   }
 
@@ -98,8 +87,10 @@ export function DayScheduleCard({
         hasWorkout: inputs.hasWorkout,
         goal,
         diet,
+        notes: notes.trim() || undefined,
       });
       setAi(r);
+      setRefineOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not refine right now.');
     } finally {
@@ -178,27 +169,57 @@ export function DayScheduleCard({
 
           {error ? <p className="text-[11px] text-red-500">{error}</p> : null}
 
-          <div className="mt-1 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={refineWithAi}
-              disabled={busy}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
-            >
-              {busy ? (
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <Sparkles size={12} />
-              )}
-              {busy ? 'Refining…' : 'Refine with AI'}
-            </button>
-            {ai ? (
-              <button type="button" onClick={() => setAi(null)} className="text-[11px] font-semibold text-[var(--muted)]">
-                Back to curated
+          {refineOpen ? (
+            <div className="mt-1 flex flex-col gap-2 rounded-2xl bg-[var(--bg)] p-3">
+              <p className="text-[11px] font-semibold text-[var(--text)]">What should the AI change?</p>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={3}
+                placeholder="e.g. I train fasted, prefer 4 meals, add lemon water mid-morning, dinner by 8pm"
+                className="w-full resize-none rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--text)] outline-none"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={refineWithAi}
+                  disabled={busy}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+                >
+                  {busy ? (
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  {busy ? 'Refining…' : 'Refine'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRefineOpen(false)}
+                  className="text-[11px] font-semibold text-[var(--muted)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setRefineOpen(true)}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
+                style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+              >
+                <Sparkles size={12} /> Refine with AI
               </button>
-            ) : null}
-          </div>
+              {ai ? (
+                <button type="button" onClick={() => setAi(null)} className="text-[11px] font-semibold text-[var(--muted)]">
+                  Back to curated
+                </button>
+              ) : null}
+            </div>
+          )}
           <p className="text-[9px] text-[var(--muted)]">
             General wellness guidance, not medical advice.
           </p>
