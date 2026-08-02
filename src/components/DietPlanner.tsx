@@ -6,6 +6,7 @@ import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { usePushReminders } from '../hooks/usePushReminders';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { useDietSplit, DIET_DAY_OPTIONS, DIET_WEEKDAYS, type DietDayType } from '../hooks/useDietSplit';
+import { dayTemplateItems } from '../data/dietDayTemplates';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem, type DietPlanResult } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
@@ -122,6 +123,17 @@ export function DietPlanner() {
     setStripStart(date);
   }
 
+  // Non-AI build: assemble the fortnight instantly from curated day-templates
+  // that match each weekday's chosen style.
+  function quickFillFromSplit() {
+    const days = split.map(type => ({ items: dayTemplateItems(type) }));
+    applyWeeklyPlan(
+      { summary: 'Curated week from your diet split — every meal stays editable.', days },
+      stripStart,
+    );
+    setViewDate(stripStart);
+  }
+
   // Push this day's breakfast/lunch/dinner times into the reminder prefs so the
   // existing notification system nudges you to eat on schedule.
   async function syncReminders() {
@@ -186,19 +198,9 @@ export function DietPlanner() {
 
       {/* Weekly diet split — pick a style per weekday, AI plans around it */}
       <div className="glass-card flex flex-col gap-2 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-[var(--text)]">Weekly diet split</p>
-            <p className="text-[10px] text-[var(--muted)]">A style per day — like your workout split.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSplitOpen(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
-          >
-            <Sparkles size={13} /> Build week
-          </button>
+        <div>
+          <p className="text-sm font-semibold text-[var(--text)]">Weekly diet split</p>
+          <p className="text-[10px] text-[var(--muted)]">A style per day — like your workout split.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           {DIET_WEEKDAYS.map((wd, i) => (
@@ -218,6 +220,27 @@ export function DietPlanner() {
             </div>
           ))}
         </div>
+        <div className="mt-1 flex gap-2">
+          <button
+            type="button"
+            onClick={quickFillFromSplit}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-[var(--card-border)] bg-[var(--bg)] py-2.5 text-[11px] font-bold text-[var(--text)]"
+          >
+            <Utensils size={13} className="text-[var(--accent)]" /> Quick fill
+          </button>
+          <button
+            type="button"
+            onClick={() => setSplitOpen(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-[11px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          >
+            <Sparkles size={13} /> Build with AI
+          </button>
+        </div>
+        <p className="text-[10px] text-[var(--muted)]">
+          Quick fill = curated day-templates, instant &amp; offline. AI = tailored to your goal &amp;
+          macros.
+        </p>
       </div>
 
       {plan.summary ? (
