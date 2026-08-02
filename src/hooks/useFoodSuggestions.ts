@@ -101,9 +101,19 @@ export function useFoodSuggestions() {
   return { recent, frequent, all, loading };
 }
 
-// Match the user's own logged foods by name tokens (all must appear).
+// Match the user's own logged foods by name. Foods where every word matches
+// rank first, then foods where any word matches, so a loose query still finds
+// something (e.g. "orange" finds "Tropicana Orange").
 export function searchMyFoods(all: FoodSuggestion[], query: string, limit = 8): FoodSuggestion[] {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
-  return all.filter(f => tokens.every(t => f.mealName.toLowerCase().includes(t))).slice(0, limit);
+  const scored = all
+    .map(f => {
+      const name = f.mealName.toLowerCase();
+      const score = tokens.every(t => name.includes(t)) ? 2 : tokens.some(t => name.includes(t)) ? 1 : 0;
+      return { f, score };
+    })
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map(x => x.f);
 }

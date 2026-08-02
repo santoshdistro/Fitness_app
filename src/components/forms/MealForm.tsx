@@ -152,21 +152,22 @@ export function MealForm({ onSaved, initial }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Your previously-logged foods that match what you're typing (live).
+  const myMatches = query.trim() ? searchMyFoods(myFoods, query.trim()).map(myFoodToResult) : [];
+
   async function handleSearch() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
     // Query the global (Open Food Facts) and US (USDA) databases together, so
-    // one failing or being sparse doesn't block the other.
-    // Your own logged foods first, then the databases.
-    const mine = searchMyFoods(myFoods, query.trim()).map(myFoodToResult);
+    // one failing or being sparse doesn't block the other. (The user's own
+    // foods show live above, so they aren't re-listed here.)
     const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
       searchFoods(query.trim()),
     ]);
     const merged = [
-      ...mine,
       ...indian,
       ...(off.status === 'fulfilled' ? off.value : []),
       ...(usda.status === 'fulfilled' ? usda.value : []),
@@ -420,6 +421,31 @@ export function MealForm({ onSaved, initial }: Props) {
           🔍 searches the food database · ✨ estimates any dish with AI (great for home-cooked &
           regional foods).
         </p>
+
+        {/* Your own logged foods, matched live as you type */}
+        {myMatches.length > 0 ? (
+          <div className="mt-2">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Your foods
+            </p>
+            <ul className="glass-card max-h-40 overflow-y-auto !rounded-2xl">
+              {myMatches.map(result => (
+                <li key={result.fdcId}>
+                  <button
+                    type="button"
+                    onClick={() => selectResult(result)}
+                    className="flex w-full flex-col items-start border-b border-[var(--card-border)] px-4 py-2.5 text-left last:border-b-0"
+                  >
+                    <span className="text-sm text-[var(--text)]">{result.description}</span>
+                    <span className="text-[10px] text-[var(--muted)]">
+                      Saved · {result.calories} kcal per serving
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {searchError ? <p className={`mt-2 ${errorTextClass}`}>{searchError}</p> : null}
 

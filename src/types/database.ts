@@ -33,6 +33,7 @@ export type MealCategory =
   | 'lunch'
   | 'dinner'
   | 'snack'
+  | 'evening_snack'
   | 'supplement'
   | 'other';
 

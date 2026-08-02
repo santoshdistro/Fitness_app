@@ -548,6 +548,7 @@ const MEAL_COLORS: Record<MealCategory, string> = {
   lunch: '#22c55e',
   dinner: '#f59e0b',
   snack: '#0ea5e9',
+  evening_snack: '#14b8a6',
   supplement: '#a855f7',
   other: '#94a3b8',
 };
@@ -557,6 +558,7 @@ const MEAL_LABELS: Record<MealCategory, string> = {
   lunch: 'Lunch',
   dinner: 'Dinner',
   snack: 'Snacks',
+  evening_snack: 'Evening snacks',
   supplement: 'Supplements',
   other: 'Other',
 };
