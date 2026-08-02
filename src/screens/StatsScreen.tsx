@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Camera, Check, ChevronLeft, ChevronRight, Copy, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Activity, Camera, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
@@ -14,11 +14,8 @@ import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
-import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
 import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
 import {
@@ -29,8 +26,7 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
-import type { FoodLog, MealCategory } from '../types/database';
+import { addDays, isToday, todayDateString } from '../utils/date';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -40,20 +36,6 @@ const ACTIVITY_SHORT: Record<string, string> = {
   moderate: 'Moderately active',
   very_active: 'Very active',
 };
-
-const MEAL_CATEGORIES: { key: MealCategory; label: string }[] = [
-  { key: 'breakfast', label: 'Breakfast' },
-  { key: 'lunch', label: 'Lunch' },
-  { key: 'dinner', label: 'Dinner' },
-  { key: 'snack', label: 'Snacks' },
-  { key: 'evening_snack', label: 'Evening snacks' },
-  { key: 'supplement', label: 'Supplements' },
-  { key: 'other', label: 'Other' },
-];
-
-function formatMealTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
 
 function formatScanDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -77,16 +59,14 @@ function dateLabel(dateStr: string): string {
 }
 
 type Props = {
-  onQuickAddCalories: () => void;
   onOpenProgressPhotos: () => void;
 };
 
-export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
+export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const [tab, setTab] = useState<'stats' | 'trends'>('stats');
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
-  const { session } = useAuth();
-  const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
+  const { totals } = useTodayNutrition(selectedDate);
   const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(14);
   const { measurements, deleteMeasurement } = useRecentMeasurements(5);
   const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
@@ -97,10 +77,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const { settings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
-  const [copying, setCopying] = useState(false);
-  const [addedMealIds, setAddedMealIds] = useState<Set<string>>(new Set());
-  const [editingMeal, setEditingMeal] = useState<{ meal: FoodLog; mode: MealEditMode } | null>(null);
-  const [savingMeal, setSavingMeal] = useState(false);
 
   const measurement = measurements[0];
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -129,79 +105,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
   const suggestedMacros = canComputeTarget
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
     : null;
-
-
-  const mealsByCategory = MEAL_CATEGORIES.map(category => ({
-    ...category,
-    meals: meals.filter(meal => meal.meal_category === category.key),
-  }));
-
-  async function copyYesterdaysMeals() {
-    if (!session?.user) return;
-    setCopying(true);
-    const yesterday = addDays(selectedDate, -1);
-    const { data } = await supabase
-      .from('food_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('meal_timestamp', startOfDateIso(yesterday))
-      .lt('meal_timestamp', endOfDateIso(yesterday));
-
-    const previousMeals = (data as FoodLog[]) ?? [];
-    if (previousMeals.length > 0) {
-      await supabase.from('food_logs').insert(
-        previousMeals.map(meal => ({
-          user_id: session.user!.id,
-          meal_name: meal.meal_name,
-          meal_category: meal.meal_category,
-          calories: meal.calories,
-          protein_g: meal.protein_g,
-          carbs_g: meal.carbs_g,
-          fat_g: meal.fat_g,
-          fiber_g: meal.fiber_g,
-          sodium_mg: meal.sodium_mg,
-        })),
-      );
-      await refreshMeals();
-    }
-    setCopying(false);
-  }
-
-  // Apply a portion adjustment from the edit sheet. In 'edit' mode it updates
-  // the existing row; in 'today' mode it logs a scaled copy into today.
-  async function applyMealChange(multiplier: number, category: MealCategory) {
-    if (!session?.user || !editingMeal) return;
-    const { meal, mode } = editingMeal;
-    const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
-    const scaled = {
-      calories: s(meal.calories),
-      protein_g: s(meal.protein_g),
-      carbs_g: s(meal.carbs_g),
-      fat_g: s(meal.fat_g),
-      fiber_g: s(meal.fiber_g),
-      sodium_mg: s(meal.sodium_mg),
-      saturated_fat_g: s(meal.saturated_fat_g),
-      trans_fat_g: s(meal.trans_fat_g),
-      poly_fat_g: s(meal.poly_fat_g),
-      mono_fat_g: s(meal.mono_fat_g),
-    };
-    setSavingMeal(true);
-    if (mode === 'edit') {
-      await supabase.from('food_logs').update({ ...scaled, meal_category: category }).eq('id', meal.id);
-      await refreshMeals();
-    } else {
-      await supabase.from('food_logs').insert({
-        user_id: session.user.id,
-        meal_name: meal.meal_name,
-        meal_category: category,
-        ...scaled,
-      });
-      setAddedMealIds(prev => new Set(prev).add(meal.id));
-      if (isToday(selectedDate)) await refreshMeals();
-    }
-    setSavingMeal(false);
-    setEditingMeal(null);
-  }
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
@@ -398,122 +301,12 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         ) : null}
       </div>
 
-      {/* Adaptive maintenance from real data */}
-      {adaptiveTdee ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.13s' }}>
-          <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
-        </div>
-      ) : null}
-
-
-
-      {/* Diary */}
-      <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-sm font-semibold text-[var(--text)]">Diary</p>
-          <button
-            type="button"
-            onClick={onQuickAddCalories}
-            className="text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
-          >
-            + Quick add
-          </button>
-        </div>
-
-        {totals.mealCount === 0 && isToday(selectedDate) ? (
-          <button
-            type="button"
-            onClick={copyYesterdaysMeals}
-            disabled={copying}
-            className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
-            style={{ color: 'var(--accent)' }}
-          >
-            <Copy size={13} />
-            {copying ? 'Copying...' : "Copy yesterday's meals"}
-          </button>
-        ) : null}
-
-        {totals.mealCount === 0 ? (
-          <p className="text-xs text-[var(--muted)]">No meals logged for this day.</p>
-        ) : (
-          mealsByCategory.map(category =>
-            category.meals.length > 0 ? (
-              <div key={category.key} className="mb-3 last:mb-0">
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-                    {category.label}
-                  </p>
-                  <p className="text-[10px] font-semibold text-[var(--muted)]">
-                    {Math.round(category.meals.reduce((sum, m) => sum + (m.calories ?? 0), 0))} kcal
-                  </p>
-                </div>
-                {category.meals.map(meal => (
-                  <div
-                    key={meal.id}
-                    className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setEditingMeal({ meal, mode: 'edit' })}
-                      className="min-w-0 flex-1 pr-2 text-left"
-                      aria-label={`Edit ${meal.meal_name}`}
-                    >
-                      <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
-                      <p className="text-[10px] text-[var(--muted)]">
-                        {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
-                        {meal.protein_g ?? 0}g protein · tap to edit
-                      </p>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-1">
-                      {!isToday(selectedDate) ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditingMeal({ meal, mode: 'today' })}
-                          disabled={addedMealIds.has(meal.id)}
-                          aria-label={`Add ${meal.meal_name} to today`}
-                          className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-bold disabled:opacity-70"
-                          style={
-                            addedMealIds.has(meal.id)
-                              ? { background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#16a34a' }
-                              : { background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }
-                          }
-                        >
-                          {addedMealIds.has(meal.id) ? (
-                            <>
-                              <Check size={12} /> Added
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={12} /> Today
-                            </>
-                          )}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => deleteMeal(meal.id)}
-                        aria-label={`Delete ${meal.meal_name}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null,
-          )
-        )}
-      </div>
-
-
       {/* Progress photos */}
       <button
         type="button"
         onClick={onOpenProgressPhotos}
         className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
-        style={{ animationDelay: '0.24s' }}
+        style={{ animationDelay: '0.14s' }}
       >
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/10">
           <Camera size={16} style={{ color: 'var(--accent)' }} />
@@ -529,7 +322,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
 
       {/* Physique scan history */}
       {bodyScans.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.25s' }}>
+        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.16s' }}>
           <p className="mb-1 text-sm font-semibold text-[var(--text)]">Physique scans</p>
           <p className="mb-3 text-[10px] text-[var(--muted)]">
             {bodyScans.length} scan{bodyScans.length === 1 ? '' : 's'} · directional AI coaching, not
@@ -582,29 +375,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         </div>
       ) : null}
 
-      {/* Body fat */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
-        style={{
-          animationDelay: '0.26s',
-          background: 'linear-gradient(160deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02))',
-        }}
-      >
-        <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
-          <Activity size={16} className="text-purple-600" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
-          <p className="text-[10px] text-[var(--muted)]">
-            {measurement?.calculated_body_fat != null
-              ? `${measurement.calculated_body_fat.toFixed(1)}% - U.S. Navy method`
-              : 'No measurements logged yet'}
-          </p>
-        </div>
-      </div>
-
       {/* Weight (compact) — grouped with body measurements */}
-      <div className="glass-card anim-fade-rise mt-4 p-4" style={{ animationDelay: '0.26s' }}>
+      <div className="glass-card anim-fade-rise mt-4 p-4" style={{ animationDelay: '0.18s' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
@@ -672,13 +444,13 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       </div>
 
       {/* Per-site progress trends */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.28s' }}>
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
         <MeasurementProgressCard />
       </div>
 
       {/* Measurement history */}
       {measurements.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.3s' }}>
+        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
           <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Measurements</p>
           {measurements.map(entry => (
             <div
@@ -709,17 +481,37 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
           ))}
         </div>
       ) : null}
+
+      {/* Body fat — sits with the body-composition group */}
+      <div
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
+        style={{
+          animationDelay: '0.24s',
+          background: 'linear-gradient(160deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02))',
+        }}
+      >
+        <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
+          <Activity size={16} className="text-purple-600" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
+          <p className="text-[10px] text-[var(--muted)]">
+            {measurement?.calculated_body_fat != null
+              ? `${measurement.calculated_body_fat.toFixed(1)}% - U.S. Navy method`
+              : 'No measurements logged yet'}
+          </p>
+        </div>
+      </div>
+
+      {/* Adaptive maintenance from real data — last, it's the most advanced read */}
+      {adaptiveTdee ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.26s' }}>
+          <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
+        </div>
+      ) : null}
         </>
       )}
       </div>
-
-      <MealEditSheet
-        meal={editingMeal?.meal ?? null}
-        mode={editingMeal?.mode ?? 'edit'}
-        saving={savingMeal}
-        onClose={() => setEditingMeal(null)}
-        onConfirm={applyMealChange}
-      />
     </div>
   );
 }

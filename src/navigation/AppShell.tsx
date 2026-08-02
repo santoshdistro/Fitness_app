@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Compass, Dumbbell, Footprints, Home, Images, Loader2, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { CoachChat } from '../components/CoachChat';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -60,7 +60,7 @@ type ActiveSheet =
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
   { key: 'home', label: 'Home', icon: Home },
   { key: 'stats', label: 'Stats', icon: BarChart3 },
-  { key: 'discover', label: 'Discover', icon: Compass },
+  { key: 'discover', label: 'Diary', icon: NotebookPen },
   { key: 'handbook', label: 'Handbook', icon: BookOpen },
   { key: 'workouts', label: 'Workouts', icon: Dumbbell },
 ];
@@ -146,11 +146,15 @@ export function AppShell() {
         {activeTab === 'stats' && (
           <StatsScreen
             key={refreshKey}
-            onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
             onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
           />
         )}
-        {activeTab === 'discover' && <DiscoverScreen key={refreshKey} />}
+        {activeTab === 'discover' && (
+          <DiscoverScreen
+            key={refreshKey}
+            onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
+          />
+        )}
         {activeTab === 'handbook' && <HandbookScreen key={refreshKey} />}
         {activeTab === 'workouts' && (
           <WorkoutsScreen

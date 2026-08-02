@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
@@ -11,11 +11,12 @@ import { searchIndianFoods } from '../data/indianFoods';
 import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult } from '../hooks/useFoodSuggestions';
 import { estimateFood } from '../lib/aiClient';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { useSettings } from '../hooks/useSettings';
 import { gToUnit, unitToG } from '../utils/units';
-import { todayDateString } from '../utils/date';
+import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -67,7 +68,69 @@ function scaled(per: Macros, grams: number): Macros {
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
-export function DiscoverScreen() {
+function dateLabel(dateStr: string): string {
+  if (isToday(dateStr)) return 'Today';
+  if (dateStr === addDays(todayDateString(), -1)) return 'Yesterday';
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
+// Horizontal day picker — the last three weeks, today on the right.
+function CalendarStrip({ selectedDate, onSelect }: { selectedDate: string; onSelect: (d: string) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const days = useMemo(() => {
+    const today = todayDateString();
+    return Array.from({ length: 21 }, (_, i) => addDays(today, -(20 - i)));
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, []);
+
+  return (
+    <div ref={scrollRef} className="hide-scrollbar -mx-6 flex gap-1.5 overflow-x-auto px-6 py-1">
+      {days.map(d => {
+        const date = new Date(`${d}T00:00:00`);
+        const active = d === selectedDate;
+        const today = isToday(d);
+        return (
+          <button
+            key={d}
+            type="button"
+            onClick={() => onSelect(d)}
+            className="flex min-w-[42px] shrink-0 flex-col items-center rounded-2xl py-2 transition-colors"
+            style={
+              active
+                ? { background: 'var(--accent)', color: '#fff' }
+                : { background: 'var(--bg)', color: 'var(--muted)' }
+            }
+          >
+            <span className="text-[9px] font-bold uppercase tracking-wide">
+              {date.toLocaleDateString(undefined, { weekday: 'short' })}
+            </span>
+            <span className="text-sm font-black leading-tight text-[var(--text)]" style={active ? { color: '#fff' } : undefined}>
+              {date.getDate()}
+            </span>
+            <span
+              className="mt-0.5 h-1 w-1 rounded-full"
+              style={{ background: today ? (active ? '#fff' : 'var(--accent)') : 'transparent' }}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type Props = {
+  onQuickAddCalories: () => void;
+};
+
+export function DiscoverScreen({ onQuickAddCalories }: Props) {
   const { session } = useAuth();
   const [tab, setTab] = useState<Tab>('add');
   const { handlers, change, animClass } = useTabSwipe(
@@ -75,8 +138,9 @@ export function DiscoverScreen() {
     tab,
     setTab,
   );
-  const today = todayDateString();
-  const { totals: dayTotals, meals, refresh: refreshNutrition } = useTodayNutrition(today);
+  const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const dayIsToday = isToday(selectedDate);
+  const { totals: dayTotals, meals, deleteMeal, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { logs: recentLogs } = useRecentDailyLogs(14);
   const { settings } = useSettings();
@@ -91,6 +155,9 @@ export function DiscoverScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<{ meal: FoodLog; mode: MealEditMode } | null>(null);
+  const [savingMeal, setSavingMeal] = useState(false);
 
   // Personalised targets (mirrors the Stats screen).
   const weightEntries = recentLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -227,14 +294,23 @@ export function DiscoverScreen() {
     setItems(prev => prev.filter(i => i.key !== key));
   }
 
+  // When logging onto a past day, stamp the entries at noon of that day so they
+  // land in the right bucket; today's entries keep the exact time.
+  function timestampForDay(): string | undefined {
+    if (dayIsToday) return undefined;
+    return new Date(`${selectedDate}T12:00:00`).toISOString();
+  }
+
   async function logMeal() {
     if (!session?.user || items.length === 0) return;
     setSaving(true);
+    const meal_timestamp = timestampForDay();
     await supabase.from('food_logs').insert(
       items.map(i => ({
         user_id: session.user!.id,
         meal_name: i.name,
         meal_category: category,
+        ...(meal_timestamp ? { meal_timestamp } : {}),
         calories: i.calories,
         protein_g: i.protein,
         carbs_g: i.carbs,
@@ -254,16 +330,82 @@ export function DiscoverScreen() {
     setTab('nutrition'); // show the result right away
   }
 
+  async function copyYesterdaysMeals() {
+    if (!session?.user) return;
+    setCopying(true);
+    const yesterday = addDays(selectedDate, -1);
+    const { data } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .gte('meal_timestamp', startOfDateIso(yesterday))
+      .lt('meal_timestamp', endOfDateIso(yesterday));
+
+    const previousMeals = (data as FoodLog[]) ?? [];
+    if (previousMeals.length > 0) {
+      const meal_timestamp = timestampForDay();
+      await supabase.from('food_logs').insert(
+        previousMeals.map(meal => ({
+          user_id: session.user!.id,
+          meal_name: meal.meal_name,
+          meal_category: meal.meal_category,
+          ...(meal_timestamp ? { meal_timestamp } : {}),
+          calories: meal.calories,
+          protein_g: meal.protein_g,
+          carbs_g: meal.carbs_g,
+          fat_g: meal.fat_g,
+          fiber_g: meal.fiber_g,
+          sodium_mg: meal.sodium_mg,
+        })),
+      );
+      await refreshNutrition();
+    }
+    setCopying(false);
+  }
+
+  // Portion edit from the diary — updates the existing row in place.
+  async function applyMealChange(multiplier: number, cat: MealCategory) {
+    if (!session?.user || !editingMeal) return;
+    const { meal } = editingMeal;
+    const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
+    setSavingMeal(true);
+    await supabase
+      .from('food_logs')
+      .update({
+        calories: s(meal.calories),
+        protein_g: s(meal.protein_g),
+        carbs_g: s(meal.carbs_g),
+        fat_g: s(meal.fat_g),
+        fiber_g: s(meal.fiber_g),
+        sodium_mg: s(meal.sodium_mg),
+        saturated_fat_g: s(meal.saturated_fat_g),
+        trans_fat_g: s(meal.trans_fat_g),
+        poly_fat_g: s(meal.poly_fat_g),
+        mono_fat_g: s(meal.mono_fat_g),
+        meal_category: cat,
+      })
+      .eq('id', meal.id);
+    await refreshNutrition();
+    setSavingMeal(false);
+    setEditingMeal(null);
+  }
+
   return (
     <div className="min-h-full px-6 pt-4 pb-28">
-      <div className="anim-drop-in mt-2 flex items-center justify-center">
-        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Discover</h1>
+      <div className="anim-drop-in mt-2 flex items-center justify-between">
+        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Diary</h1>
+        <span className="text-[11px] font-semibold text-[var(--muted)]">{dateLabel(selectedDate)}</span>
+      </div>
+
+      {/* Day picker */}
+      <div className="anim-fade-rise mt-3" style={{ animationDelay: '0.02s' }}>
+        <CalendarStrip selectedDate={selectedDate} onSelect={setSelectedDate} />
       </div>
 
       {/* Tabs */}
-      <div className="anim-fade-rise mt-4 flex gap-1 rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.04s' }}>
+      <div className="anim-fade-rise mt-3 flex gap-1 rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.04s' }}>
         {([
-          { key: 'add', label: 'Add meal' },
+          { key: 'add', label: 'Diary' },
           { key: 'nutrition', label: 'Nutrition' },
           { key: 'macros', label: 'Macros' },
         ] as const).map(t => (
@@ -305,6 +447,13 @@ export function DiscoverScreen() {
           logMeal={logMeal}
           loggedMeals={meals}
           foodUnit={foodUnit}
+          dayIsToday={dayIsToday}
+          mealCount={dayTotals.mealCount}
+          copying={copying}
+          copyYesterdaysMeals={copyYesterdaysMeals}
+          deleteMeal={deleteMeal}
+          onEditMeal={meal => setEditingMeal({ meal, mode: 'edit' })}
+          onQuickAddCalories={onQuickAddCalories}
         />
       ) : tab === 'nutrition' ? (
         <NutritionTab
@@ -320,6 +469,14 @@ export function DiscoverScreen() {
         <MacrosTab totals={dayTotals} meals={meals} />
       )}
       </div>
+
+      <MealEditSheet
+        meal={editingMeal?.meal ?? null}
+        mode={editingMeal?.mode ?? 'edit'}
+        saving={savingMeal}
+        onClose={() => setEditingMeal(null)}
+        onConfirm={applyMealChange}
+      />
     </div>
   );
 }
@@ -344,6 +501,13 @@ type AddMealProps = {
   logMeal: () => void;
   loggedMeals: FoodLog[];
   foodUnit: 'g' | 'oz';
+  dayIsToday: boolean;
+  mealCount: number;
+  copying: boolean;
+  copyYesterdaysMeals: () => void;
+  deleteMeal: (id: string) => void;
+  onEditMeal: (meal: FoodLog) => void;
+  onQuickAddCalories: () => void;
 };
 
 function AddMealTab(p: AddMealProps) {
@@ -469,17 +633,7 @@ function AddMealTab(p: AddMealProps) {
             </div>
           ))}
         </div>
-      ) : (
-        <div className="glass-card anim-fade-rise mt-4 p-6 text-center" style={{ animationDelay: '0.1s' }}>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)]/10">
-            <UtensilsCrossed size={22} style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="text-sm font-semibold text-[var(--text)]">Compose your meal</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            Search and add foods above — you'll see the full breakdown, then log it to your diary.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {p.items.length > 0 ? (
         <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.12s' }}>
@@ -507,11 +661,43 @@ function AddMealTab(p: AddMealProps) {
         </div>
       ) : null}
 
-      {/* Today's log, grouped by meal */}
-      {p.loggedMeals.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's log</p>
-          {MEAL_CATEGORY_OPTIONS.map(o => o.value)
+      {/* This day's diary, grouped by meal — tap to edit, swipe-free delete */}
+      <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
+        <div className="mb-1 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--text)]">Logged this day</p>
+          <button
+            type="button"
+            onClick={p.onQuickAddCalories}
+            className="text-xs font-semibold"
+            style={{ color: 'var(--accent)' }}
+          >
+            + Quick add
+          </button>
+        </div>
+
+        {p.mealCount === 0 ? (
+          <>
+            <button
+              type="button"
+              onClick={p.copyYesterdaysMeals}
+              disabled={p.copying}
+              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Copy size={13} />
+              {p.copying ? 'Copying…' : "Copy the previous day's meals"}
+            </button>
+            <div className="py-4 text-center">
+              <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)]/10">
+                <UtensilsCrossed size={20} style={{ color: 'var(--accent)' }} />
+              </div>
+              <p className="text-xs text-[var(--muted)]">
+                Nothing logged for this day. Search and add foods above.
+              </p>
+            </div>
+          </>
+        ) : (
+          MEAL_CATEGORY_OPTIONS.map(o => o.value)
             .map(cat => ({ cat, list: p.loggedMeals.filter(m => m.meal_category === cat) }))
             .filter(g => g.list.length > 0)
             .map(g => (
@@ -525,24 +711,42 @@ function AddMealTab(p: AddMealProps) {
                   </p>
                 </div>
                 {g.list.map(m => (
-                  <div key={m.id} className="py-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 flex-1 text-xs text-[var(--text)]">{m.meal_name}</p>
-                      <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
-                        {m.calories ?? 0} kcal
-                      </p>
-                    </div>
-                    <MacroSplitBar
-                      protein={m.protein_g ?? 0}
-                      carbs={m.carbs_g ?? 0}
-                      fat={m.fat_g ?? 0}
-                    />
+                  <div
+                    key={m.id}
+                    className="flex items-start gap-2 border-b border-[var(--card-border)] py-2 last:border-b-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => p.onEditMeal(m)}
+                      className="min-w-0 flex-1 text-left"
+                      aria-label={`Edit ${m.meal_name}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 flex-1 text-xs font-medium text-[var(--text)]">{m.meal_name}</p>
+                        <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
+                          {m.calories ?? 0} kcal
+                        </p>
+                      </div>
+                      <MacroSplitBar
+                        protein={m.protein_g ?? 0}
+                        carbs={m.carbs_g ?? 0}
+                        fat={m.fat_g ?? 0}
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => p.deleteMeal(m.id)}
+                      aria-label={`Delete ${m.meal_name}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-red-500/70"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
-            ))}
-        </div>
-      ) : null}
+            ))
+        )}
+      </div>
     </>
   );
 }
