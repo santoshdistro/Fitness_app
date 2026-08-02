@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Activity, BarChart3, Barcode, BookOpen, Camera, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -82,6 +82,11 @@ export function AppShell() {
     setRefreshKey(key => key + 1);
   });
 
+  // Screens share one scroll container, so reset to the top when the tab changes.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
+
   function closeSheet() {
     setActiveSheet(null);
   }
@@ -136,34 +141,33 @@ export function AppShell() {
             </span>
           </div>
         ) : null}
-        {activeTab === 'home' && (
-          <HomeScreen
-            key={refreshKey}
-            onNavigateStats={() => setActiveTab('stats')}
-            onOpenProfile={() => setActiveSheet('profile')}
-            onOpenSettings={() => setActiveSheet('settings')}
-          />
-        )}
-        {activeTab === 'stats' && (
-          <StatsScreen
-            key={refreshKey}
-            onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
-          />
-        )}
-        {activeTab === 'discover' && (
-          <DiscoverScreen
-            key={refreshKey}
-            onQuickAddCalories={() => setActiveSheet('quickAddCalories')}
-          />
-        )}
-        {activeTab === 'handbook' && <HandbookScreen key={refreshKey} />}
-        {activeTab === 'workouts' && (
-          <WorkoutsScreen
-            key={refreshKey}
-            onLogWorkout={() => setActiveSheet('workout')}
-            onGeneratePlan={() => setActiveSheet('workoutPlan')}
-          />
-        )}
+        {/* All tabs stay mounted (hidden when inactive) so switching tabs never
+            unmounts a screen — in-progress input and scroll position survive.
+            Pull-to-refresh still remounts them all via refreshKey. */}
+        <div key={refreshKey} className="contents">
+          <div className={activeTab === 'home' ? 'contents' : 'hidden'}>
+            <HomeScreen
+              onNavigateStats={() => setActiveTab('stats')}
+              onOpenProfile={() => setActiveSheet('profile')}
+              onOpenSettings={() => setActiveSheet('settings')}
+            />
+          </div>
+          <div className={activeTab === 'stats' ? 'contents' : 'hidden'}>
+            <StatsScreen onOpenProgressPhotos={() => setActiveSheet('progressPhotos')} />
+          </div>
+          <div className={activeTab === 'discover' ? 'contents' : 'hidden'}>
+            <DiscoverScreen onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
+          </div>
+          <div className={activeTab === 'handbook' ? 'contents' : 'hidden'}>
+            <HandbookScreen />
+          </div>
+          <div className={activeTab === 'workouts' ? 'contents' : 'hidden'}>
+            <WorkoutsScreen
+              onLogWorkout={() => setActiveSheet('workout')}
+              onGeneratePlan={() => setActiveSheet('workoutPlan')}
+            />
+          </div>
+        </div>
 
       </div>
 
