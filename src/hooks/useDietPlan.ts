@@ -72,6 +72,15 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Set the time for every item in a meal on a given day (a meal is eaten once).
+  const setMealTime = useCallback(
+    (date: string, meal: string, time: string) => {
+      const list = (plan.byDate[date] ?? []).map(it => (it.meal === meal ? { ...it, time } : it));
+      persist({ ...plan, byDate: { ...plan.byDate, [date]: list } });
+    },
+    [plan, persist],
+  );
+
   // Append several items to a date at once (e.g. a whole predefined day).
   const addItems = useCallback(
     (date: string, itemsToAdd: DietPlanItem[]) => {
@@ -117,5 +126,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, applyAiPlan, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, clearDate, clearAll };
 }

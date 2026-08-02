@@ -1,8 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
+import { usePushReminders } from '../hooks/usePushReminders';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { generateDietPlan, type DietPlanInput, type DietPlanItem } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
@@ -20,6 +21,30 @@ function longDate(date: string): string {
 }
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
+
+// Sensible default clock times so AI / predefined plans show times too.
+const MEAL_TIME_DEFAULTS: Record<string, string> = {
+  Breakfast: '08:00',
+  Lunch: '13:00',
+  Dinner: '19:30',
+  Snack: '16:30',
+};
+// Diet-plan meals that map onto a push-reminder slot.
+const MEAL_REMINDER_KEYS = { Breakfast: 'breakfast', Lunch: 'lunch', Dinner: 'dinner' } as const;
+
+function defaultMealTime(meal: string): string {
+  return MEAL_TIME_DEFAULTS[meal] ?? '12:00';
+}
+function mealTimeOf(meal: string, list: PlanItem[]): string {
+  return list.find(it => it.time)?.time ?? defaultMealTime(meal);
+}
+function to12h(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  if (Number.isNaN(h)) return hhmm;
+  const period = h < 12 ? 'AM' : 'PM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m ?? 0).padStart(2, '0')} ${period}`;
+}
 
 const DIET_OPTIONS = [
   'No restrictions',
@@ -47,8 +72,9 @@ export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, applyAiPlan, clearDate, clearAll } =
+  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, clearDate, clearAll } =
     useDietPlan();
+  const { status: pushStatus, prefs, enable, savePrefs } = usePushReminders();
 
   const today = todayDateString();
   const [viewDate, setViewDate] = useState(today);
@@ -56,6 +82,8 @@ export function DietPlanner() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [predefinedOpen, setPredefinedOpen] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState<string | null>(null);
+  const [remindering, setRemindering] = useState(false);
 
   const items = itemsFor(viewDate);
 
@@ -89,6 +117,43 @@ export function DietPlanner() {
   function jumpTo(date: string) {
     setViewDate(date);
     setStripStart(date);
+  }
+
+  // Push this day's breakfast/lunch/dinner times into the reminder prefs so the
+  // existing notification system nudges you to eat on schedule.
+  async function syncReminders() {
+    setReminderMsg(null);
+    if (pushStatus === 'unsupported') {
+      setReminderMsg('Add the app to your Home Screen first, then reminders can turn on.');
+      return;
+    }
+    if (pushStatus === 'unconfigured') {
+      setReminderMsg('Reminders aren’t configured on this build yet.');
+      return;
+    }
+    const next = { ...prefs, items: { ...prefs.items } };
+    let synced = 0;
+    for (const [meal, key] of Object.entries(MEAL_REMINDER_KEYS)) {
+      const list = byMeal.get(meal);
+      if (list?.length) {
+        next.items[key] = { enabled: true, time: mealTimeOf(meal, list) };
+        synced += 1;
+      }
+    }
+    if (synced === 0) {
+      setReminderMsg('Add breakfast, lunch or dinner to set meal reminders.');
+      return;
+    }
+    setRemindering(true);
+    try {
+      if (pushStatus !== 'on') await enable();
+      await savePrefs(next);
+      setReminderMsg(`Reminders set for ${synced} meal time${synced > 1 ? 's' : ''}.`);
+    } catch {
+      setReminderMsg('Could not turn on reminders — try from Settings › Reminders.');
+    } finally {
+      setRemindering(false);
+    }
   }
 
   return (
@@ -201,11 +266,27 @@ export function DietPlanner() {
         ) : (
           mealOrder
             .filter(meal => byMeal.get(meal)?.length)
-            .map(meal => (
+            .map(meal => {
+              const groupItems = byMeal.get(meal)!;
+              const time = mealTimeOf(meal, groupItems);
+              return (
               <div key={meal} className="glass-card p-4">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-                  {meal}
-                </p>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                    {meal}
+                  </p>
+                  <label className="relative flex items-center gap-1 rounded-full bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text)]">
+                    <Clock size={12} className="text-[var(--accent)]" />
+                    <span>{to12h(time)}</span>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={e => e.target.value && setMealTime(viewDate, meal, e.target.value)}
+                      aria-label={`${meal} time`}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    />
+                  </label>
+                </div>
                 <div className="flex flex-col gap-2">
                   {byMeal.get(meal)!.map(it => (
                     <div key={it.id} className="flex items-start gap-2">
@@ -227,7 +308,8 @@ export function DietPlanner() {
                   ))}
                 </div>
               </div>
-            ))
+              );
+            })
         )}
 
         <button
@@ -260,6 +342,32 @@ export function DietPlanner() {
           <span className="text-xs font-semibold text-[var(--text)]">{Math.round(totals.fiber_g)} g</span>
         </div>
       </div>
+
+      {/* Meal-time reminders */}
+      {items.length > 0 ? (
+        <div className="glass-card flex flex-col gap-2 p-4">
+          <div className="flex items-center gap-2">
+            <Bell size={15} className="text-[var(--accent)]" />
+            <p className="text-sm font-semibold text-[var(--text)]">Meal reminders</p>
+          </div>
+          <p className="text-[11px] text-[var(--muted)]">
+            Get a nudge at each meal time so you never skip or forget to log. Uses your
+            breakfast / lunch / dinner times from this day.
+          </p>
+          <button
+            type="button"
+            onClick={syncReminders}
+            disabled={remindering}
+            className="mt-1 flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          >
+            <Bell size={14} /> {remindering ? 'Setting…' : 'Remind me at these meal times'}
+          </button>
+          {reminderMsg ? (
+            <p className="text-center text-[11px] font-semibold text-[var(--accent)]">{reminderMsg}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {hasPlan ? (
         <button
@@ -519,6 +627,7 @@ function PredefinedPlanPicker({
 
 function AddFoodForm({ onAdd }: { onAdd: (item: DietPlanItem) => void }) {
   const [meal, setMeal] = useState<string>(MEALS[0]);
+  const [time, setTime] = useState<string>(defaultMealTime(MEALS[0]));
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
@@ -531,6 +640,7 @@ function AddFoodForm({ onAdd }: { onAdd: (item: DietPlanItem) => void }) {
     if (!name.trim()) return;
     onAdd({
       meal,
+      time,
       name: name.trim(),
       calories: Math.round(Number(calories) || 0),
       protein_g: Math.round(Number(protein) || 0),
@@ -542,13 +652,27 @@ function AddFoodForm({ onAdd }: { onAdd: (item: DietPlanItem) => void }) {
 
   return (
     <form onSubmit={submit}>
-      <div className="mb-3">
-        <label className={labelClass} htmlFor="pf-meal">Meal</label>
-        <select id="pf-meal" className={inputClass} value={meal} onChange={e => setMeal(e.target.value)}>
-          {MEALS.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelClass} htmlFor="pf-meal">Meal</label>
+          <select
+            id="pf-meal"
+            className={inputClass}
+            value={meal}
+            onChange={e => {
+              setMeal(e.target.value);
+              setTime(defaultMealTime(e.target.value));
+            }}
+          >
+            {MEALS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="pf-time">Time</label>
+          <input id="pf-time" className={inputClass} type="time" value={time} onChange={e => setTime(e.target.value)} />
+        </div>
       </div>
       <div className="mb-3">
         <label className={labelClass} htmlFor="pf-name">Food & portion</label>

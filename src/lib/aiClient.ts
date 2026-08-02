@@ -61,6 +61,8 @@ export type DietPlanItem = {
   carbs_g: number;
   fat_g: number;
   fiber_g: number;
+  /** Optional local meal time, "HH:MM". Falls back to a per-meal default. */
+  time?: string;
 };
 export type DietPlanDay = { items: DietPlanItem[] };
 export type DietPlanResult = { summary: string; days: DietPlanDay[] };
