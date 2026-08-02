@@ -70,15 +70,15 @@ export function MeasurementProgressCard() {
   };
 
   return (
-    <div className="glass-card flex flex-col gap-3 p-5">
+    <div className="glass-card flex flex-col gap-2 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/10">
-            <Ruler size={16} style={{ color: 'var(--accent)' }} />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
+            <Ruler size={14} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[var(--text)]">Body measurements</p>
-            <p className="text-[11px] text-[var(--muted)]">
+            <p className="text-xs font-semibold text-[var(--text)]">Body measurements</p>
+            <p className="text-[10px] text-[var(--muted)]">
               {heightText ? `Height ${heightText} · ` : ''}
               {cols.length > 0 ? `${cols.length} recordings` : 'No recordings yet'}
             </p>
@@ -102,21 +102,21 @@ export function MeasurementProgressCard() {
       {cols.length === 0 || activeSites.length === 0 ? (
         <p className="py-2 text-xs text-[var(--muted)]">Log body measurements to see them here.</p>
       ) : (
-        <div className="hide-scrollbar -mx-1 overflow-x-auto px-1">
+        <div className="hide-scrollbar -mx-1 overflow-x-auto px-1" style={{ scrollSnapType: 'x proximity' }}>
           <table className="border-collapse" style={{ minWidth: '100%' }}>
             <thead>
               <tr>
                 <th
                   style={stickyCol}
-                  className="py-1.5 pr-3 text-left text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]"
+                  className="py-1 pr-2 text-left text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]"
                 >
                   Site
                 </th>
                 {cols.map((m, i) => (
                   <th
                     key={m.id}
-                    className="px-2 py-1.5 text-right text-[10px] font-bold text-[var(--muted)]"
-                    style={{ minWidth: 58 }}
+                    className="px-1.5 py-1 text-right text-[10px] font-bold text-[var(--muted)]"
+                    style={{ minWidth: 50, scrollSnapAlign: 'end' }}
                   >
                     {shortDate(m.entry_timestamp)}
                     {i === 0 ? <span className="block text-[8px] font-semibold text-[var(--accent)]">latest</span> : null}
@@ -129,7 +129,7 @@ export function MeasurementProgressCard() {
                 const meta = SITES[site];
                 return (
                   <tr key={site} className="border-t border-[var(--card-border)]">
-                    <td style={stickyCol} className="py-2 pr-3 text-xs font-semibold text-[var(--text)]">
+                    <td style={stickyCol} className="py-1.5 pr-2 text-xs font-semibold text-[var(--text)]">
                       {meta.label}
                     </td>
                     {cols.map((m, i) => {
@@ -147,7 +147,7 @@ export function MeasurementProgressCard() {
                         delta == null || delta === 0 ? null : meta.goodDown ? delta < 0 : delta > 0;
                       const color = improved == null ? 'var(--text)' : improved ? GREEN : RED;
                       return (
-                        <td key={m.id} className="px-2 py-2 text-right" style={{ minWidth: 58 }}>
+                        <td key={m.id} className="px-1.5 py-1.5 text-right" style={{ minWidth: 50 }}>
                           {v != null ? (
                             <span className="text-xs font-bold" style={{ color }}>
                               {v}
@@ -170,8 +170,8 @@ export function MeasurementProgressCard() {
       )}
 
       <p className="text-[10px] text-[var(--muted)]">
-        Values in inches · green = moving the right way (muscles up; waist/belly/hips down). Scroll for
-        older dates.
+        Values in inches · green = moving the right way (muscles up; waist/belly/hips down). Swipe ←
+        for older dates.
       </p>
     </div>
   );
