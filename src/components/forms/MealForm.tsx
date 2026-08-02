@@ -244,11 +244,20 @@ export function MealForm({ onSaved, initial }: Props) {
     setMealName(suggestion.mealName);
     setCategory(suggestion.category);
     setPerGram(null);
-    setPerServing(null);
     setDetailBase(null);
-    setServingNote(null);
     setResults([]);
     setQuery('');
+    // Treat the saved macros as one portion so the quantity field can scale them.
+    setPerServing({
+      calories: suggestion.calories ?? 0,
+      protein: suggestion.protein_g ?? 0,
+      carbs: suggestion.carbs_g ?? 0,
+      fat: suggestion.fat_g ?? 0,
+      fiber: suggestion.fiber_g ?? 0,
+      sodium: suggestion.sodium_mg ?? 0,
+    });
+    setServings('1');
+    setServingNote('Saved food · set how many portions you had');
     setCalories(suggestion.calories != null ? String(suggestion.calories) : '');
     setProtein(suggestion.protein_g != null ? String(suggestion.protein_g) : '');
     setCarbs(suggestion.carbs_g != null ? String(suggestion.carbs_g) : '');
