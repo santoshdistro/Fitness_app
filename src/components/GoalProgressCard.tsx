@@ -33,13 +33,13 @@ export function GoalProgressCard({
         )}
       </div>
 
-      <div className="mt-1 flex items-end justify-between">
+      <div className="mt-0.5 flex items-end justify-between">
         {progress.reached ? (
-          <p className="text-xl font-black leading-tight text-[var(--text)]">Goal reached! 🎉</p>
+          <p className="text-lg font-black leading-tight text-[var(--text)]">Goal reached! 🎉</p>
         ) : (
-          <p className="text-2xl font-black leading-none text-[var(--text)]">
+          <p className="text-xl font-black leading-none text-[var(--text)]">
             {weightValue(progress.remainingKg, u)}
-            <span className="text-sm font-bold text-[var(--muted)]"> {u} to go</span>
+            <span className="text-xs font-bold text-[var(--muted)]"> {u} to go</span>
           </p>
         )}
         <p className="text-[11px] font-semibold text-[var(--muted)]">
@@ -48,7 +48,7 @@ export function GoalProgressCard({
       </div>
 
       {/* Progress bar: start → target */}
-      <div className="mt-2.5">
+      <div className="mt-2">
         <div className="relative h-2 overflow-hidden rounded-full" style={{ background: 'var(--bg)' }}>
           <div
             className="h-full rounded-full transition-all"
@@ -68,15 +68,15 @@ export function GoalProgressCard({
       </div>
 
       {/* Achieved + projection */}
-      <div className="mt-3 flex gap-2 text-[var(--text)]">
-        <div className="flex-1 rounded-2xl p-2.5" style={{ background: 'var(--bg)' }}>
+      <div className="mt-2 flex gap-2 text-[var(--text)]">
+        <div className="flex-1 rounded-xl p-2" style={{ background: 'var(--bg)' }}>
           <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">Achieved</p>
           <p className="text-sm font-black leading-tight">
             {weightValue(progress.achievedKg, u)} {u}
             <span className="text-[10px] font-semibold text-[var(--muted)]"> {verb}</span>
           </p>
         </div>
-        <div className="flex-1 rounded-2xl p-2.5" style={{ background: 'var(--bg)' }}>
+        <div className="flex-1 rounded-xl p-2" style={{ background: 'var(--bg)' }}>
           <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">
             {progress.reached ? 'Status' : 'On track for'}
           </p>

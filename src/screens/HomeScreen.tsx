@@ -182,13 +182,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       progress: proteinGoal > 0 ? totals.protein_g / proteinGoal : 0,
     },
     {
-      key: 'steps',
-      label: 'Get your steps in',
-      detail: `${steps.toLocaleString()} / ${settings.stepGoal.toLocaleString()}`,
-      done: steps >= settings.stepGoal,
-      progress: settings.stepGoal > 0 ? steps / settings.stepGoal : 0,
-    },
-    {
       key: 'burn',
       label: 'Burn active calories',
       detail: `${burnedKcal} / ${settings.activeCalorieGoal} kcal`,
@@ -213,7 +206,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       color: '#22c55e',
       unit: 'g',
     },
-    { label: 'Steps', value: dayLog?.steps ?? 0, target: settings.stepGoal, color: '#f97316' },
     { label: 'Water', value: waterMl, target: settings.waterGoalMl, color: '#0ea5e9', unit: 'ml' },
   ];
 
@@ -288,67 +280,43 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
-      {/* Rings + game plan, merged */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
-        <TodayDashboard rings={rings} items={gamePlan} onNavigateStats={onNavigateStats} />
-      </div>
-
-      {/* Weekly overview (today only) */}
-      {viewingToday ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.1s' }}>
-          <WorkoutOverviewCard />
-        </div>
-      ) : null}
-
-      {/* Goal progress (today only) */}
+      {/* 1. Your journey */}
       {viewingToday && goalProgress ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.06s' }}>
           <GoalProgressCard progress={goalProgress} weightUnit={settings.weightUnit} />
         </div>
       ) : null}
 
-      {/* Coach (today only) */}
-      {viewingToday ? (
-        <div className="mt-4">
-          <CoachCard
-            status={coach.status}
-            insight={coach.status === 'ready' ? coach.insight : undefined}
-          />
-        </div>
-      ) : null}
+      {/* 2. Today's game plan (rings + goals) */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
+        <TodayDashboard rings={rings} items={gamePlan} onNavigateStats={onNavigateStats} />
+      </div>
 
-      {/* Weekly review (today only) */}
-      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
-          <WeeklyReviewCard review={weeklyReview} />
-        </div>
-      ) : null}
-
-      {/* Steps: totals + benchmark (today only) */}
+      {/* 3. Steps */}
       {viewingToday ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.22s' }}>
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.1s' }}>
           <StepsCard steps={steps} goal={settings.stepGoal} />
         </div>
       ) : null}
 
-      {/* Sleep */}
+      {/* 4. Sleep (compact) */}
       <div
-        className="glass-card anim-fade-rise mt-4 flex flex-col gap-4 p-5"
-        style={{ animationDelay: '0.32s' }}
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-2.5 p-4"
+        style={{ animationDelay: '0.12s' }}
       >
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-              <span>🌙</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10">
+              <span className="text-xs">🌙</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--text)]">Sleep</p>
-              <p className="text-[11px] text-[var(--muted)]">
+              <p className="text-xs font-semibold text-[var(--text)]">Sleep</p>
+              <p className="text-[10px] text-[var(--muted)]">
                 {latestSleepHours && latestSleepHours < 7
-                  ? 'You slept too little last night'
+                  ? 'Slept too little last night'
                   : latestSleepHours
-                    ? 'Nice, you hit your sleep window'
-                    : 'No sleep data logged yet'}
+                    ? 'Hit your sleep window'
+                    : 'No sleep data yet'}
               </p>
             </div>
           </div>
@@ -359,6 +327,30 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
 
         <SleepBarChart entries={sleepEntries} goalHours={8} maxScaleHours={10} />
       </div>
+
+      {/* 5. Coach */}
+      {viewingToday ? (
+        <div className="mt-4">
+          <CoachCard
+            status={coach.status}
+            insight={coach.status === 'ready' ? coach.insight : undefined}
+          />
+        </div>
+      ) : null}
+
+      {/* 6. Weekly progress */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.16s' }}>
+          <WorkoutOverviewCard />
+        </div>
+      ) : null}
+
+      {/* 7. This week */}
+      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.18s' }}>
+          <WeeklyReviewCard review={weeklyReview} />
+        </div>
+      ) : null}
     </div>
   );
 }
