@@ -66,7 +66,18 @@ export type DietPlanItem = {
 };
 export type DietPlanDay = { items: DietPlanItem[] };
 export type DietPlanResult = { summary: string; days: DietPlanDay[] };
-export type DietPlanInput = NutritionPreferences & { days?: number };
+// dayTypes: Mon..Sun kind of day (Veg / Non-veg / IF 16:8 / Fasting (OMAD) …).
+export type DietPlanInput = NutritionPreferences & { days?: number; dayTypes?: string[] };
+
+export type MealPrepItem = {
+  name: string;
+  batch: string; // how much to cook / batch note
+  keeps: string; // fridge / freezer shelf life
+  reuse: string; // how to reuse it through the week
+  protein_g?: number;
+  calories?: number;
+};
+export type MealPrepResult = { summary: string; items: MealPrepItem[]; shoppingList: string[] };
 
 type ApiResponse<T> = { result?: T; usage?: AiUsage; error?: string };
 
@@ -157,6 +168,17 @@ export async function generateDietPlan(
   input: DietPlanInput,
 ): Promise<DietPlanResult> {
   const { result, usage } = await postJson<DietPlanResult>('/api/diet-plan', input);
+  if (usage) void logAiUsage(userId, 'diet_plan', usage);
+  return result;
+}
+
+// Weekend batch-cook planner — shares the diet-plan function (kind:'prep') to
+// stay within the serverless function budget.
+export async function generateMealPrep(
+  userId: string,
+  input: { goal?: string; diet?: string; likes?: string; dislikes?: string; servings?: number },
+): Promise<MealPrepResult> {
+  const { result, usage } = await postJson<MealPrepResult>('/api/diet-plan', { ...input, kind: 'prep' });
   if (usage) void logAiUsage(userId, 'diet_plan', usage);
   return result;
 }

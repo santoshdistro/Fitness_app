@@ -5,7 +5,8 @@ import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { usePushReminders } from '../hooks/usePushReminders';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
-import { generateDietPlan, type DietPlanInput, type DietPlanItem } from '../lib/aiClient';
+import { useDietSplit, DIET_DAY_OPTIONS, DIET_WEEKDAYS, type DietDayType } from '../hooks/useDietSplit';
+import { generateDietPlan, type DietPlanInput, type DietPlanItem, type DietPlanResult } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
@@ -72,14 +73,16 @@ export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, clearDate, clearAll } =
+  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, clearDate, clearAll } =
     useDietPlan();
+  const { split, setDay } = useDietSplit();
   const { status: pushStatus, prefs, enable, savePrefs } = usePushReminders();
 
   const today = todayDateString();
   const [viewDate, setViewDate] = useState(today);
   const [stripStart, setStripStart] = useState(today);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [predefinedOpen, setPredefinedOpen] = useState(false);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
@@ -180,6 +183,42 @@ export function DietPlanner() {
         Predefined = drop a ready-made day (or single meals) onto any date. AI = fills {PLAN_SPAN} days
         from {fmt(stripStart, { day: 'numeric', month: 'short' })} around your goal & macros.
       </p>
+
+      {/* Weekly diet split — pick a style per weekday, AI plans around it */}
+      <div className="glass-card flex flex-col gap-2 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Weekly diet split</p>
+            <p className="text-[10px] text-[var(--muted)]">A style per day — like your workout split.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSplitOpen(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          >
+            <Sparkles size={13} /> Build week
+          </button>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {DIET_WEEKDAYS.map((wd, i) => (
+            <div key={wd} className="flex items-center gap-2">
+              <span className="w-9 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">{wd}</span>
+              <select
+                value={split[i]}
+                onChange={e => setDay(i, e.target.value as DietDayType)}
+                className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+              >
+                {DIET_DAY_OPTIONS.map(o => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {plan.summary ? (
         <p className="rounded-2xl bg-[var(--bg)] px-4 py-3 text-xs leading-relaxed text-[var(--muted)]">
@@ -418,6 +457,22 @@ export function DietPlanner() {
             applyAiPlan(result, stripStart);
             setViewDate(stripStart);
             setBuilderOpen(false);
+          }}
+        />
+      </Sheet>
+
+      <Sheet open={splitOpen} onClose={() => setSplitOpen(false)} title="Build from weekly split">
+        <PlanBuilderForm
+          userId={session?.user?.id}
+          startDate={stripStart}
+          defaultGoal={goalDefault(profile?.goal_type)}
+          calorieTarget={targets.calorieTarget}
+          proteinTarget={targets.proteinTarget}
+          dayTypes={split}
+          onBuilt={result => {
+            applyWeeklyPlan(result, stripStart);
+            setViewDate(stripStart);
+            setSplitOpen(false);
           }}
         />
       </Sheet>
@@ -736,6 +791,7 @@ function PlanBuilderForm({
   defaultGoal,
   calorieTarget,
   proteinTarget,
+  dayTypes,
   onBuilt,
 }: {
   userId?: string;
@@ -743,7 +799,8 @@ function PlanBuilderForm({
   defaultGoal: string;
   calorieTarget: number;
   proteinTarget: number;
-  onBuilt: (result: import('../lib/aiClient').DietPlanResult) => void;
+  dayTypes?: DietDayType[];
+  onBuilt: (result: DietPlanResult) => void;
 }) {
   const [goal, setGoal] = useState(defaultGoal);
   const [diet, setDiet] = useState(DIET_OPTIONS[0]);
@@ -767,6 +824,7 @@ function PlanBuilderForm({
       calorieTarget: Number(kcal) || undefined,
       proteinTarget: Number(protein) || undefined,
       days: 7,
+      dayTypes: dayTypes && dayTypes.length ? dayTypes : undefined,
     };
     setGenerating(true);
     setError(null);
@@ -783,7 +841,9 @@ function PlanBuilderForm({
   return (
     <form onSubmit={submit}>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        AI drafts a varied week of meals and lays it across the 2 weeks starting{' '}
+        {dayTypes && dayTypes.length
+          ? `AI plans each day to match your weekly split (${dayTypes.join(', ')}) and repeats it across the fortnight from `
+          : 'AI drafts a varied week of meals and lays it across the 2 weeks starting '}
         {fmt(startDate, { weekday: 'long', day: 'numeric', month: 'short' })}. Every day stays
         editable — tweak anything before you follow it.
       </p>

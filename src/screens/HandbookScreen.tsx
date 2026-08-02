@@ -1,9 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ChevronRight, Clock, Play, Sparkles, Utensils } from 'lucide-react';
+import { Boxes, ChevronRight, Clock, Play, Snowflake, Sparkles, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import { useNutritionCoach } from '../hooks/useNutritionCoach';
-import { generateNutritionPlan, type NutritionPreferences } from '../lib/aiClient';
+import { generateNutritionPlan, generateMealPrep, type NutritionPreferences, type MealPrepResult } from '../lib/aiClient';
+import { MEAL_PREP_GUIDE, MEAL_PREP_TIPS } from '../data/mealPrep';
 import { Sheet } from '../components/Sheet';
 import { DietPlanner } from '../components/DietPlanner';
 import { useTabSwipe } from '../hooks/useTabSwipe';
@@ -298,6 +299,17 @@ export function HandbookScreen() {
         </div>
       </div>
 
+      {/* Meal prep & batch cooking */}
+      <div className="anim-fade-rise mt-6" style={{ animationDelay: '0.09s' }}>
+        <MealPrepSection
+          userId={session?.user?.id}
+          defaultGoal={goalDefault(profile?.goal_type)}
+          defaultDiet={prefs?.diet ?? DIET_OPTIONS[0]}
+          defaultLikes={prefs?.likes ?? ''}
+          defaultDislikes={prefs?.dislikes ?? ''}
+        />
+      </div>
+
       {/* Healthy food reference */}
       <div className="anim-fade-rise mt-6" style={{ animationDelay: '0.1s' }}>
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Healthy food list</p>
@@ -581,6 +593,275 @@ function NutritionCoachForm({
           <>
             <Sparkles size={15} className="mr-2" />
             Draft my nutrition plan
+          </>
+        )}
+      </button>
+    </form>
+  );
+}
+
+function MealPrepSection({
+  userId,
+  defaultGoal,
+  defaultDiet,
+  defaultLikes,
+  defaultDislikes,
+}: {
+  userId?: string;
+  defaultGoal: string;
+  defaultDiet: string;
+  defaultLikes: string;
+  defaultDislikes: string;
+}) {
+  const storageKey = userId ? `meal_prep:${userId}` : null;
+  const [result, setResult] = useState<MealPrepResult | null>(() => {
+    if (!storageKey) return null;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? (JSON.parse(raw) as MealPrepResult) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [open, setOpen] = useState(false);
+
+  function save(r: MealPrepResult | null) {
+    setResult(r);
+    if (!storageKey) return;
+    if (r) localStorage.setItem(storageKey, JSON.stringify(r));
+    else localStorage.removeItem(storageKey);
+  }
+
+  return (
+    <>
+      <p className="mb-2 text-sm font-semibold text-[var(--text)]">Meal prep &amp; batch cooking</p>
+
+      {result ? (
+        <div className="glass-card mb-3 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Boxes size={14} className="text-[var(--accent)]" />
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Your weekend prep
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="shrink-0 rounded-full bg-[var(--bg)] px-3 py-1 text-[10px] font-semibold text-[var(--accent)]"
+            >
+              Redo
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--text)]">{result.summary}</p>
+          <div className="mt-2 flex flex-col gap-2">
+            {result.items.map(it => (
+              <div key={it.name} className="rounded-2xl bg-[var(--bg)] p-3">
+                <p className="text-xs font-bold text-[var(--text)]">{it.name}</p>
+                <p className="text-[11px] text-[var(--muted)]">{it.batch}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px]">
+                  <span className="flex items-center gap-1 font-semibold text-[var(--accent)]">
+                    <Snowflake size={10} /> {it.keeps}
+                  </span>
+                  {it.protein_g != null ? <span className="text-[var(--muted)]">{it.protein_g}g P/serv</span> : null}
+                  {it.calories != null ? <span className="text-[var(--muted)]">{it.calories} kcal/serv</span> : null}
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--text)]">↻ {it.reuse}</p>
+              </div>
+            ))}
+          </div>
+          {result.shoppingList.length ? (
+            <div className="mt-2 rounded-2xl bg-[var(--bg)] p-3">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Shopping list
+              </p>
+              <p className="text-[11px] text-[var(--text)]">{result.shoppingList.join(' · ')}</p>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => save(null)}
+            className="mt-2 w-full text-center text-[10px] font-semibold text-[var(--muted)]"
+          >
+            Clear prep plan
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="glass-card mb-3 flex w-full items-center gap-3 p-4 text-left"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)]/12">
+            <Boxes size={18} className="text-[var(--accent)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Plan my weekend prep (AI)</p>
+            <p className="text-[11px] text-[var(--muted)]">
+              Cook once on the weekend, eat all week — AI picks batch-friendly dishes that keep.
+            </p>
+          </div>
+        </button>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {MEAL_PREP_GUIDE.map(group => (
+          <div key={group.title} className="glass-card p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-lg">{group.emoji}</span>
+              <p className="text-sm font-semibold text-[var(--text)]">{group.title}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {group.foods.map(f => (
+                <div key={f.name} className="border-b border-[var(--card-border)] pb-2 last:border-b-0 last:pb-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-xs font-semibold text-[var(--text)]">{f.name}</p>
+                    <p className="shrink-0 text-[9px] font-semibold text-[var(--accent)]">{f.keeps}</p>
+                  </div>
+                  <p className="text-[10px] text-[var(--muted)]">↻ {f.reuse}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="glass-card p-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+            Safe storage tips
+          </p>
+          <ul className="flex flex-col gap-1">
+            {MEAL_PREP_TIPS.map(t => (
+              <li key={t} className="text-[11px] text-[var(--text)]">
+                • {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title="Plan weekend meal prep">
+        <MealPrepForm
+          userId={userId}
+          defaultGoal={defaultGoal}
+          defaultDiet={defaultDiet}
+          defaultLikes={defaultLikes}
+          defaultDislikes={defaultDislikes}
+          onDone={r => {
+            save(r);
+            setOpen(false);
+          }}
+        />
+      </Sheet>
+    </>
+  );
+}
+
+function MealPrepForm({
+  userId,
+  defaultGoal,
+  defaultDiet,
+  defaultLikes,
+  defaultDislikes,
+  onDone,
+}: {
+  userId?: string;
+  defaultGoal: string;
+  defaultDiet: string;
+  defaultLikes: string;
+  defaultDislikes: string;
+  onDone: (result: MealPrepResult) => void;
+}) {
+  const [goal, setGoal] = useState(defaultGoal);
+  const [diet, setDiet] = useState(defaultDiet);
+  const [likes, setLikes] = useState(defaultLikes);
+  const [dislikes, setDislikes] = useState(defaultDislikes);
+  const [days, setDays] = useState('5');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!userId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await generateMealPrep(userId, {
+        goal,
+        diet,
+        likes: likes.trim() || undefined,
+        dislikes: dislikes.trim() || undefined,
+        servings: Number(days) || 5,
+      });
+      onDone(r);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not plan your prep.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <p className="mb-3 text-xs text-[var(--muted)]">
+        AI picks batch-cook dishes that keep well, tells you how long they last, and builds a
+        shopping list — cook on the weekend, reuse all week.
+      </p>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="mp-goal">Goal</label>
+        <select id="mp-goal" className={inputClass} value={goal} onChange={e => setGoal(e.target.value)}>
+          {GOAL_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="mp-diet">Diet preference</label>
+        <select id="mp-diet" className={inputClass} value={diet} onChange={e => setDiet(e.target.value)}>
+          {DIET_OPTIONS.map(o => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      </div>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="mp-days">Days to cover</label>
+        <select id="mp-days" className={inputClass} value={days} onChange={e => setDays(e.target.value)}>
+          {['3', '4', '5', '6', '7'].map(d => (
+            <option key={d} value={d}>{d} days</option>
+          ))}
+        </select>
+      </div>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="mp-likes">Foods you love — optional</label>
+        <input
+          id="mp-likes"
+          className={inputClass}
+          type="text"
+          value={likes}
+          onChange={e => setLikes(e.target.value)}
+          placeholder="e.g. chicken, paneer, rice"
+        />
+      </div>
+      <div className="mb-4">
+        <label className={labelClass} htmlFor="mp-dislikes">Foods to avoid — optional</label>
+        <input
+          id="mp-dislikes"
+          className={inputClass}
+          type="text"
+          value={dislikes}
+          onChange={e => setDislikes(e.target.value)}
+          placeholder="e.g. mushrooms, seafood"
+        />
+      </div>
+      {error ? <p className={errorTextClass}>{error}</p> : null}
+      <button type="submit" disabled={busy} className={submitButtonClass}>
+        {busy ? (
+          <>
+            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            Planning your prep…
+          </>
+        ) : (
+          <>
+            <Sparkles size={15} className="mr-2" />
+            Plan my weekend prep
           </>
         )}
       </button>

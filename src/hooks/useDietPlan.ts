@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays } from '../utils/date';
+import { addDays, parseDate } from '../utils/date';
 import type { DietPlanItem, DietPlanResult } from '../lib/aiClient';
 
 // A personal eating plan kept locally (single-device convenience data, no
@@ -113,6 +113,24 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Lay a 7-day typed plan (Mon..Sun) onto real dates by weekday, repeating it
+  // every week across `span`. Keeps the plan aligned to your weekly diet split.
+  const applyWeeklyPlan = useCallback(
+    (result: DietPlanResult, startDate: string, span = PLAN_SPAN) => {
+      const source = result.days;
+      if (!source.length) return;
+      const byDate = { ...plan.byDate };
+      for (let i = 0; i < span; i++) {
+        const date = addDays(startDate, i);
+        const weekday = (parseDate(date).getDay() + 6) % 7; // Mon = 0
+        const day = source[weekday] ?? source[i % source.length];
+        byDate[date] = (day?.items ?? []).map(it => ({ ...it, id: newId() }));
+      }
+      persist({ summary: result.summary ?? plan.summary, byDate });
+    },
+    [plan, persist],
+  );
+
   const clearDate = useCallback(
     (date: string) => {
       const byDate = { ...plan.byDate };
@@ -126,5 +144,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, clearDate, clearAll };
 }
