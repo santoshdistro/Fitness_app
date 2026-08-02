@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays, startOfDateIso, todayDateString } from '../utils/date';
+import { startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
 import { classifyMuscles, type MuscleKey } from '../data/muscles';
 import type { ExerciseSet, WorkoutLog } from '../types/database';
 
@@ -36,7 +36,7 @@ export function useMuscleActivity(period: MusclePeriod) {
     }
     setLoading(true);
     const today = todayDateString();
-    const start = period === 'today' ? today : addDays(today, -6);
+    const start = period === 'today' ? today : startOfWeek(today); // Monday–today
 
     supabase
       .from('workout_logs')

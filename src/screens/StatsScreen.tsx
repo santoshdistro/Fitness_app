@@ -535,7 +535,9 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
             a medical assessment
           </p>
 
-          {/* Scans — all collapsed by default, tap to expand (latest first) */}
+          {/* Scans — all collapsed by default, tap to expand (latest first).
+             Show ~2, the rest scroll so the section stays short. */}
+          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 132 }}>
           {bodyScans.map((scan, i) => {
             const open = openScanId === scan.id;
             return (
@@ -575,6 +577,7 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               </div>
             );
           })}
+          </div>
         </div>
       ) : null}
 

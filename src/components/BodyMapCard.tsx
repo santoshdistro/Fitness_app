@@ -44,7 +44,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         <div className="flex rounded-full bg-[var(--bg)] p-0.5">
           {([
             { key: 'today', label: 'Today' },
-            { key: 'week', label: '7 days' },
+            { key: 'week', label: 'This week' },
           ] as const).map(o => (
             <button
               key={o.key}
@@ -105,7 +105,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
     {/* Workouts done, ranked high -> low by volume */}
     <div className="glass-card flex flex-col gap-1.5 p-5">
       <p className="text-sm font-semibold text-[var(--text)]">
-        Workouts done · {period === 'today' ? 'today' : 'last 7 days'}
+        Workouts done · {period === 'today' ? 'today' : 'this week'}
       </p>
       {loading ? (
         <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
@@ -218,7 +218,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
           <div className="flex flex-col gap-3">
             <div className="glass-card flex items-center justify-between p-4">
               <span className="text-xs text-[var(--muted)]">
-                {period === 'today' ? 'Today' : 'Last 7 days'} volume
+                {period === 'today' ? 'Today' : 'This week'} volume
               </span>
               <span className="text-sm font-bold text-[var(--text)]">
                 {Math.round(data.volumes[selected] ?? 0).toLocaleString()}

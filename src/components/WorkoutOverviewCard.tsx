@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useSettings } from '../hooks/useSettings';
-import { addDays, todayDateString } from '../utils/date';
+import { addDays, startOfWeek, todayDateString } from '../utils/date';
 
 // Compact "Weekly Overview": a weekly activity score over a row of rounded
 // pill bars (Sun–Sat), today's/peak bar highlighted. Uses real logged steps +
@@ -16,8 +16,7 @@ export function WorkoutOverviewCard() {
 
   const { days, scorePct, peakIndex } = useMemo(() => {
     const today = todayDateString();
-    const todayDow = new Date(`${today}T00:00:00`).getDay(); // 0=Sun
-    const weekStart = addDays(today, -todayDow);
+    const weekStart = startOfWeek(today); // Monday
 
     const stepsByDate = new Map<string, number>();
     for (const l of logs) if (l.steps != null) stepsByDate.set(l.log_date, l.steps);

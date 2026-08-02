@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays, todayDateString } from '../utils/date';
+import { startOfWeek, todayDateString } from '../utils/date';
 
 export type StepTotals = { week: number; month: number; year: number };
 
-// Sums logged steps for the current week (Sun–today), month, and year.
+// Sums logged steps for the current week (Mon–today), month, and year.
 export function useStepTotals() {
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -23,8 +23,7 @@ export function useStepTotals() {
     const today = todayDateString();
     const yearStart = `${today.slice(0, 4)}-01-01`;
     const monthStart = `${today.slice(0, 7)}-01`;
-    const dow = new Date(`${today}T00:00:00`).getDay();
-    const weekStart = addDays(today, -dow);
+    const weekStart = startOfWeek(today); // Monday
 
     supabase
       .from('daily_logs')
