@@ -8,6 +8,7 @@ import { MEAL_PREP_GUIDE, MEAL_PREP_TIPS } from '../data/mealPrep';
 import { Sheet } from '../components/Sheet';
 import { DietPlanner } from '../components/DietPlanner';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { PhotoBackdrop } from '../components/PhotoBackdrop';
 import { NUTRITION_HERO_IMAGE } from '../data/gymImagery';
 import {
@@ -50,7 +51,7 @@ export function HandbookScreen() {
   const { profile } = useProfile();
   const { prefs, plan, save, clear } = useNutritionCoach();
 
-  const [tab, setTab] = useState<'handbook' | 'plan'>('handbook');
+  const [tab, setTab] = usePersistentState<'handbook' | 'plan'>('ui:handbookTab', 'handbook');
   const { handlers, change, animClass } = useTabSwipe(['handbook', 'plan'] as const, tab, setTab);
   const [coachOpen, setCoachOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);

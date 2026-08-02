@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeftRight, Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -11,6 +11,8 @@ import { searchIndianFoods } from '../data/indianFoods';
 import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult } from '../hooks/useFoodSuggestions';
 import { estimateFood } from '../lib/aiClient';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { usePersistentState } from '../hooks/usePersistentState';
+import { DateNavigator } from '../components/DateNavigator';
 import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
@@ -87,71 +89,13 @@ function scaled(per: Macros, grams: number): Macros {
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
-function dateLabel(dateStr: string): string {
-  if (isToday(dateStr)) return 'Today';
-  if (dateStr === addDays(todayDateString(), -1)) return 'Yesterday';
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-}
-
-// Horizontal day picker — the last three weeks, today on the right.
-function CalendarStrip({ selectedDate, onSelect }: { selectedDate: string; onSelect: (d: string) => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const days = useMemo(() => {
-    const today = todayDateString();
-    return Array.from({ length: 21 }, (_, i) => addDays(today, -(20 - i)));
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, []);
-
-  return (
-    <div ref={scrollRef} className="hide-scrollbar -mx-6 flex gap-1.5 overflow-x-auto px-6 py-1">
-      {days.map(d => {
-        const date = new Date(`${d}T00:00:00`);
-        const active = d === selectedDate;
-        const today = isToday(d);
-        return (
-          <button
-            key={d}
-            type="button"
-            onClick={() => onSelect(d)}
-            className="flex min-w-[42px] shrink-0 flex-col items-center rounded-2xl py-2 transition-colors"
-            style={
-              active
-                ? { background: 'var(--accent)', color: '#fff' }
-                : { background: 'var(--bg)', color: 'var(--muted)' }
-            }
-          >
-            <span className="text-[9px] font-bold uppercase tracking-wide">
-              {date.toLocaleDateString(undefined, { weekday: 'short' })}
-            </span>
-            <span className="text-sm font-black leading-tight text-[var(--text)]" style={active ? { color: '#fff' } : undefined}>
-              {date.getDate()}
-            </span>
-            <span
-              className="mt-0.5 h-1 w-1 rounded-full"
-              style={{ background: today ? (active ? '#fff' : 'var(--accent)') : 'transparent' }}
-            />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 type Props = {
   onQuickAddCalories: () => void;
 };
 
 export function DiscoverScreen({ onQuickAddCalories }: Props) {
   const { session } = useAuth();
-  const [tab, setTab] = useState<Tab>('add');
+  const [tab, setTab] = usePersistentState<Tab>('ui:diaryTab', 'add');
   const { handlers, change, animClass } = useTabSwipe(
     ['add', 'nutrition', 'macros'] as const,
     tab,
@@ -434,14 +378,9 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
 
   return (
     <div className="min-h-full px-6 pt-4 pb-28">
-      <div className="anim-drop-in mt-2 flex items-center justify-between">
-        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Diary</h1>
-        <span className="text-[11px] font-semibold text-[var(--muted)]">{dateLabel(selectedDate)}</span>
-      </div>
-
-      {/* Day picker */}
-      <div className="anim-fade-rise mt-3" style={{ animationDelay: '0.02s' }}>
-        <CalendarStrip selectedDate={selectedDate} onSelect={setSelectedDate} />
+      <div className="anim-drop-in mt-2">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Diary</p>
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {/* Tabs */}

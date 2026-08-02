@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Activity, BarChart3, Barcode, BookOpen, Camera, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { CoachChat } from '../components/CoachChat';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StatsScreen } from '../screens/StatsScreen';
@@ -66,7 +67,7 @@ const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
 ];
 
 export function AppShell() {
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeTab, setActiveTab] = usePersistentState<Tab>('ui:tab', 'home');
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
   const [coachOpen, setCoachOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Camera, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
+import { Activity, Camera, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
@@ -15,7 +15,9 @@ import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
+import { DateNavigator } from '../components/DateNavigator';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
 import {
@@ -26,7 +28,7 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import { addDays, isToday, todayDateString } from '../utils/date';
+import { todayDateString } from '../utils/date';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -52,18 +54,12 @@ function formatShortDate(dateStr: string): string {
   });
 }
 
-function dateLabel(dateStr: string): string {
-  if (isToday(dateStr)) return 'Today';
-  if (dateStr === addDays(todayDateString(), -1)) return 'Yesterday';
-  return formatShortDate(dateStr);
-}
-
 type Props = {
   onOpenProgressPhotos: () => void;
 };
 
 export function StatsScreen({ onOpenProgressPhotos }: Props) {
-  const [tab, setTab] = useState<'stats' | 'trends'>('stats');
+  const [tab, setTab] = usePersistentState<'stats' | 'trends'>('ui:statsTab', 'stats');
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { totals } = useTodayNutrition(selectedDate);
@@ -140,27 +136,8 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
         </div>
       ) : (
         <>
-      <div className="anim-drop-in mt-4 flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => setSelectedDate(current => addDays(current, -1))}
-          aria-label="Previous day"
-          className="glass flex h-7 w-7 items-center justify-center rounded-full"
-        >
-          <ChevronLeft size={14} className="text-[var(--muted)]" />
-        </button>
-        <h1 className="w-28 text-center text-sm font-bold tracking-wide text-[var(--text)]">
-          {dateLabel(selectedDate)}
-        </h1>
-        <button
-          type="button"
-          onClick={() => setSelectedDate(current => addDays(current, 1))}
-          disabled={isToday(selectedDate)}
-          aria-label="Next day"
-          className="glass flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
-        >
-          <ChevronRight size={14} className="text-[var(--muted)]" />
-        </button>
+      <div className="anim-drop-in mt-4">
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {/* BMI */}
