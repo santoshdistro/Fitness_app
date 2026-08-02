@@ -129,17 +129,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
     ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
     : null;
 
-  const macroGoals = [
-    {
-      label: 'Protein',
-      value: totals.protein_g,
-      target: profile?.protein_target_g ?? suggestedMacros?.proteinG,
-      unit: 'g',
-      suggested: profile?.protein_target_g == null && suggestedMacros != null,
-    },
-    { label: 'Fiber', value: totals.fiber_g, target: profile?.fiber_target_g, unit: 'g', suggested: false },
-    { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg', suggested: false },
-  ].filter((goal): goal is typeof goal & { target: number } => goal.target != null);
 
   const mealsByCategory = MEAL_CATEGORIES.map(category => ({
     ...category,
@@ -416,37 +405,6 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       ) : null}
 
 
-      {/* Macro goals */}
-      {macroGoals.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.12s' }}>
-          <p className="text-sm font-semibold text-[var(--text)]">Today's Goals</p>
-          {macroGoals.map(goal => {
-            const percent = Math.min(100, (goal.value / goal.target) * 100);
-            return (
-              <div key={goal.label}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text)]">
-                    {goal.label}
-                    {goal.suggested ? (
-                      <span className="ml-1 text-[9px] font-medium text-[var(--muted)]">(suggested)</span>
-                    ) : null}
-                  </span>
-                  <span className="text-[var(--muted)]">
-                    {Math.round(goal.value)} / {goal.target}
-                    {goal.unit}
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${percent}%`, background: 'var(--accent)' }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
 
       {/* Diary */}
       <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>
