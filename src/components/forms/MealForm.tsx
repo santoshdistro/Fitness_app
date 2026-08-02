@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, Search, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
@@ -118,6 +118,8 @@ export function MealForm({ onSaved, initial }: Props) {
   // Per-portion base (a single serving / scanned plate) + a quantity multiplier.
   const [perServing, setPerServing] = useState<PerGramMacros | null>(() => baseFromInitial(initial));
   const [servings, setServings] = useState('1');
+  // Known gram weight of one serving — lets us flip between grams and portions.
+  const [servingGrams, setServingGrams] = useState<number | null>(null);
   const [detailBase, setDetailBase] = useState<DetailBase | null>(() => detailFromInitial(initial));
 
   const [mealName, setMealName] = useState(initial?.mealName ?? '');
@@ -169,6 +171,7 @@ export function MealForm({ onSaved, initial }: Props) {
       setQuery('');
       setPerGram(null);
       setDetailBase(null);
+      setServingGrams(null); // AI estimate is one plate, no gram weight to convert
       setPerServing({
         calories: r.calories,
         protein: r.protein_g,
@@ -198,8 +201,14 @@ export function MealForm({ onSaved, initial }: Props) {
     setQuery('');
     setDetailBase(detailFromResult(result));
 
+    // A gram serving weight (e.g. "30 g scoop") enables the g/serving toggle;
+    // a "serving"-unit food (your saved foods) has no weight to convert.
+    const gramWeight =
+      result.servingSize && result.servingSizeUnit !== 'serving' ? result.servingSize : null;
+
     if (result.isPerServing) {
       setPerGram(null);
+      setServingGrams(gramWeight);
       setPerServing({
         calories: result.calories,
         protein: result.protein,
@@ -222,6 +231,7 @@ export function MealForm({ onSaved, initial }: Props) {
     }
 
     setPerServing(null);
+    setServingGrams(gramWeight);
     setPerGram({
       calories: result.calories / 100,
       protein: result.protein / 100,
@@ -245,6 +255,7 @@ export function MealForm({ onSaved, initial }: Props) {
     setCategory(suggestion.category);
     setPerGram(null);
     setDetailBase(null);
+    setServingGrams(null); // saved foods have no gram weight, so no g toggle
     setResults([]);
     setQuery('');
     // Treat the saved macros as one portion so the quantity field can scale them.
@@ -288,6 +299,33 @@ export function MealForm({ onSaved, initial }: Props) {
     setFat(String(Math.round(perServing.fat * q)));
     setFiber(String(Math.round(perServing.fiber * q)));
     setSodium(String(Math.round(perServing.sodium * q)));
+  }
+
+  // Flip the amount field between grams and servings, keeping the same portion.
+  // Only available when the food has a known gram serving weight.
+  function toggleAmountUnit() {
+    if (!servingGrams) return;
+    const scale = (m: PerGramMacros, f: number): PerGramMacros => ({
+      calories: m.calories * f,
+      protein: m.protein * f,
+      carbs: m.carbs * f,
+      fat: m.fat * f,
+      fiber: m.fiber * f,
+      sodium: m.sodium * f,
+    });
+    if (perServing) {
+      // servings -> grams
+      const gramsReal = (Number(servings) || 0) * servingGrams;
+      setPerGram(scale(perServing, 1 / servingGrams));
+      setPerServing(null);
+      setGrams(String(Math.round(gToUnit(gramsReal, foodUnit) * 10) / 10));
+    } else if (perGram) {
+      // grams -> servings
+      const servingCount = unitToG(Number(grams) || 0, foodUnit) / servingGrams;
+      setPerServing(scale(perGram, servingGrams));
+      setPerGram(null);
+      setServings(String(Math.round(servingCount * 100) / 100));
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -497,9 +535,20 @@ export function MealForm({ onSaved, initial }: Props) {
 
         {perGram ? (
           <div className="mb-3">
-            <label className={labelClass} htmlFor="grams-input">
-              Amount ({foodUnit})
-            </label>
+            <div className="flex items-center justify-between">
+              <label className={labelClass} htmlFor="grams-input">
+                Amount ({foodUnit})
+              </label>
+              {servingGrams ? (
+                <button
+                  type="button"
+                  onClick={toggleAmountUnit}
+                  className="mb-1 flex items-center gap-1 rounded-lg bg-[var(--bg)] px-2 py-1 text-[10px] font-semibold text-[var(--accent)]"
+                >
+                  <ArrowLeftRight size={11} /> Enter as servings
+                </button>
+              ) : null}
+            </div>
             <input
               id="grams-input"
               className={inputClass}
@@ -513,9 +562,20 @@ export function MealForm({ onSaved, initial }: Props) {
           </div>
         ) : perServing ? (
           <div className="mb-3">
-            <label className={labelClass} htmlFor="servings-input">
-              Quantity / portions
-            </label>
+            <div className="flex items-center justify-between">
+              <label className={labelClass} htmlFor="servings-input">
+                Quantity / portions
+              </label>
+              {servingGrams ? (
+                <button
+                  type="button"
+                  onClick={toggleAmountUnit}
+                  className="mb-1 flex items-center gap-1 rounded-lg bg-[var(--bg)] px-2 py-1 text-[10px] font-semibold text-[var(--accent)]"
+                >
+                  <ArrowLeftRight size={11} /> Enter as {foodUnit}
+                </button>
+              ) : null}
+            </div>
             <input
               id="servings-input"
               className={inputClass}
@@ -527,8 +587,9 @@ export function MealForm({ onSaved, initial }: Props) {
               onChange={e => handleServingsChange(e.target.value)}
             />
             <p className="mt-1 text-[11px] text-[var(--muted)]">
-              e.g. 2 for two scoops / pieces, 0.5 for half. For a per-100g food, use
-              0.3 for 30g.
+              {servingGrams
+                ? `1 serving ≈ ${servingGrams}g · use 2 for two, 0.5 for half.`
+                : 'e.g. 2 for two scoops / pieces, 0.5 for half.'}
             </p>
           </div>
         ) : null}
