@@ -13,6 +13,11 @@ export type FoodSuggestion = {
   fat_g: number | null;
   fiber_g: number | null;
   sodium_mg: number | null;
+  sugar_g: number | null;
+  saturated_fat_g: number | null;
+  trans_fat_g: number | null;
+  poly_fat_g: number | null;
+  mono_fat_g: number | null;
   count: number;
 };
 
@@ -24,6 +29,7 @@ export function useFoodSuggestions() {
   const { session } = useAuth();
   const [recent, setRecent] = useState<FoodSuggestion[]>([]);
   const [frequent, setFrequent] = useState<FoodSuggestion[]>([]);
+  const [all, setAll] = useState<FoodSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,12 +70,18 @@ export function useFoodSuggestions() {
           fat_g: meal.fat_g,
           fiber_g: meal.fiber_g,
           sodium_mg: meal.sodium_mg,
+          sugar_g: meal.sugar_g,
+          saturated_fat_g: meal.saturated_fat_g,
+          trans_fat_g: meal.trans_fat_g,
+          poly_fat_g: meal.poly_fat_g,
+          mono_fat_g: meal.mono_fat_g,
           count: 1,
         });
       }
 
       // Map preserves insertion order, which followed the descending timestamp query.
       const distinct = Array.from(byName.values());
+      setAll(distinct);
       setRecent(distinct.slice(0, SUGGESTION_LIMIT));
       setFrequent(
         distinct
@@ -86,5 +98,12 @@ export function useFoodSuggestions() {
     };
   }, [session?.user]);
 
-  return { recent, frequent, loading };
+  return { recent, frequent, all, loading };
+}
+
+// Match the user's own logged foods by name tokens (all must appear).
+export function searchMyFoods(all: FoodSuggestion[], query: string, limit = 8): FoodSuggestion[] {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return [];
+  return all.filter(f => tokens.every(t => f.mealName.toLowerCase().includes(t))).slice(0, limit);
 }

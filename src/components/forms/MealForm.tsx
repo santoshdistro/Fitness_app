@@ -6,7 +6,7 @@ import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
 import { searchIndianFoods } from '../../data/indianFoods';
 import { estimateFood } from '../../lib/aiClient';
-import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
+import { useFoodSuggestions, searchMyFoods, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
 import { gToUnit, unitToG } from '../../utils/units';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/mealCategory';
@@ -72,6 +72,28 @@ function detailFromResult(result: FoodSearchResult): DetailBase {
   };
 }
 
+// A previously-logged food becomes a per-serving search result, so anything you
+// scanned / estimated / typed once is findable by name later with its macros.
+function myFoodToResult(s: FoodSuggestion, i: number): FoodSearchResult {
+  return {
+    fdcId: -200000 - i,
+    description: s.mealName,
+    brandOwner: 'Your foods',
+    calories: s.calories ?? 0,
+    protein: s.protein_g ?? 0,
+    carbs: s.carbs_g ?? 0,
+    fat: s.fat_g ?? 0,
+    fiber: s.fiber_g ?? 0,
+    sodium: s.sodium_mg ?? 0,
+    sugar: s.sugar_g ?? 0,
+    satFat: s.saturated_fat_g ?? 0,
+    transFat: s.trans_fat_g ?? 0,
+    polyFat: s.poly_fat_g ?? 0,
+    monoFat: s.mono_fat_g ?? 0,
+    isPerServing: true,
+  };
+}
+
 type Props = {
   onSaved: () => void;
   initial?: MealInitial;
@@ -101,7 +123,7 @@ function baseFromInitial(initial?: MealInitial): PerGramMacros | null {
 
 export function MealForm({ onSaved, initial }: Props) {
   const { session } = useAuth();
-  const { recent, frequent } = useFoodSuggestions();
+  const { recent, frequent, all: myFoods } = useFoodSuggestions();
   const { settings } = useSettings();
   const foodUnit = settings.foodUnit;
 
@@ -136,12 +158,15 @@ export function MealForm({ onSaved, initial }: Props) {
     setSearchError(null);
     // Query the global (Open Food Facts) and US (USDA) databases together, so
     // one failing or being sparse doesn't block the other.
+    // Your own logged foods first, then the databases.
+    const mine = searchMyFoods(myFoods, query.trim()).map(myFoodToResult);
     const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
       searchFoods(query.trim()),
     ]);
     const merged = [
+      ...mine,
       ...indian,
       ...(off.status === 'fulfilled' ? off.value : []),
       ...(usda.status === 'fulfilled' ? usda.value : []),
