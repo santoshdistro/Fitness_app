@@ -2,6 +2,7 @@
 // exercises per muscle. Used by the body-map heatmap and the tap-to-browse view.
 
 export type MuscleKey =
+  | 'neck'
   | 'chest'
   | 'shoulders'
   | 'biceps'
@@ -17,13 +18,14 @@ export type MuscleKey =
   | 'calves';
 
 export const MUSCLE_LABEL: Record<MuscleKey, string> = {
+  neck: 'Neck',
   chest: 'Chest',
   shoulders: 'Shoulders',
   biceps: 'Biceps',
   triceps: 'Triceps',
   forearms: 'Forearms',
   abs: 'Abs',
-  back: 'Back',
+  back: 'Back / lats',
   traps: 'Traps',
   lowerBack: 'Lower back',
   glutes: 'Glutes',
@@ -35,6 +37,7 @@ export const MUSCLE_LABEL: Record<MuscleKey, string> = {
 // Ordered keyword rules — first matching multi-word rules win where it matters
 // (e.g. "leg curl" -> hamstrings before the generic "curl" -> biceps).
 const RULES: { test: RegExp; muscles: MuscleKey[] }[] = [
+  { test: /\bneck\b/, muscles: ['neck'] },
   { test: /leg curl|lying curl|seated curl.*ham|hamstring/, muscles: ['hamstrings'] },
   { test: /romanian|rdl|good morning|stiff leg/, muscles: ['hamstrings', 'glutes', 'lowerBack'] },
   { test: /deadlift/, muscles: ['back', 'hamstrings', 'glutes', 'lowerBack'] },
@@ -66,6 +69,7 @@ export function classifyMuscles(exerciseName: string): MuscleKey[] {
 }
 
 export const MUSCLE_EXERCISES: Record<MuscleKey, string[]> = {
+  neck: ['Neck curls', 'Neck extension', 'Weighted neck harness', 'Neck side flexion'],
   chest: ['Barbell bench press', 'Incline dumbbell press', 'Chest fly', 'Push-ups', 'Cable crossover'],
   shoulders: ['Overhead press', 'Lateral raises', 'Arnold press', 'Rear delt fly', 'Upright row'],
   biceps: ['Barbell curl', 'Dumbbell curl', 'Hammer curl', 'Preacher curl', 'Cable curl'],
@@ -85,6 +89,7 @@ export const MUSCLE_EXERCISES: Record<MuscleKey, string[]> = {
 import { EXERCISE_DETAILS } from './exerciseDetails';
 
 const DETAIL_MUSCLE: Record<string, MuscleKey> = {
+  neck: 'neck',
   abdominals: 'abs',
   biceps: 'biceps',
   calves: 'calves',
