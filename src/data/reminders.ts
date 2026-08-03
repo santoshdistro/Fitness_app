@@ -32,9 +32,13 @@ export const REMINDER_DEFS: {
 ];
 
 export const WATER_INTERVAL_OPTIONS = [
+  { value: 0.5, label: 'Every 30 min' },
+  { value: 0.75, label: 'Every 45 min' },
   { value: 1, label: 'Every hour' },
+  { value: 1.5, label: 'Every 1½ hours' },
   { value: 2, label: 'Every 2 hours' },
   { value: 3, label: 'Every 3 hours' },
+  { value: 4, label: 'Every 4 hours' },
 ];
 
 export function defaultReminderPrefs(): ReminderPrefs {

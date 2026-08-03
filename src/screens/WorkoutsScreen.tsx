@@ -185,7 +185,6 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 src={GOAL_PROGRAM_IMAGES[program.id]}
                 gradient={`linear-gradient(150deg, ${program.gradient[0]}, ${program.gradient[1]})`}
               />
-              <span className="relative z-10 self-end text-2xl drop-shadow">{program.emoji}</span>
               <span className="relative z-10 mt-auto text-sm font-bold leading-tight text-white drop-shadow">
                 {program.name}
               </span>
