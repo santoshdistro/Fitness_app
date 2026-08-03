@@ -184,6 +184,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onL
       progress: proteinGoal > 0 ? totals.protein_g / proteinGoal : 0,
     },
     {
+      key: 'water',
+      label: 'Drink your water',
+      detail: `${waterMl} / ${settings.waterGoalMl} ml`,
+      done: settings.waterGoalMl > 0 && waterMl >= settings.waterGoalMl * 0.9,
+      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
+    },
+    {
       key: 'burn',
       label: 'Burn active calories',
       detail: `${burnedKcal} / ${settings.activeCalorieGoal} kcal`,
