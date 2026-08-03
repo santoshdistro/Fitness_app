@@ -5,7 +5,9 @@ import { useSettings } from '../../hooks/useSettings';
 import { useTodayLog } from '../../hooks/useTodayLog';
 import { kgToUnit, unitToKg } from '../../utils/units';
 import { todayDateString } from '../../utils/date';
+import { rangeWarning, WEIGHT_RANGE } from '../../utils/sanity';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
+import { RangeHint } from './RangeHint';
 
 type Props = {
   onSaved: () => void;
@@ -91,6 +93,14 @@ export function WeightForm({ onSaved }: Props) {
         onChange={e => setWeight(e.target.value)}
         placeholder="e.g. 74.5"
         required
+      />
+      <RangeHint
+        message={rangeWarning(
+          weight,
+          WEIGHT_RANGE[settings.weightUnit].min,
+          WEIGHT_RANGE[settings.weightUnit].max,
+          `a body weight (${settings.weightUnit})`,
+        )}
       />
       {error ? <p className={errorTextClass}>{error}</p> : null}
       <button type="submit" disabled={saving || !weight} className={submitButtonClass}>

@@ -3,7 +3,9 @@ import { Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { WORKOUT_TEMPLATES, type WorkoutTemplate } from '../../data/workoutTemplates';
+import { LIFT_KG, rangeWarning } from '../../utils/sanity';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
+import { RangeHint } from './RangeHint';
 
 type Row = { exercise: string; reps: string; weight: string };
 
@@ -40,6 +42,12 @@ export function WorkoutForm({ onSaved }: Props) {
   }
 
   const validRows = rows.filter(row => row.exercise.trim());
+
+  // Warn on the first clearly-off lifted weight (kg) before it lands in charts.
+  const offRow = rows.find(r => rangeWarning(r.weight, LIFT_KG.min, LIFT_KG.max, '') !== null);
+  const liftWarn = offRow
+    ? `${offRow.weight}kg looks off for ${offRow.exercise.trim() || 'a lift'} — double-check.`
+    : null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -151,6 +159,7 @@ export function WorkoutForm({ onSaved }: Props) {
         + Add exercise
       </button>
 
+      <RangeHint message={liftWarn} />
       {error ? <p className={errorTextClass}>{error}</p> : null}
       <button type="submit" disabled={saving || validRows.length === 0} className={submitButtonClass}>
         {saving ? 'Saving...' : 'Save workout'}

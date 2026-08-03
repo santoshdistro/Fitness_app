@@ -4,7 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { cmToInches, computeNavyBodyFatPercent } from '../../utils/calculations';
 import { todayDateString } from '../../utils/date';
+import { GIRTH_RANGE, rangeWarning } from '../../utils/sanity';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
+import { RangeHint } from './RangeHint';
 
 type Props = {
   onSaved: () => void;
@@ -70,6 +72,22 @@ export function MeasurementsForm({ onSaved }: Props) {
   }
 
   const requiredFilled = neck && waist && (!needsHips || hips);
+
+  // Flag the first clearly-off girth (in inches) so a typo doesn't skew charts.
+  const offSite = [
+    { label: 'Neck', v: neck },
+    { label: 'Waist', v: waist },
+    { label: 'Hips', v: hips },
+    { label: 'Chest', v: chest },
+    { label: 'Biceps', v: biceps },
+    { label: 'Thighs', v: thighs },
+    { label: 'Belly', v: belly },
+    { label: 'Calves', v: calves },
+    { label: 'Forearms', v: forearms },
+  ].find(s => rangeWarning(s.v, GIRTH_RANGE.in.min, GIRTH_RANGE.in.max, '') !== null);
+  const measureWarn = offSite
+    ? `${offSite.label} ${offSite.v}" looks off for a body measurement — double-check.`
+    : null;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -230,6 +248,7 @@ export function MeasurementsForm({ onSaved }: Props) {
         </div>
       </div>
 
+      <RangeHint message={measureWarn} />
       {error ? <p className={errorTextClass}>{error}</p> : null}
       <button type="submit" disabled={saving || !requiredFilled} className={submitButtonClass}>
         {saving ? 'Saving...' : 'Save measurements'}
