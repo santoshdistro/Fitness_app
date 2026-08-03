@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Droplets, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { CoachChat } from '../components/CoachChat';
@@ -31,6 +31,7 @@ import { AchievementsPanel } from '../components/AchievementsPanel';
 import { FastingPanel } from '../components/FastingPanel';
 import { HealthSyncPanel } from '../components/HealthSyncPanel';
 import { CardioForm } from '../components/forms/CardioForm';
+import { ElectrolyteForm } from '../components/forms/ElectrolyteForm';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -47,6 +48,7 @@ type ActiveSheet =
   | 'achievements'
   | 'fasting'
   | 'cardio'
+  | 'electrolytes'
   | 'healthSync'
   | 'workoutPlan'
   | 'profile'
@@ -150,6 +152,7 @@ export function AppShell() {
               onNavigateStats={() => setActiveTab('stats')}
               onOpenProfile={() => setActiveSheet('profile')}
               onOpenSettings={() => setActiveSheet('settings')}
+              onLogElectrolytes={() => setActiveSheet('electrolytes')}
             />
           </div>
           <div className={activeTab === 'stats' ? 'contents' : 'hidden'}>
@@ -281,6 +284,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('activity')}
           />
           <QuickAddOption
+            icon={Droplets}
+            label="Log electrolytes"
+            onClick={() => setActiveSheet('electrolytes')}
+          />
+          <QuickAddOption
             icon={Timer}
             label="Fasting timer"
             onClick={() => setActiveSheet('fasting')}
@@ -341,6 +349,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'activity'} onClose={closeSheet} title="Log activity">
         <ActivityForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'electrolytes'} onClose={closeSheet} title="Log electrolytes">
+        <ElectrolyteForm onSaved={onSaved} />
       </Sheet>
 
       <Sheet open={activeSheet === 'workout'} onClose={closeSheet} title="Log workout">

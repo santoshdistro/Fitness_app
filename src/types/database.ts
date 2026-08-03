@@ -10,6 +10,10 @@ export type DailyLog = {
   caffeine_mg: number | null;
   mood: number | null;
   energy: number | null;
+  sodium_mg: number | null;
+  potassium_mg: number | null;
+  magnesium_mg: number | null;
+  calcium_mg: number | null;
 };
 
 export type Measurement = {

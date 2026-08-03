@@ -19,6 +19,7 @@ import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { StepsCard } from '../components/StepsSummary';
+import { ElectrolytesCard } from '../components/ElectrolytesCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
@@ -55,9 +56,10 @@ type Props = {
   onNavigateStats: () => void;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
+  onLogElectrolytes: () => void;
 };
 
-export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: Props) {
+export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onLogElectrolytes }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const [syncShortcut] = useState(getSyncShortcutName());
   const viewingToday = isToday(selectedDate);
@@ -327,6 +329,13 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
 
         <SleepBarChart entries={sleepEntries} goalHours={8} maxScaleHours={10} />
       </div>
+
+      {/* 4b. Electrolytes */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
+          <ElectrolytesCard onLog={onLogElectrolytes} />
+        </div>
+      ) : null}
 
       {/* 5. Coach */}
       {viewingToday ? (
