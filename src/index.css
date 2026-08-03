@@ -80,6 +80,12 @@
   background-attachment: fixed;
 }
 
+/* Keep the very top (under the status bar) dark in photo mode — the body's
+   translucent token would otherwise show as a white strip up there. */
+:root[data-surface='glass'][data-backdrop='image'] body {
+  background: #0b0d16;
+}
+
 :root[data-surface='glass'][data-backdrop='image'] .glass-card {
   background-image: linear-gradient(
     135deg,
