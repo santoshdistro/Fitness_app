@@ -615,8 +615,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="calories-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={calories}
               onChange={e => setCalories(e.target.value)}
               required
@@ -630,8 +631,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="protein-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={protein}
               onChange={e => setProtein(e.target.value)}
               required
@@ -645,8 +647,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="carbs-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={carbs}
               onChange={e => setCarbs(e.target.value)}
             />
@@ -659,8 +662,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="fat-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={fat}
               onChange={e => setFat(e.target.value)}
             />
@@ -673,8 +677,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="fiber-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={fiber}
               onChange={e => setFiber(e.target.value)}
             />
@@ -687,8 +692,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="sodium-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={sodium}
               onChange={e => setSodium(e.target.value)}
             />

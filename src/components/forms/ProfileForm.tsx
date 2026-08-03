@@ -97,7 +97,7 @@ export function ProfileForm({
             <input
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
               value={feet}
               onChange={e => {
@@ -110,7 +110,7 @@ export function ProfileForm({
             <input
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
               max="11"
               value={inches}

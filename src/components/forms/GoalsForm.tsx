@@ -177,7 +177,7 @@ export function GoalsForm({ onSaved }: Props) {
           id="calorie-override-input"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={calorieOverride}
           onChange={e => setCalorieOverride(e.target.value)}
@@ -196,7 +196,7 @@ export function GoalsForm({ onSaved }: Props) {
           id="protein-target-input"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={protein}
           onChange={e => setProtein(e.target.value)}
@@ -211,7 +211,7 @@ export function GoalsForm({ onSaved }: Props) {
           id="fiber-target-input"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={fiber}
           onChange={e => setFiber(e.target.value)}
@@ -226,7 +226,7 @@ export function GoalsForm({ onSaved }: Props) {
           id="sodium-target-input"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={sodium}
           onChange={e => setSodium(e.target.value)}

@@ -71,7 +71,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
           id="quick-add-calories"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={calories}
           onChange={e => setCalories(e.target.value)}
@@ -88,7 +88,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-protein"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={protein}
             onChange={e => setProtein(e.target.value)}
@@ -102,7 +102,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-carbs"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={carbs}
             onChange={e => setCarbs(e.target.value)}
@@ -116,7 +116,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-fat"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={fat}
             onChange={e => setFat(e.target.value)}

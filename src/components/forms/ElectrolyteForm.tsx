@@ -83,7 +83,7 @@ export function ElectrolyteForm({ onSaved }: { onSaved: () => void }) {
               id={`el-${e.key}`}
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
               value={vals[e.key]}
               onChange={ev => setVals(prev => ({ ...prev, [e.key]: ev.target.value }))}
