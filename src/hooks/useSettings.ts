@@ -13,6 +13,7 @@ export type Settings = {
   activeCalorieGoal: number;
   theme: Theme;
   surface: Surface;
+  backdrop: string; // '' = aurora; otherwise an image URL / data URL for glass mode
   weightUnit: WeightUnit;
   volumeUnit: VolumeUnit;
   foodUnit: FoodUnit;
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   activeCalorieGoal: 500,
   theme: 'light',
   surface: 'normal',
+  backdrop: '',
   weightUnit: 'kg',
   volumeUnit: 'l',
   foodUnit: 'g',
@@ -53,6 +55,18 @@ export function applySurface(surface: Surface): void {
   document.documentElement.setAttribute('data-surface', surface);
 }
 
+/** Sets the glass backdrop image (or clears it, falling back to the aurora). */
+export function applyBackdrop(backdrop: string): void {
+  const root = document.documentElement;
+  if (backdrop) {
+    root.style.setProperty('--backdrop-image', `url("${backdrop}")`);
+    root.setAttribute('data-backdrop', 'image');
+  } else {
+    root.style.removeProperty('--backdrop-image');
+    root.setAttribute('data-backdrop', 'aurora');
+  }
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(read);
 
@@ -63,6 +77,10 @@ export function useSettings() {
   useEffect(() => {
     applySurface(settings.surface);
   }, [settings.surface]);
+
+  useEffect(() => {
+    applyBackdrop(settings.backdrop);
+  }, [settings.backdrop]);
 
   const save = useCallback((next: Partial<Settings>) => {
     setSettings(current => {

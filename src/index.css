@@ -57,6 +57,19 @@
     linear-gradient(var(--bg), var(--bg));
 }
 
+/* A custom photo backdrop (uploaded or preset) for the glass to refract over,
+   with a scrim so cards stay readable. Overrides the aurora when set. */
+:root[data-surface='glass'][data-backdrop='image'] .app-bg {
+  background-image:
+    linear-gradient(rgba(8, 10, 20, 0.5), rgba(8, 10, 20, 0.62)),
+    var(--backdrop-image),
+    linear-gradient(var(--bg), var(--bg));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Frost + heavily saturate every surface built on .glass-card / .glass. */
 :root[data-surface='glass'] .glass-card,
 :root[data-surface='glass'] .glass {

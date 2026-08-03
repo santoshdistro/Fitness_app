@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Layers, Moon, Sparkles, Sun } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ImagePlus, Layers, Moon, Sparkles, Sun } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { BACKDROP_PRESETS, downscaleImage } from '../../data/backdrops';
 import { RemindersForm } from './RemindersForm';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
 
@@ -64,6 +65,12 @@ export function SettingsForm({ onSaved }: Props) {
           backdrop. Normal is the classic clean look.
         </p>
       </div>
+
+      {settings.surface === 'glass' ? (
+        <div className="mb-4">
+          <BackdropPicker current={settings.backdrop} onPick={backdrop => save({ backdrop })} />
+        </div>
+      ) : null}
 
       <div className="mb-4">
         <p className={labelClass}>Units</p>
@@ -196,6 +203,82 @@ function UnitRow({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function BackdropPicker({ current, onPick }: { current: string; onPick: (url: string) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const isCustom = current !== '' && !BACKDROP_PRESETS.some(p => p.url === current);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setErr(null);
+    try {
+      onPick(await downscaleImage(file));
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : 'Upload failed.');
+    }
+  }
+
+  const tile = 'relative h-20 overflow-hidden rounded-2xl border-2';
+  const caption =
+    'absolute inset-x-0 bottom-0 bg-black/45 py-0.5 text-center text-[9px] font-bold text-white';
+
+  return (
+    <div>
+      <p className={labelClass}>Glass backdrop</p>
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() => onPick('')}
+          className={tile}
+          style={{
+            borderColor: current === '' ? 'var(--accent)' : 'transparent',
+            background: 'linear-gradient(135deg,#6c63ff,#0ea5e9,#a855f7)',
+          }}
+        >
+          <span className={caption}>Aurora</span>
+        </button>
+
+        {BACKDROP_PRESETS.map(p => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onPick(p.url)}
+            className={tile}
+            style={{ borderColor: current === p.url ? 'var(--accent)' : 'transparent' }}
+          >
+            <img src={p.url} alt={p.label} className="h-full w-full object-cover" />
+            <span className={caption}>{p.label}</span>
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className={`${tile} bg-[var(--bg)]`}
+          style={{ borderColor: isCustom ? 'var(--accent)' : 'var(--card-border)' }}
+        >
+          {isCustom ? <img src={current} alt="Custom backdrop" className="h-full w-full object-cover" /> : null}
+          <span
+            className={`absolute inset-0 flex flex-col items-center justify-center gap-1 text-[10px] font-bold ${
+              isCustom ? 'bg-black/40 text-white' : 'text-[var(--muted)]'
+            }`}
+          >
+            <ImagePlus size={16} /> {isCustom ? 'Change' : 'Upload'}
+          </span>
+        </button>
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
+      {err ? <p className="mt-1 text-[11px] text-red-500">{err}</p> : null}
+      <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+        Pick a photo for the glass to refract over, or upload your own — it looks best with a moody,
+        high-contrast image.
+      </p>
     </div>
   );
 }

@@ -9,6 +9,12 @@ try {
   const parsed = saved ? JSON.parse(saved) : {};
   document.documentElement.setAttribute('data-theme', parsed.theme === 'dark' ? 'dark' : 'light');
   document.documentElement.setAttribute('data-surface', parsed.surface === 'glass' ? 'glass' : 'normal');
+  if (parsed.backdrop) {
+    document.documentElement.style.setProperty('--backdrop-image', `url("${parsed.backdrop}")`);
+    document.documentElement.setAttribute('data-backdrop', 'image');
+  } else {
+    document.documentElement.setAttribute('data-backdrop', 'aurora');
+  }
 } catch {
   document.documentElement.setAttribute('data-theme', 'light');
   document.documentElement.setAttribute('data-surface', 'normal');
