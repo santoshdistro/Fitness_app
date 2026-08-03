@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
-import { ImagePlus, Layers, Moon, Sparkles, Sun } from 'lucide-react';
+import { Download, ImagePlus, Layers, Moon, Sparkles, Sun } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { useAuth } from '../../contexts/AuthContext';
 import { BACKDROP_PRESETS, downscaleImage } from '../../data/backdrops';
+import { exportJson, exportTableCsv, type ExportTable } from '../../lib/exportData';
 import { RemindersForm } from './RemindersForm';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
 
@@ -168,6 +170,81 @@ export function SettingsForm({ onSaved }: Props) {
         <p className={labelClass}>Reminders</p>
         <RemindersForm />
       </div>
+
+      <div className="mt-6">
+        <p className={labelClass}>Export &amp; backup</p>
+        <ExportSection />
+      </div>
+    </div>
+  );
+}
+
+const CSV_TABLES: { table: ExportTable; label: string }[] = [
+  { table: 'daily_logs', label: 'Weight & daily' },
+  { table: 'measurements', label: 'Measurements' },
+  { table: 'food_logs', label: 'Food log' },
+  { table: 'workout_logs', label: 'Workouts' },
+  { table: 'cardio_logs', label: 'Cardio' },
+];
+
+function ExportSection() {
+  const { session } = useAuth();
+  const userId = session?.user?.id;
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function run(key: string, fn: () => Promise<void>) {
+    if (!userId || busy) return;
+    setBusy(key);
+    setNote(null);
+    try {
+      await fn();
+      setNote('Saved to your device.');
+    } catch {
+      setNote('Could not export — please try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="glass-card flex flex-col gap-3 p-4">
+      <p className="text-[11px] text-[var(--muted)]">
+        Download a copy of your data. The full backup (JSON) captures everything and can be kept
+        safe or re-imported later; CSVs open in any spreadsheet.
+      </p>
+
+      <button
+        type="button"
+        onClick={() => run('json', () => exportJson(userId!))}
+        disabled={!!busy || !userId}
+        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-50"
+        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+      >
+        <Download size={16} />
+        {busy === 'json' ? 'Preparing…' : 'Download full backup (JSON)'}
+      </button>
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+          Or export a single table (CSV)
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {CSV_TABLES.map(({ table, label }) => (
+            <button
+              key={table}
+              type="button"
+              onClick={() => run(table, async () => { await exportTableCsv(userId!, table); })}
+              disabled={!!busy || !userId}
+              className="rounded-full border border-[var(--card-border)] px-3 py-1.5 text-[11px] font-semibold text-[var(--text)] disabled:opacity-50"
+            >
+              {busy === table ? '…' : label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {note ? <p className="text-[11px] text-[var(--muted)]">{note}</p> : null}
     </div>
   );
 }
