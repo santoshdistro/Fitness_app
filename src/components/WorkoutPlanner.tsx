@@ -14,6 +14,7 @@ import { useWorkoutPlan, type RangeEntry } from '../hooks/useWorkoutPlan';
 import { generateWorkoutPlan } from '../lib/aiClient';
 import { templatesForFocus, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
+import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/physiqueGoals';
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
@@ -597,6 +598,7 @@ function AiBuilderForm({
   const [equipment, setEquipment] = useState(defaultEquipment ?? '');
   const [goal, setGoal] = useState(defaultGoal ?? 'build');
   const [experience, setExperience] = useState<GymLevel>(defaultGymLevel());
+  const [physique, setPhysique] = useState<PhysiqueGoal>('balanced');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -607,12 +609,15 @@ function AiBuilderForm({
     setError(null);
     try {
       const splitText = WEEKDAYS.map((d, i) => `${d}: ${split[i]}`).join(', ');
+      const physPrompt = physiqueByValue(physique)?.aiPrompt;
       const result = await generateWorkoutPlan(userId, {
         equipment: equipment || undefined,
         goal,
         experience,
         daysPerWeek,
-        notes: `Align to my weekly split — ${splitText}. Give exercises for each training focus.`,
+        notes: `Align to my weekly split — ${splitText}. Give exercises for each training focus.${
+          physPrompt && physique !== 'balanced' ? ` Target physique: ${physPrompt}.` : ''
+        }`,
       });
 
       // Map generated days onto split focuses, then lay across 14 days.
@@ -656,6 +661,21 @@ function AiBuilderForm({
           <option value="lose">Lose fat</option>
           <option value="build">Build muscle</option>
           <option value="maintain">Maintain / general</option>
+        </select>
+      </div>
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="wb-physique">Target physique</label>
+        <select
+          id="wb-physique"
+          className={inputClass}
+          value={physique}
+          onChange={e => setPhysique(e.target.value as PhysiqueGoal)}
+        >
+          {PHYSIQUE_GOALS.map(p => (
+            <option key={p.value} value={p.value}>
+              {p.label} — {p.blurb}
+            </option>
+          ))}
         </select>
       </div>
       <div className="mb-3">

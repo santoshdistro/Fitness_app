@@ -1,4 +1,5 @@
 import { SPLIT_TEMPLATES } from '../data/splitTemplates';
+import { physiqueByValue, type PhysiqueGoal } from '../data/physiqueGoals';
 import type { WorkoutPlanResult } from '../lib/aiClient';
 
 export type CuratedGoal = 'build' | 'lose' | 'strength' | 'general';
@@ -53,26 +54,34 @@ const GOAL_LABEL: Record<CuratedGoal, string> = {
 };
 
 // Build a ready-made program deterministically — no AI call, no credit spent.
+// The target physique (if set) overrides the rep scheme toward that look.
 export function buildCuratedPlan(
   goal: CuratedGoal,
   level: CuratedLevel,
   days: number,
+  physique: PhysiqueGoal = 'balanced',
 ): WorkoutPlanResult {
   const delta = LEVEL_SET_DELTA[level] ?? 0;
   const focuses = splitForDays(days);
+  const phys = physiqueByValue(physique);
+  const repsFor = (base: string) => (phys?.reps ? phys.reps : repsForGoal(base, goal));
+
   const planDays = focuses.map((focus, i) => ({
     day: `Day ${i + 1}`,
     focus,
     exercises: (SPLIT_TEMPLATES[focus] ?? []).map(e => ({
       name: e.name,
       sets: Math.min(6, Math.max(2, e.sets + delta)),
-      reps: repsForGoal(e.reps, goal),
+      reps: repsFor(e.reps),
     })),
   }));
 
+  const physSuffix = phys && physique !== 'balanced' ? ` · ${phys.label}` : '';
   return {
-    name: `${GOAL_LABEL[goal]} · ${level}`,
-    description: `${days}-day ${focuses.join(' / ').toLowerCase()} split, tuned for ${level.toLowerCase()}. Swap any exercise in the planner.`,
+    name: `${GOAL_LABEL[goal]}${physSuffix} · ${level}`,
+    description: `${days}-day ${focuses.join(' / ').toLowerCase()} split, tuned for ${level.toLowerCase()}${
+      phys && physique !== 'balanced' ? ` and ${phys.blurb.toLowerCase()}` : ''
+    }. Swap any exercise in the planner.`,
     days: planDays,
   };
 }

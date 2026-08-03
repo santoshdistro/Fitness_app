@@ -23,6 +23,7 @@ import {
   type CuratedGoal,
   type CuratedLevel,
 } from '../utils/curatedPlan';
+import { PHYSIQUE_GOALS, type PhysiqueGoal } from '../data/physiqueGoals';
 import {
   EQUIPMENT_OPTIONS,
   exerciseImageUrl,
@@ -611,8 +612,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 
       <Sheet open={curatedOpen} onClose={() => setCuratedOpen(false)} title="Quick program (no AI)">
         <CuratedPlanForm
-          onBuild={(goal, level, days) => {
-            savePlan(buildCuratedPlan(goal, level, days));
+          onBuild={(goal, level, days, physique) => {
+            savePlan(buildCuratedPlan(goal, level, days, physique));
             setCuratedOpen(false);
           }}
         />
@@ -639,11 +640,12 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 function CuratedPlanForm({
   onBuild,
 }: {
-  onBuild: (goal: CuratedGoal, level: CuratedLevel, days: number) => void;
+  onBuild: (goal: CuratedGoal, level: CuratedLevel, days: number, physique: PhysiqueGoal) => void;
 }) {
   const [goal, setGoal] = useState<CuratedGoal>('build');
   const [level, setLevel] = useState<CuratedLevel>('Novice');
   const [days, setDays] = useState(4);
+  const [physique, setPhysique] = useState<PhysiqueGoal>('balanced');
 
   return (
     <div className="flex flex-col gap-4">
@@ -651,6 +653,31 @@ function CuratedPlanForm({
         Instantly assembles a split from built-in templates — no AI credit. It picks up the same
         week-by-week progression once saved.
       </p>
+
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-[var(--text)]">Target physique</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PHYSIQUE_GOALS.map(p => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setPhysique(p.value)}
+              className="rounded-xl px-3 py-2 text-xs font-bold"
+              style={
+                physique === p.value
+                  ? { background: 'var(--accent)', color: 'white' }
+                  : { background: 'var(--bg)', color: 'var(--muted)' }
+              }
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+          {PHYSIQUE_GOALS.find(p => p.value === physique)?.blurb}
+          {physique !== 'balanced' ? ' — sets the rep style toward that look.' : ''}
+        </p>
+      </div>
 
       <div>
         <p className="mb-1.5 text-xs font-semibold text-[var(--text)]">Goal</p>
@@ -717,7 +744,7 @@ function CuratedPlanForm({
 
       <button
         type="button"
-        onClick={() => onBuild(goal, level, days)}
+        onClick={() => onBuild(goal, level, days, physique)}
         className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
         style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
       >
