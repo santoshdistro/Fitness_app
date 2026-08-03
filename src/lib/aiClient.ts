@@ -67,7 +67,17 @@ export type DietPlanItem = {
 export type DietPlanDay = { items: DietPlanItem[] };
 export type DietPlanResult = { summary: string; days: DietPlanDay[] };
 // dayTypes: Mon..Sun kind of day (Veg / Non-veg / IF 16:8 / Fasting (OMAD) …).
-export type DietPlanInput = NutritionPreferences & { days?: number; dayTypes?: string[] };
+// The extra fields let the plan read like a dietitian's: where each day is
+// spent (Home = cook fresh, Office = easy prep / salads / portable), what the
+// person already has, their preferred breakfast, and cook-fresh vs batch-prep.
+export type DietPlanInput = NutritionPreferences & {
+  days?: number;
+  dayTypes?: string[];
+  dayLocations?: string[]; // aligned with dayTypes; 'Home' | 'Office'
+  ingredients?: string;
+  breakfast?: string;
+  prepStyle?: string;
+};
 
 export type MealPrepItem = {
   name: string;

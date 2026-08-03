@@ -66,6 +66,16 @@ const GOAL_OPTIONS = [
   { value: 'build muscle / gain', label: 'Build muscle' },
   { value: 'maintain / eat healthier', label: 'Maintain & eat well' },
 ];
+const BREAKFAST_OPTIONS = [
+  { value: '', label: 'No preference' },
+  { value: 'Overnight oats', label: 'Overnight oats' },
+  { value: 'Eggs (omelette / boiled)', label: 'Eggs' },
+  { value: 'Smoothie / protein shake', label: 'Smoothie / shake' },
+  { value: 'Poha / upma', label: 'Poha / upma' },
+  { value: 'Paneer / tofu scramble', label: 'Paneer / tofu scramble' },
+  { value: 'Greek yogurt + fruit', label: 'Yogurt + fruit' },
+  { value: 'Light paratha', label: 'Light paratha' },
+];
 
 function goalDefault(goalType?: string | null): string {
   if (goalType === 'lose') return GOAL_OPTIONS[0].value;
@@ -857,6 +867,7 @@ function PlanBuilderForm({
   dayTypes?: DietDayType[];
   onBuilt: (result: DietPlanResult) => void;
 }) {
+  const hasSplit = Boolean(dayTypes && dayTypes.length);
   const [goal, setGoal] = useState(defaultGoal);
   const [diet, setDiet] = useState(DIET_OPTIONS[0]);
   const [likes, setLikes] = useState('');
@@ -864,8 +875,17 @@ function PlanBuilderForm({
   const [mealsPerDay, setMealsPerDay] = useState('3');
   const [kcal, setKcal] = useState(String(calorieTarget));
   const [protein, setProtein] = useState(String(proteinTarget));
+  // Dietitian context.
+  const [locations, setLocations] = useState<string[]>(() => dayTypes?.map(() => 'Home') ?? []);
+  const [ingredients, setIngredients] = useState('');
+  const [breakfast, setBreakfast] = useState('');
+  const [prepStyle, setPrepStyle] = useState('Cook fresh daily');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleLoc(i: number) {
+    setLocations(prev => prev.map((l, idx) => (idx === i ? (l === 'Home' ? 'Office' : 'Home') : l)));
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -879,7 +899,11 @@ function PlanBuilderForm({
       calorieTarget: Number(kcal) || undefined,
       proteinTarget: Number(protein) || undefined,
       days: 7,
-      dayTypes: dayTypes && dayTypes.length ? dayTypes : undefined,
+      dayTypes: hasSplit ? dayTypes : undefined,
+      dayLocations: hasSplit ? locations : undefined,
+      ingredients: ingredients.trim() || undefined,
+      breakfast: breakfast || undefined,
+      prepStyle,
     };
     setGenerating(true);
     setError(null);
@@ -896,8 +920,8 @@ function PlanBuilderForm({
   return (
     <form onSubmit={submit}>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        {dayTypes && dayTypes.length
-          ? `AI plans each day to match your weekly split (${dayTypes.join(', ')}) and repeats it across the fortnight from `
+        {hasSplit
+          ? `Like a dietitian: plans each day around your split (${dayTypes!.join(', ')}), your week (home vs office), and what you have — then repeats it across the fortnight from `
           : 'AI drafts a varied week of meals and lays it across the 2 weeks starting '}
         {fmt(startDate, { weekday: 'long', day: 'numeric', month: 'short' })}. Every day stays
         editable — tweak anything before you follow it.
@@ -918,6 +942,65 @@ function PlanBuilderForm({
           ))}
         </select>
       </div>
+
+      {/* Dietitian context — where each day is spent, what you have, breakfast, prep */}
+      {hasSplit ? (
+        <div className="mb-3">
+          <label className={labelClass}>Your week — tap a day to flip Home ⇄ Office</label>
+          <div className="flex gap-1">
+            {dayTypes!.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => toggleLoc(i)}
+                className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5"
+                style={
+                  locations[i] === 'Office'
+                    ? { background: 'color-mix(in srgb, #f59e0b 16%, transparent)', color: '#b45309' }
+                    : { background: 'var(--bg)', color: 'var(--muted)' }
+                }
+              >
+                <span className="text-[9px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
+                <span className="text-[9px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
+            Office days get easy prep-ahead meals — salads, wraps, overnight oats, pre-cooked boxes.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="db-ingredients">What do you have at home? — optional</label>
+        <input
+          id="db-ingredients"
+          className={inputClass}
+          type="text"
+          value={ingredients}
+          onChange={e => setIngredients(e.target.value)}
+          placeholder="e.g. oats, eggs, paneer, rice, spinach, chicken"
+        />
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelClass} htmlFor="db-breakfast">Breakfast style</label>
+          <select id="db-breakfast" className={inputClass} value={breakfast} onChange={e => setBreakfast(e.target.value)}>
+            {BREAKFAST_OPTIONS.map(o => (
+              <option key={o.label} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="db-prep">Cooking style</label>
+          <select id="db-prep" className={inputClass} value={prepStyle} onChange={e => setPrepStyle(e.target.value)}>
+            <option value="Cook fresh daily">Cook fresh daily</option>
+            <option value="Batch-prep on the weekend">Batch-prep weekend</option>
+          </select>
+        </div>
+      </div>
+
       <div className="mb-3 grid grid-cols-2 gap-2">
         <NumField id="db-kcal" label="Calorie target" value={kcal} setValue={setKcal} placeholder="kcal" />
         <NumField id="db-pro" label="Protein target" value={protein} setValue={setProtein} placeholder="g" />

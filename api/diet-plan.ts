@@ -20,6 +20,10 @@ type Body = {
   proteinTarget?: number;
   days?: number;
   dayTypes?: string[];
+  dayLocations?: string[];
+  ingredients?: string;
+  breakfast?: string;
+  prepStyle?: string;
   servings?: number;
   kind?: 'plan' | 'prep' | 'schedule';
   wake?: string;
@@ -56,7 +60,7 @@ type PrepResult = { summary: string; items: PrepItem[]; shoppingList: string[] }
 type ScheduleEntry = { time: string; title: string; detail: string; kind: string };
 type ScheduleResult = { summary: string; entries: ScheduleEntry[] };
 
-const PLAN_PROMPT = `You are a practical diet planner. Build a realistic, varied day-by-day eating plan the user can actually follow.
+const PLAN_PROMPT = `You are an experienced, practical dietitian. Read the person's week and what they have on hand, then build a realistic, varied day-by-day eating plan they can actually follow.
 Respect their diet type, likes and dislikes at all times — never include a disliked or off-diet food.
 Keep each day's totals close to any calorie and protein targets provided.
 Use cooked / ready-to-eat portions (that is what people serve and weigh), and make the state explicit in each item name, e.g. "White rice (cooked, 200g)" or "Chicken breast (grilled, 150g)". Remember cooking adds water, not calories, so give the calories for the cooked portion.
@@ -64,6 +68,12 @@ When a day has a specific type, honour it strictly:
 - "Veg" = vegetarian (no meat/fish, dairy ok). "Non-veg" = include meat/fish. "Egg" = vegetarian + eggs. "Vegan" = no animal products. "Keto"/"Low-carb" = minimise carbs. "High-protein" = push protein high.
 - "IF 16:8" = same daily calories but fit all meals inside an 8-hour window; add a "time" (HH:MM, 24h) to each item so the first and last meal are ~8 hours apart (e.g. 12:00 to 20:00).
 - "Fasting (OMAD)" = ONE single large meal that carries most of the day's calories/protein; add a "time" around 18:00.
+Match each meal to where the day is spent:
+- "Home" days: meals can be freshly cooked and warm.
+- "Office" (out) days: keep it grab-and-go and prep-ahead — overnight oats, salads, wraps, boxes, pre-cooked portions; nothing that needs cooking at midday.
+If the person lists ingredients they already have, build around those wherever it makes sense.
+If they give a preferred breakfast style, use it (or a close variant) on most days.
+If they prefer weekend batch-prep, favour dishes that cook once and reuse across their office days, and mention the reuse briefly in the item name where helpful.
 Respond with ONLY a JSON object, no markdown and no prose, with exactly these keys:
 "summary" (2 short sentences on the approach, string),
 "days" (array — one entry per day requested, in the same order) where each day is:
@@ -140,14 +150,20 @@ export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
 
     const dayTypes = Array.isArray(body.dayTypes) ? body.dayTypes.slice(0, 7) : null;
     const days = dayTypes ? dayTypes.length : Math.min(Math.max(Number(body.days) || 7, 1), 7);
+    const locations = Array.isArray(body.dayLocations) ? body.dayLocations : null;
     const details = [
       dayTypes
-        ? `Plan exactly ${days} days, in this order, each matching its type:\n${dayTypes
-            .map((t, i) => `  Day ${i + 1}: ${t}`)
+        ? `Plan exactly ${days} days, in this order, each matching its type${
+            locations ? ' and where the day is spent' : ''
+          }:\n${dayTypes
+            .map((t, i) => `  Day ${i + 1}: ${t}${locations && locations[i] ? ` (${locations[i]})` : ''}`)
             .join('\n')}`
         : `Number of days to plan: ${days}`,
       `Goal: ${body.goal || 'general health'}`,
       `Diet preference: ${body.diet || 'no restrictions'}`,
+      body.ingredients ? `Ingredients they already have (build around these): ${body.ingredients}` : '',
+      body.breakfast ? `Preferred breakfast style: ${body.breakfast}` : '',
+      body.prepStyle ? `Cooking style: ${body.prepStyle}` : '',
       body.likes ? `Foods they like: ${body.likes}` : '',
       body.dislikes ? `Foods to avoid: ${body.dislikes}` : '',
       `Meals per day (unless the day type says otherwise): ${body.mealsPerDay || 3}`,
