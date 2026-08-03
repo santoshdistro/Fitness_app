@@ -69,3 +69,48 @@ export const DIET_DAY_TEMPLATES: Record<DietDayType, DietPlanItem[]> = {
 export function dayTemplateItems(type: DietDayType): DietPlanItem[] {
   return DIET_DAY_TEMPLATES[type] ?? DIET_DAY_TEMPLATES.Any;
 }
+
+// Breakfast presets — used to swap a day's breakfast to the chosen style.
+export const BREAKFAST_PRESETS: Record<string, DietPlanItem> = {
+  'Overnight oats': { meal: 'Breakfast', name: 'Overnight oats (50g) + whey + berries', calories: 380, protein_g: 32, carbs_g: 48, fat_g: 8, fiber_g: 7, time: '08:00' },
+  'Eggs (omelette / boiled)': { meal: 'Breakfast', name: '3-egg omelette + 1 toast', calories: 320, protein_g: 26, carbs_g: 18, fat_g: 16, fiber_g: 2, time: '08:00' },
+  'Smoothie / protein shake': { meal: 'Breakfast', name: 'Whey + banana + oats smoothie', calories: 350, protein_g: 34, carbs_g: 45, fat_g: 6, fiber_g: 5, time: '08:00' },
+  'Poha / upma': { meal: 'Breakfast', name: 'Veg poha / upma + peanuts + curd', calories: 360, protein_g: 16, carbs_g: 52, fat_g: 10, fiber_g: 5, time: '08:00' },
+  'Paneer / tofu scramble': { meal: 'Breakfast', name: 'Paneer / tofu scramble (150g) + 1 toast', calories: 360, protein_g: 28, carbs_g: 22, fat_g: 16, fiber_g: 3, time: '08:00' },
+  'Greek yogurt + fruit': { meal: 'Breakfast', name: 'Greek yogurt (200g) + fruit + almonds', calories: 320, protein_g: 28, carbs_g: 28, fat_g: 10, fiber_g: 3, time: '08:00' },
+  'Light paratha': { meal: 'Breakfast', name: '1 stuffed paratha (light oil) + curd', calories: 340, protein_g: 16, carbs_g: 40, fat_g: 14, fiber_g: 4, time: '08:00' },
+};
+
+// Portable "prep box" lunches for office days — no midday cooking.
+const OFFICE_LUNCH: Record<'veg' | 'vegan' | 'nonveg', DietPlanItem> = {
+  nonveg: { meal: 'Lunch', name: 'Prep box: grilled chicken 180g + rice + veg (packed)', calories: 560, protein_g: 48, carbs_g: 60, fat_g: 10, fiber_g: 7, time: '13:00' },
+  veg: { meal: 'Lunch', name: 'Prep box: paneer + chickpea salad + roti (packed)', calories: 540, protein_g: 30, carbs_g: 55, fat_g: 16, fiber_g: 10, time: '13:00' },
+  vegan: { meal: 'Lunch', name: 'Prep box: tofu + quinoa + chickpea salad (packed)', calories: 540, protein_g: 28, carbs_g: 58, fat_g: 14, fiber_g: 11, time: '13:00' },
+};
+
+// Office lunch only where the normal lunch needs cooking; low-carb/keto lunches
+// are already salads, and IF/OMAD have special eating windows, so leave those.
+function officeBoxFor(type: DietDayType): DietPlanItem | null {
+  if (type === 'Vegan') return OFFICE_LUNCH.vegan;
+  if (type === 'Veg' || type === 'Egg') return OFFICE_LUNCH.veg;
+  if (type === 'Any' || type === 'Non-veg' || type === 'High-protein') return OFFICE_LUNCH.nonveg;
+  return null;
+}
+
+// A curated day tailored to context: swap the breakfast to the chosen style and,
+// on office days, swap the lunch for a portable prep box.
+export function curatedDayItems(
+  type: DietDayType,
+  opts: { location?: string; breakfast?: string },
+): DietPlanItem[] {
+  let items = dayTemplateItems(type).map(x => ({ ...x }));
+  if (opts.breakfast && BREAKFAST_PRESETS[opts.breakfast]) {
+    const b = BREAKFAST_PRESETS[opts.breakfast];
+    items = items.map(i => (i.meal === 'Breakfast' ? { ...b, time: i.time } : i));
+  }
+  if (opts.location === 'Office') {
+    const box = officeBoxFor(type);
+    if (box) items = items.map(i => (i.meal === 'Lunch' ? { ...box, time: i.time } : i));
+  }
+  return items;
+}

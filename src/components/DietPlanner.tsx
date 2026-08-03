@@ -6,7 +6,7 @@ import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { usePushReminders } from '../hooks/usePushReminders';
 import { PLAN_SPAN, useDietPlan, type PlanItem } from '../hooks/useDietPlan';
 import { useDietSplit, DIET_DAY_OPTIONS, DIET_WEEKDAYS, type DietDayType } from '../hooks/useDietSplit';
-import { dayTemplateItems } from '../data/dietDayTemplates';
+import { curatedDayItems } from '../data/dietDayTemplates';
 import { DayScheduleCard } from './DayScheduleCard';
 import { useDaySchedule } from '../hooks/useDaySchedule';
 import { mealTimesFromSchedule } from '../lib/daySchedule';
@@ -100,6 +100,7 @@ export function DietPlanner() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [predefinedOpen, setPredefinedOpen] = useState(false);
+  const [curatedSplitOpen, setCuratedSplitOpen] = useState(false);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [remindering, setRemindering] = useState(false);
 
@@ -138,23 +139,27 @@ export function DietPlanner() {
   }
 
   // Non-AI build: assemble the fortnight instantly from curated day-templates
-  // that match each weekday's chosen style.
-  function quickFillFromSplit() {
+  // that match each weekday's style, tailored to home/office and breakfast.
+  function quickFillFromSplit(locations: string[], breakfast: string) {
     // Line meal times up with your day schedule (breakfast soon after waking,
     // dinner = last meal). IF / OMAD days keep their own eating-window times.
     const times = mealTimesFromSchedule(scheduleInputs);
-    const days = split.map(type => {
+    const days = split.map((type, i) => {
       const keepTimes = type === 'IF 16:8' || type === 'Fasting (OMAD)';
-      const items = dayTemplateItems(type).map(it =>
+      const items = curatedDayItems(type, { location: locations[i], breakfast }).map(it =>
         !keepTimes && times[it.meal] ? { ...it, time: times[it.meal] } : it,
       );
       return { items };
     });
     applyWeeklyPlan(
-      { summary: 'Curated week from your diet split — every meal stays editable.', days },
+      {
+        summary: 'Predefined week from your split — tailored to home/office days & breakfast. Every meal stays editable.',
+        days,
+      },
       stripStart,
     );
     setViewDate(stripStart);
+    setCuratedSplitOpen(false);
   }
 
   // Push this day's breakfast/lunch/dinner times into the reminder prefs so the
@@ -254,10 +259,10 @@ export function DietPlanner() {
         <div className="mt-1 flex gap-2">
           <button
             type="button"
-            onClick={quickFillFromSplit}
+            onClick={() => setCuratedSplitOpen(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-[var(--card-border)] bg-[var(--bg)] py-2.5 text-[11px] font-bold text-[var(--text)]"
           >
-            <Utensils size={13} className="text-[var(--accent)]" /> Quick fill
+            <Utensils size={13} className="text-[var(--accent)]" /> Predefined meals
           </button>
           <button
             type="button"
@@ -269,8 +274,8 @@ export function DietPlanner() {
           </button>
         </div>
         <p className="text-[10px] text-[var(--muted)]">
-          Quick fill = curated day-templates, instant &amp; offline. AI = tailored to your goal &amp;
-          macros.
+          Predefined meals = curated templates, instant &amp; offline (asks the same home/office &amp;
+          breakfast options). AI = tailored to your goal &amp; macros.
         </p>
       </div>
 
@@ -541,6 +546,81 @@ export function DietPlanner() {
           }}
         />
       </Sheet>
+
+      <Sheet open={curatedSplitOpen} onClose={() => setCuratedSplitOpen(false)} title="Predefined meals from split">
+        <CuratedSplitForm dayTypes={split} startDate={stripStart} onBuild={quickFillFromSplit} />
+      </Sheet>
+    </div>
+  );
+}
+
+function CuratedSplitForm({
+  dayTypes,
+  startDate,
+  onBuild,
+}: {
+  dayTypes: DietDayType[];
+  startDate: string;
+  onBuild: (locations: string[], breakfast: string) => void;
+}) {
+  const [locations, setLocations] = useState<string[]>(() => dayTypes.map(() => 'Home'));
+  const [breakfast, setBreakfast] = useState('');
+
+  function toggleLoc(i: number) {
+    setLocations(prev => prev.map((l, idx) => (idx === i ? (l === 'Home' ? 'Office' : 'Home') : l)));
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-[var(--muted)]">
+        Assembles a curated week from your split ({dayTypes.join(', ')}) — instant &amp; offline,
+        no AI credit. It still tailors each day to home vs office and your breakfast. Repeats across
+        the fortnight from {fmt(startDate, { weekday: 'long', day: 'numeric', month: 'short' })};
+        every meal stays editable.
+      </p>
+
+      <div>
+        <label className={labelClass}>Your week — tap a day to flip Home ⇄ Office</label>
+        <div className="flex gap-1">
+          {dayTypes.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggleLoc(i)}
+              className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5"
+              style={
+                locations[i] === 'Office'
+                  ? { background: 'color-mix(in srgb, #f59e0b 16%, transparent)', color: '#b45309' }
+                  : { background: 'var(--bg)', color: 'var(--muted)' }
+              }
+            >
+              <span className="text-[9px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
+              <span className="text-[9px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] text-[var(--muted)]">
+          Office days get a portable prep-box lunch instead of a cooked one.
+        </p>
+      </div>
+
+      <div>
+        <label className={labelClass} htmlFor="cs-breakfast">Breakfast style</label>
+        <select
+          id="cs-breakfast"
+          className={inputClass}
+          value={breakfast}
+          onChange={e => setBreakfast(e.target.value)}
+        >
+          {BREAKFAST_OPTIONS.map(o => (
+            <option key={o.label} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <button type="button" onClick={() => onBuild(locations, breakfast)} className={submitButtonClass}>
+        <Utensils size={15} className="mr-2" /> Build predefined week
+      </button>
     </div>
   );
 }
