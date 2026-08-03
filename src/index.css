@@ -57,17 +57,42 @@
     linear-gradient(var(--bg), var(--bg));
 }
 
-/* A custom photo backdrop (uploaded or preset) for the glass to refract over,
-   with a scrim so cards stay readable. Overrides the aurora when set. */
+/* A photo backdrop reads as a dark environment, so the whole surface goes
+   dark-glass + light text (whatever the light/dark theme) and inner tiles turn
+   translucent — everything sinks INTO the photo instead of floating on it. */
+:root[data-surface='glass'][data-backdrop='image'] {
+  --card: rgba(22, 24, 38, 0.4);
+  --card-border: rgba(255, 255, 255, 0.34);
+  --input-bg: rgba(255, 255, 255, 0.1);
+  --bg: rgba(255, 255, 255, 0.12);
+  --text: #f5f6fc;
+  --muted: rgba(232, 235, 248, 0.72);
+}
+
 :root[data-surface='glass'][data-backdrop='image'] .app-bg {
   background-image:
-    linear-gradient(rgba(8, 10, 20, 0.5), rgba(8, 10, 20, 0.62)),
+    linear-gradient(rgba(8, 10, 20, 0.45), rgba(8, 10, 20, 0.6)),
     var(--backdrop-image),
-    linear-gradient(var(--bg), var(--bg));
+    linear-gradient(#101018, #101018);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+:root[data-surface='glass'][data-backdrop='image'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset -1.5px -1.5px 2px rgba(255, 255, 255, 0.12),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16),
+    0 18px 40px -16px rgba(0, 0, 0, 0.6);
 }
 
 /* Frost + heavily saturate every surface built on .glass-card / .glass. */
