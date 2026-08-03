@@ -49,7 +49,7 @@ type Item = Macros & {
   grams: number; // the amount: grams when unit==='g', number of servings when 'serving'
   per: Macros; // macros per 1 of the current unit (per gram, or per serving)
   unit: 'g' | 'serving';
-  gramsPerServing?: number; // known serving weight, enables the g ⇄ serving toggle
+  gramsPerServing: number; // grams in one serving — powers the g ⇄ serving toggle (defaults to 100 when unknown, editable)
 };
 
 // Scale every macro of a per-unit base by a factor (used when switching units).
@@ -231,9 +231,10 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     const unit: 'g' | 'serving' = r.isPerServing && r.servingSizeUnit === 'serving' ? 'serving' : 'g';
     const base = r.isPerServing && r.servingSize ? r.servingSize : 100;
     const grams = base; // default amount = one serving / 100g
-    // A known gram serving weight lets you flip the row between g and servings.
+    // Grams in one serving — real weight when the food carries one, else a 100g
+    // default so the toggle is always available (the basis is editable per row).
     const gramsPerServing =
-      r.servingSize && r.servingSizeUnit !== 'serving' ? r.servingSize : undefined;
+      r.servingSize && r.servingSizeUnit !== 'serving' ? r.servingSize : 100;
     const per: Macros = {
       calories: r.calories / base,
       protein: r.protein / base,
@@ -257,6 +258,13 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
 
   function updateGrams(key: string, grams: number) {
     setItems(prev => prev.map(i => (i.key === key ? { ...i, grams, ...scaled(i.per, grams) } : i)));
+  }
+
+  // Set the grams-per-serving basis for a row (only meaningful in serving mode,
+  // where `per` is per-serving and independent of the basis). It anchors the
+  // conversion so switching to grams gives the right weight and calories.
+  function updateBasis(key: string, gramsPerServing: number) {
+    setItems(prev => prev.map(i => (i.key === key ? { ...i, gramsPerServing } : i)));
   }
 
   // Flip a row between grams and servings, keeping the same real portion.
@@ -422,6 +430,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
           addResult={addResult}
           items={items}
           updateGrams={updateGrams}
+          updateBasis={updateBasis}
           toggleUnit={toggleUnit}
           removeItem={removeItem}
           totals={totals}
@@ -477,6 +486,7 @@ type AddMealProps = {
   addResult: (r: FoodSearchResult) => void;
   items: Item[];
   updateGrams: (key: string, grams: number) => void;
+  updateBasis: (key: string, gramsPerServing: number) => void;
   toggleUnit: (key: string) => void;
   removeItem: (key: string) => void;
   totals: Macros;
@@ -590,6 +600,21 @@ function AddMealTab(p: AddMealProps) {
                 <p className="text-[10px] text-[var(--muted)]">
                   {i.calories} kcal · {i.protein}p / {i.carbs}c / {i.fat}f
                 </p>
+                {i.unit === 'serving' ? (
+                  <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--muted)]">
+                    <span>1 serving =</span>
+                    <input
+                      className="w-12 rounded-md border border-[var(--card-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-right text-[10px] text-[var(--text)] outline-none"
+                      type="number"
+                      inputMode="decimal"
+                      min="1"
+                      step="any"
+                      value={i.gramsPerServing}
+                      onChange={e => p.updateBasis(i.key, Number(e.target.value) || 1)}
+                    />
+                    <span>g</span>
+                  </div>
+                ) : null}
               </div>
               <div className="flex items-center gap-1">
                 {i.unit === 'serving' ? (

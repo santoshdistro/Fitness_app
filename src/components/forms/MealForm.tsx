@@ -171,7 +171,7 @@ export function MealForm({ onSaved, initial }: Props) {
       setQuery('');
       setPerGram(null);
       setDetailBase(null);
-      setServingGrams(null); // AI estimate is one plate, no gram weight to convert
+      setServingGrams(100); // default basis so grams entry is available
       setPerServing({
         calories: r.calories,
         protein: r.protein_g,
@@ -201,10 +201,11 @@ export function MealForm({ onSaved, initial }: Props) {
     setQuery('');
     setDetailBase(detailFromResult(result));
 
-    // A gram serving weight (e.g. "30 g scoop") enables the g/serving toggle;
-    // a "serving"-unit food (your saved foods) has no weight to convert.
+    // A gram serving weight (e.g. "30 g scoop") lets us convert g ⇄ serving.
+    // When it's unknown (a "serving"-unit food) we default to 100 g so the
+    // toggle is still available — the basis is editable below.
     const gramWeight =
-      result.servingSize && result.servingSizeUnit !== 'serving' ? result.servingSize : null;
+      result.servingSize && result.servingSizeUnit !== 'serving' ? result.servingSize : 100;
 
     if (result.isPerServing) {
       setPerGram(null);
@@ -255,7 +256,7 @@ export function MealForm({ onSaved, initial }: Props) {
     setCategory(suggestion.category);
     setPerGram(null);
     setDetailBase(null);
-    setServingGrams(null); // saved foods have no gram weight, so no g toggle
+    setServingGrams(100); // default basis so the g ⇄ serving toggle is available
     setResults([]);
     setQuery('');
     // Treat the saved macros as one portion so the quantity field can scale them.
@@ -586,10 +587,21 @@ export function MealForm({ onSaved, initial }: Props) {
               value={servings}
               onChange={e => handleServingsChange(e.target.value)}
             />
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+              <span>1 serving =</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="1"
+                step="any"
+                value={servingGrams ?? ''}
+                onChange={e => setServingGrams(Number(e.target.value) || null)}
+                className="w-16 rounded-lg border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1 text-xs text-[var(--text)]"
+              />
+              <span>g — set this, then switch to {foodUnit} to enter by weight.</span>
+            </div>
             <p className="mt-1 text-[11px] text-[var(--muted)]">
-              {servingGrams
-                ? `1 serving ≈ ${servingGrams}g · use 2 for two, 0.5 for half.`
-                : 'e.g. 2 for two scoops / pieces, 0.5 for half.'}
+              Use 2 for two portions, 0.5 for half.
             </p>
           </div>
         ) : null}
