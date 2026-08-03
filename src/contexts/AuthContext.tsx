@@ -30,7 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
-        setSession(nextSession);
+        // Supabase fires a token refresh whenever the app returns from the
+        // background. That keeps the SAME user, so we hold the existing session
+        // object reference stable — otherwise every data hook would refetch and
+        // wipe any in-progress form input. Only update on a real user change.
+        setSession(prev => {
+          const sameUser = (prev?.user?.id ?? null) === (nextSession?.user?.id ?? null);
+          return sameUser ? prev : nextSession;
+        });
       },
     );
 
