@@ -25,53 +25,72 @@
 
 /* ---------- Liquid glass surface ---------- */
 :root[data-surface='glass'] {
-  --card: rgba(255, 255, 255, 0.5);
-  --card-border: rgba(255, 255, 255, 0.65);
-  --input-bg: rgba(255, 255, 255, 0.45);
+  --card: rgba(255, 255, 255, 0.36);
+  --card-border: rgba(255, 255, 255, 0.85);
+  --input-bg: rgba(255, 255, 255, 0.32);
 }
 
 :root[data-surface='glass'][data-theme='dark'] {
-  --card: rgba(28, 28, 40, 0.45);
-  --card-border: rgba(255, 255, 255, 0.14);
-  --input-bg: rgba(255, 255, 255, 0.08);
+  --card: rgba(40, 42, 64, 0.34);
+  --card-border: rgba(255, 255, 255, 0.28);
+  --input-bg: rgba(255, 255, 255, 0.1);
 }
 
-/* A colourful, fixed backdrop so the frosted cards have something to refract. */
+/* A vivid, fixed backdrop so the frosted glass has rich colour to refract. */
 :root[data-surface='glass'] .app-bg {
   background-color: transparent;
   background-image:
-    radial-gradient(42% 34% at 12% 10%, rgba(108, 99, 255, 0.34), transparent 70%),
-    radial-gradient(38% 30% at 88% 16%, rgba(14, 165, 233, 0.3), transparent 70%),
-    radial-gradient(50% 44% at 50% 96%, rgba(168, 85, 247, 0.26), transparent 72%),
+    radial-gradient(46% 40% at 8% 6%, rgba(108, 99, 255, 0.6), transparent 64%),
+    radial-gradient(44% 36% at 94% 12%, rgba(14, 165, 233, 0.55), transparent 64%),
+    radial-gradient(46% 40% at 82% 84%, rgba(236, 72, 153, 0.5), transparent 66%),
+    radial-gradient(52% 46% at 16% 96%, rgba(168, 85, 247, 0.5), transparent 68%),
     linear-gradient(var(--bg), var(--bg));
   background-attachment: fixed;
 }
 
 :root[data-surface='glass'][data-theme='dark'] .app-bg {
   background-image:
-    radial-gradient(42% 34% at 12% 10%, rgba(125, 117, 255, 0.3), transparent 70%),
-    radial-gradient(38% 30% at 88% 16%, rgba(14, 165, 233, 0.24), transparent 70%),
-    radial-gradient(50% 44% at 50% 96%, rgba(168, 85, 247, 0.24), transparent 72%),
+    radial-gradient(46% 40% at 8% 6%, rgba(125, 117, 255, 0.5), transparent 64%),
+    radial-gradient(44% 36% at 94% 12%, rgba(14, 165, 233, 0.42), transparent 64%),
+    radial-gradient(46% 40% at 82% 84%, rgba(236, 72, 153, 0.4), transparent 66%),
+    radial-gradient(52% 46% at 16% 96%, rgba(168, 85, 247, 0.42), transparent 68%),
     linear-gradient(var(--bg), var(--bg));
 }
 
-/* Frost every surface built on .glass-card / .glass (cards, nav, sheets…). */
+/* Frost + heavily saturate every surface built on .glass-card / .glass. */
 :root[data-surface='glass'] .glass-card,
 :root[data-surface='glass'] .glass {
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(220%) brightness(1.1);
+  backdrop-filter: blur(28px) saturate(220%) brightness(1.1);
 }
 
+/* Cards: a diagonal specular sheen + a bright top rim = the "glass" read. */
 :root[data-surface='glass'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 10px 30px -12px rgba(20, 20, 43, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+    0 14px 36px -14px rgba(20, 20, 43, 0.45);
 }
 
 :root[data-surface='glass'][data-theme='dark'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 12px 30px -12px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12),
+    0 16px 36px -14px rgba(0, 0, 0, 0.6);
 }
 
 /* Shiny glass body-map figure. */
