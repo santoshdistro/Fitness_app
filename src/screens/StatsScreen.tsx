@@ -16,6 +16,7 @@ import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
 import { MeasurementTrendChart } from '../components/MeasurementTrendChart';
 import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
+import { MilestonesCard } from '../components/MilestonesCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -440,6 +441,11 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
       {/* Per-site progress trends — group stays in sync with the chart above */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
         <MeasurementProgressCard group={measureGroup} />
+      </div>
+
+      {/* Milestones — flags shown on the trend charts above */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.21s' }}>
+        <MilestonesCard />
       </div>
 
       {/* Measurement history — month-paged (older also lives in the chart above) */}

@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, LineChart } from 'lucide-react';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import type { Measurement } from '../types/database';
 import { buildBuckets, startOfDay, stepAnchor, type Bucket, type ChartView } from '../lib/timeBuckets';
+import { milestonesForBuckets, useMilestones } from '../hooks/useMilestones';
+import { ChartMilestones } from './ChartMilestones';
 
 type SiteKey = 'neck' | 'chest' | 'biceps' | 'forearms' | 'waist' | 'hips' | 'belly' | 'thighs' | 'calves';
 type View = ChartView;
@@ -54,6 +56,7 @@ type Props = {
 
 export function MeasurementTrendChart({ group, onGroupChange }: Props) {
   const { measurements, loading } = useRecentMeasurements(500);
+  const { milestones } = useMilestones();
   const [view, setView] = useState<View>('month');
   const [anchor, setAnchor] = useState<number>(() => startOfDay(Date.now()));
   const [active, setActive] = useState<number | null>(null);
@@ -193,6 +196,7 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
           <div className="relative" style={{ height: 150 }}>
             <div className="absolute left-0 top-0 text-[9px] text-[var(--muted)]">{Math.round(max)}"</div>
             <div className="absolute bottom-4 left-0 text-[9px] text-[var(--muted)]">{Math.round(min)}"</div>
+            <ChartMilestones marks={milestonesForBuckets(milestones, buckets)} />
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               {active != null ? (
                 <line x1={x(active)} y1={0} x2={x(active)} y2={38} stroke="var(--card-border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
