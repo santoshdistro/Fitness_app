@@ -74,6 +74,8 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const { settings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
+  // Shared Upper/Lower/All group so the measurement chart and table stay in sync.
+  const [measureGroup, setMeasureGroup] = useState<'all' | 'upper' | 'lower'>('all');
 
   const measurement = measurements[0];
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -423,12 +425,12 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
 
       {/* Per-site progress chart — week/month/year, above the measurements table */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.19s' }}>
-        <MeasurementTrendChart />
+        <MeasurementTrendChart group={measureGroup} onGroupChange={setMeasureGroup} />
       </div>
 
-      {/* Per-site progress trends */}
+      {/* Per-site progress trends — group stays in sync with the chart above */}
       <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
-        <MeasurementProgressCard />
+        <MeasurementProgressCard group={measureGroup} />
       </div>
 
       {/* Measurement history */}

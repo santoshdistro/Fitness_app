@@ -68,6 +68,32 @@ export function classifyMuscles(exerciseName: string): MuscleKey[] {
   return [];
 }
 
+export type BodyRegion = 'upper' | 'lower' | 'core';
+
+const MUSCLE_REGION: Record<MuscleKey, BodyRegion> = {
+  neck: 'upper',
+  chest: 'upper',
+  shoulders: 'upper',
+  biceps: 'upper',
+  triceps: 'upper',
+  forearms: 'upper',
+  back: 'upper',
+  traps: 'upper',
+  abs: 'core',
+  lowerBack: 'core',
+  glutes: 'lower',
+  quads: 'lower',
+  hamstrings: 'lower',
+  calves: 'lower',
+};
+
+// Coarse body-region for an exercise, from its primary muscle. Used to group
+// the strength chart/table into upper / lower / core. Unknown names → null.
+export function exerciseRegion(exerciseName: string): BodyRegion | null {
+  const muscles = classifyMuscles(exerciseName);
+  return muscles.length ? MUSCLE_REGION[muscles[0]] : null;
+}
+
 export const MUSCLE_EXERCISES: Record<MuscleKey, string[]> = {
   neck: ['Neck curls', 'Neck extension', 'Weighted neck harness', 'Neck side flexion'],
   chest: ['Barbell bench press', 'Incline dumbbell press', 'Chest fly', 'Push-ups', 'Cable crossover'],

@@ -47,9 +47,13 @@ function bucketAvg(rows: Measurement[], site: SiteKey, b: Bucket): number | null
   return count > 0 ? sum / count : null;
 }
 
-export function MeasurementTrendChart() {
+type Props = {
+  group: Group;
+  onGroupChange: (g: Group) => void;
+};
+
+export function MeasurementTrendChart({ group, onGroupChange }: Props) {
   const { measurements, loading } = useRecentMeasurements(500);
-  const [group, setGroup] = useState<Group>('all');
   const [view, setView] = useState<View>('month');
   const [anchor, setAnchor] = useState<number>(() => startOfDay(Date.now()));
   const [active, setActive] = useState<number | null>(null);
@@ -124,7 +128,7 @@ export function MeasurementTrendChart() {
             <button
               key={g.key}
               type="button"
-              onClick={() => { setGroup(g.key); setActive(null); setHidden(new Set()); }}
+              onClick={() => { onGroupChange(g.key); setActive(null); setHidden(new Set()); }}
               className="rounded-full px-2.5 py-1 text-[10px] font-bold"
               style={group === g.key ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
             >

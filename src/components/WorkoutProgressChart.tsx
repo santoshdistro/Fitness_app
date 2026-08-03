@@ -2,11 +2,21 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { useExerciseProgress, type ExercisePoint } from '../hooks/useExerciseProgress';
 import { buildBuckets, startOfDay, stepAnchor, type Bucket, type ChartView } from '../lib/timeBuckets';
+import { exerciseRegion, type BodyRegion } from '../data/muscles';
+
+export type WorkoutGroup = 'all' | BodyRegion;
 
 const VIEWS: { key: ChartView; label: string }[] = [
   { key: 'week', label: 'Week' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
+];
+
+const GROUPS: { key: WorkoutGroup; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'upper', label: 'Upper' },
+  { key: 'lower', label: 'Lower' },
+  { key: 'core', label: 'Core' },
 ];
 
 const COLOR = '#6c63ff';
@@ -20,7 +30,12 @@ function bucketMax(points: ExercisePoint[], b: Bucket): number | null {
   return best;
 }
 
-export function WorkoutProgressChart() {
+type Props = {
+  group: WorkoutGroup;
+  onGroupChange: (g: WorkoutGroup) => void;
+};
+
+export function WorkoutProgressChart({ group, onGroupChange }: Props) {
   const { series, loading } = useExerciseProgress();
   const [exercise, setExercise] = useState<string | null>(null);
   const [view, setView] = useState<ChartView>('month');
@@ -32,9 +47,54 @@ export function WorkoutProgressChart() {
   if (loading) return null;
   if (series.length === 0) return null; // nothing logged yet — the empty state lives on the screen
 
-  // Default to the most recently trained exercise.
-  const selectedName = exercise && series.some(s => s.name === exercise) ? exercise : series[0].name;
-  const selected = series.find(s => s.name === selectedName)!;
+  // Exercises in the selected body region (all when 'all').
+  const visibleSeries = series.filter(s => group === 'all' || exerciseRegion(s.name) === group);
+
+  const groupToggle = (
+    <div className="flex rounded-full bg-[var(--bg)] p-0.5">
+      {GROUPS.map(g => (
+        <button
+          key={g.key}
+          type="button"
+          onClick={() => { onGroupChange(g.key); setActive(null); }}
+          className="rounded-full px-2 py-1 text-[10px] font-bold"
+          style={group === g.key ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
+        >
+          {g.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const header = (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
+          <TrendingUp size={14} style={{ color: 'var(--accent)' }} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-[var(--text)]">Strength progress</p>
+          <p className="text-[10px] text-[var(--muted)]">Heaviest set over time (kg)</p>
+        </div>
+      </div>
+      {groupToggle}
+    </div>
+  );
+
+  if (visibleSeries.length === 0) {
+    return (
+      <div className="glass-card flex flex-col gap-3 p-4">
+        {header}
+        <p className="py-8 text-center text-xs text-[var(--muted)]">
+          No {group} exercises logged yet.
+        </p>
+      </div>
+    );
+  }
+
+  // Default to the most recently trained exercise in this group.
+  const selectedName = exercise && visibleSeries.some(s => s.name === exercise) ? exercise : visibleSeries[0].name;
+  const selected = visibleSeries.find(s => s.name === selectedName)!;
 
   const vals = buckets.map(b => bucketMax(selected.points, b));
   const present = vals.filter((v): v is number => v != null);
@@ -64,19 +124,11 @@ export function WorkoutProgressChart() {
 
   return (
     <div className="glass-card flex flex-col gap-3 p-4">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
-          <TrendingUp size={14} style={{ color: 'var(--accent)' }} />
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-[var(--text)]">Strength progress</p>
-          <p className="text-[10px] text-[var(--muted)]">Heaviest set over time (kg)</p>
-        </div>
-      </div>
+      {header}
 
       {/* Exercise picker */}
       <div className="hide-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
-        {series.map(s => (
+        {visibleSeries.map(s => (
           <button
             key={s.name}
             type="button"

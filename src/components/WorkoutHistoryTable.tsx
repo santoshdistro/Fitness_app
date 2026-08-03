@@ -1,18 +1,32 @@
 import { Dumbbell } from 'lucide-react';
-import { useExerciseProgress } from '../hooks/useExerciseProgress';
+import { useExerciseProgress, type ExerciseSeries } from '../hooks/useExerciseProgress';
+import { exerciseRegion, type BodyRegion } from '../data/muscles';
+import type { WorkoutGroup } from './WorkoutProgressChart';
 
 const GREEN = '#22c55e';
 const RED = '#ef4444';
 
+const SECTIONS: { key: BodyRegion; label: string }[] = [
+  { key: 'upper', label: 'Upper body' },
+  { key: 'lower', label: 'Lower body' },
+  { key: 'core', label: 'Core' },
+];
+
 // Condensed strength table — one row per exercise (heaviest set: latest, the
-// session before, and the change) instead of an ever-growing list of sessions.
-export function WorkoutHistoryTable() {
+// session before, and the change), grouped by body region and kept in sync with
+// the chart's group.
+export function WorkoutHistoryTable({ group = 'all' }: { group?: WorkoutGroup }) {
   const { series, loading } = useExerciseProgress();
 
   if (loading) return null;
   if (series.length === 0) return null;
 
   const colClass = 'w-14 text-right tabular-nums';
+  const visibleSections = SECTIONS.filter(s => group === 'all' || s.key === group);
+
+  function rowsFor(region: BodyRegion): ExerciseSeries[] {
+    return series.filter(s => exerciseRegion(s.name) === region);
+  }
 
   return (
     <div className="glass-card flex flex-col p-5">
@@ -35,23 +49,34 @@ export function WorkoutHistoryTable() {
         </span>
       </div>
 
-      <div className="hide-scrollbar max-h-72 overflow-y-auto">
-        {series.map(s => {
-          const delta = s.prev != null ? Math.round((s.latest - s.prev) * 10) / 10 : null;
-          const color = delta == null || delta === 0 ? 'var(--muted)' : delta > 0 ? GREEN : RED;
+      <div className="hide-scrollbar max-h-80 overflow-y-auto">
+        {visibleSections.map(section => {
+          const rows = rowsFor(section.key);
+          if (rows.length === 0) return null;
           return (
-            <div
-              key={s.name}
-              className="flex items-center justify-between gap-2 border-b border-[var(--card-border)] py-2 text-xs last:border-b-0"
-            >
-              <span className="min-w-0 flex-1 truncate capitalize text-[var(--text)]">{s.name}</span>
-              <span className="flex gap-3">
-                <span className={`${colClass} font-semibold text-[var(--text)]`}>{s.latest}kg</span>
-                <span className={`${colClass} text-[var(--muted)]`}>{s.prev != null ? `${s.prev}kg` : '—'}</span>
-                <span className={colClass} style={{ color, fontWeight: 600 }}>
-                  {delta == null ? '—' : delta === 0 ? '0' : `${delta > 0 ? '+' : ''}${delta}`}
-                </span>
-              </span>
+            <div key={section.key}>
+              <p className="pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                {section.label}
+              </p>
+              {rows.map(s => {
+                const delta = s.prev != null ? Math.round((s.latest - s.prev) * 10) / 10 : null;
+                const color = delta == null || delta === 0 ? 'var(--muted)' : delta > 0 ? GREEN : RED;
+                return (
+                  <div
+                    key={s.name}
+                    className="flex items-center justify-between gap-2 border-b border-[var(--card-border)] py-2 text-xs last:border-b-0"
+                  >
+                    <span className="min-w-0 flex-1 truncate pl-3 capitalize text-[var(--text)]">{s.name}</span>
+                    <span className="flex gap-3">
+                      <span className={`${colClass} font-semibold text-[var(--text)]`}>{s.latest}kg</span>
+                      <span className={`${colClass} text-[var(--muted)]`}>{s.prev != null ? `${s.prev}kg` : '—'}</span>
+                      <span className={colClass} style={{ color, fontWeight: 600 }}>
+                        {delta == null ? '—' : delta === 0 ? '0' : `${delta > 0 ? '+' : ''}${delta}`}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           );
         })}

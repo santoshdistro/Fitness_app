@@ -9,7 +9,7 @@ import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
-import { WorkoutProgressChart } from '../components/WorkoutProgressChart';
+import { WorkoutProgressChart, type WorkoutGroup } from '../components/WorkoutProgressChart';
 import { WorkoutHistoryTable } from '../components/WorkoutHistoryTable';
 import { BodyMapCard } from '../components/BodyMapCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
@@ -57,7 +57,7 @@ type Props = {
 };
 
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
-  const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(20);
+  const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(60);
   const { records, lastByExercise } = useStrengthRecords();
   const [tab, setTabState] = useState<WorkoutsTab>(persistedWorkoutsTab);
   const setTab = (next: WorkoutsTab) => {
@@ -81,6 +81,16 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const [selectedGoalProgram, setSelectedGoalProgram] = useState<GoalProgram | null>(null);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
+  // Shared Upper/Lower/Core group so the strength chart and table stay in sync.
+  const [workoutGroup, setWorkoutGroup] = useState<WorkoutGroup>('all');
+
+  // Recent sessions only lists the current calendar month; earlier months drop
+  // off this view (still in the database and browsable via the chart's date nav).
+  const now = new Date();
+  const monthWorkouts = workouts.filter(w => {
+    const d = new Date(w.session_timestamp);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
   if (guided) {
@@ -457,19 +467,28 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         <>
           {/* Strength progress chart — pick an exercise, week/month/year, date paging */}
           <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.1s' }}>
-            <WorkoutProgressChart />
+            <WorkoutProgressChart group={workoutGroup} onGroupChange={setWorkoutGroup} />
           </div>
 
-          {/* Condensed table — one row per exercise (latest / prev / change) */}
+          {/* Condensed table — grouped by region, kept in sync with the chart */}
           <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.11s' }}>
-            <WorkoutHistoryTable />
+            <WorkoutHistoryTable group={workoutGroup} />
           </div>
 
-          {/* Recent sessions — compact, scrollable, tap to expand, delete inline */}
+          {/* Recent sessions — this month only, ~4 visible then scroll, tap to expand */}
           <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.12s' }}>
-            <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent sessions</p>
-            <div className="hide-scrollbar flex max-h-80 flex-col overflow-y-auto">
-              {workouts.map(workout => {
+            <div className="mb-2 flex items-baseline justify-between">
+              <p className="text-sm font-semibold text-[var(--text)]">Recent sessions</p>
+              <p className="text-[10px] text-[var(--muted)]">this month</p>
+            </div>
+            {monthWorkouts.length === 0 ? (
+              <p className="py-2 text-xs text-[var(--muted)]">
+                No sessions logged this month yet. Earlier sessions are kept — browse them in the
+                chart above.
+              </p>
+            ) : (
+            <div className="hide-scrollbar flex flex-col overflow-y-auto" style={{ maxHeight: 232 }}>
+              {monthWorkouts.map(workout => {
                 const open = openSessionId === workout.id;
                 const exerciseCount = new Set(workout.exercise_data.map(s => s.exercise)).size;
                 const volume = workout.exercise_data.reduce(
@@ -524,6 +543,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 );
               })}
             </div>
+            )}
           </div>
         </>
       )}

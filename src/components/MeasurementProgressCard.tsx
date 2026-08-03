@@ -20,20 +20,24 @@ const SITES: Record<SiteKey, { label: string; goodDown: boolean }> = {
   calves: { label: 'Calves', goodDown: false },
 };
 
-const SECTIONS: { label: string; sites: SiteKey[] }[] = [
-  { label: 'Upper body', sites: ['neck', 'chest', 'biceps', 'forearms'] },
-  { label: 'Lower body', sites: ['waist', 'hips', 'belly', 'thighs', 'calves'] },
+type Group = 'all' | 'upper' | 'lower';
+
+const SECTIONS: { key: Group; label: string; sites: SiteKey[] }[] = [
+  { key: 'upper', label: 'Upper body', sites: ['neck', 'chest', 'biceps', 'forearms'] },
+  { key: 'lower', label: 'Lower body', sites: ['waist', 'hips', 'belly', 'thighs', 'calves'] },
 ];
 
 const GREEN = '#22c55e';
 const RED = '#ef4444';
 
-export function MeasurementProgressCard() {
+export function MeasurementProgressCard({ group = 'all' }: { group?: Group }) {
   const { measurements, loading } = useRecentMeasurements(60);
   const { profile } = useProfile();
   const { settings } = useSettings();
 
   if (loading) return null;
+
+  const visibleSections = SECTIONS.filter(s => group === 'all' || s.key === group);
 
   // Newest → oldest, so the first non-null value per site is the latest and the
   // next one is the previous reading it should be compared against.
@@ -97,7 +101,7 @@ export function MeasurementProgressCard() {
             </span>
           </div>
 
-          {SECTIONS.map(section => {
+          {visibleSections.map(section => {
             const rows = section.sites
               .map(site => ({ site, ...latestPrev(site) }))
               .filter(r => r.latest != null);
