@@ -1038,7 +1038,7 @@ function MacrosTab({ totals, meals }: { totals: NutritionTotals; meals: FoodLog[
         <div className="mt-3 flex justify-between">
           {split.map(s => (
             <div key={s.label} className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
               <span className="text-xs text-[var(--text)]">
                 {s.label} <span className="text-[var(--muted)]">{s.grams}g</span>
               </span>
@@ -1060,11 +1060,11 @@ function MacrosTab({ totals, meals }: { totals: NutritionTotals; meals: FoodLog[
                 key={s.label}
                 className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
               >
-                <span className="flex items-center gap-2 text-xs">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                  <span className="text-[var(--muted)]">Most {s.label.toLowerCase()}</span>
+                <span className="flex shrink-0 items-center gap-2 text-xs">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
+                  <span className="whitespace-nowrap text-[var(--muted)]">Most {s.label.toLowerCase()}</span>
                 </span>
-                <span className="text-right text-xs text-[var(--text)]">
+                <span className="min-w-0 pl-3 text-right text-xs text-[var(--text)]">
                   {top ? (
                     <>
                       {top.meal_name}{' '}
