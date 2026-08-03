@@ -79,16 +79,15 @@ export function WorkoutProgressChart({ group, onGroupChange }: Props) {
   const x = (i: number) => (n === 1 ? 50 : (i / (n - 1)) * 100);
   const y = (v: number) => 36 - ((v - min) / range) * 32 + 2;
 
+  // Connect readings into a continuous line, drawing straight through empty
+  // buckets so sparse data still joins up instead of showing lone dots.
   function pathFor(vals: (number | null)[]): string {
     let d = '';
-    let pen = false;
+    let started = false;
     vals.forEach((v, i) => {
-      if (v == null) {
-        pen = false;
-        return;
-      }
-      d += `${pen ? 'L' : 'M'} ${x(i)} ${y(v)} `;
-      pen = true;
+      if (v == null) return;
+      d += `${started ? 'L' : 'M'} ${x(i)} ${y(v)} `;
+      started = true;
     });
     return d.trim();
   }
