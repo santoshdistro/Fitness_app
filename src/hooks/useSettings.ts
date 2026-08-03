@@ -67,6 +67,19 @@ export function applyBackdrop(backdrop: string): void {
   }
 }
 
+/**
+ * Keeps the iOS PWA status-bar tint in step with the surface. On iOS the area
+ * behind the status bar is painted from the `theme-color` meta, so a fixed
+ * near-white value shows as a white strip up top in dark / photo-glass modes.
+ * A photo backdrop reads dark; otherwise follow the light/dark theme.
+ */
+export function applyThemeColor(theme: Theme, backdrop: string): void {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const color = backdrop ? '#0b0d16' : theme === 'dark' ? '#101018' : '#f7f7fb';
+  meta.setAttribute('content', color);
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(read);
 
@@ -81,6 +94,10 @@ export function useSettings() {
   useEffect(() => {
     applyBackdrop(settings.backdrop);
   }, [settings.backdrop]);
+
+  useEffect(() => {
+    applyThemeColor(settings.theme, settings.backdrop);
+  }, [settings.theme, settings.backdrop]);
 
   const save = useCallback((next: Partial<Settings>) => {
     setSettings(current => {

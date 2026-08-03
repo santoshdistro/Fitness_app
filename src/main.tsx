@@ -7,7 +7,8 @@ import App from './App';
 try {
   const saved = localStorage.getItem('app_settings');
   const parsed = saved ? JSON.parse(saved) : {};
-  document.documentElement.setAttribute('data-theme', parsed.theme === 'dark' ? 'dark' : 'light');
+  const isDark = parsed.theme === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   document.documentElement.setAttribute('data-surface', parsed.surface === 'glass' ? 'glass' : 'normal');
   if (parsed.backdrop) {
     document.documentElement.style.setProperty('--backdrop-image', `url("${parsed.backdrop}")`);
@@ -15,6 +16,9 @@ try {
   } else {
     document.documentElement.setAttribute('data-backdrop', 'aurora');
   }
+  // Match the iOS status-bar tint to the surface before first paint.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', parsed.backdrop ? '#0b0d16' : isDark ? '#101018' : '#f7f7fb');
 } catch {
   document.documentElement.setAttribute('data-theme', 'light');
   document.documentElement.setAttribute('data-surface', 'normal');
