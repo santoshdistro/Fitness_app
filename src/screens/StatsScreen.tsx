@@ -29,7 +29,7 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import { todayDateString } from '../utils/date';
+import { isThisMonth, todayDateString } from '../utils/date';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -81,6 +81,11 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
   const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
+
+  // In-app history lists show only the current month; older entries stay in the
+  // database (and in the trend charts, which page by date) so the app stays clean.
+  const monthWeighIns = weightEntries.filter(e => isThisMonth(new Date(`${e.log_date}T00:00:00`)));
+  const monthMeasurements = measurements.filter(m => isThisMonth(new Date(m.entry_timestamp)));
 
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
@@ -382,18 +387,18 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
           </div>
         </div>
 
-        {weightEntries.length > 0 ? (
+        {monthWeighIns.length > 0 ? (
           <div className="mt-3 border-t border-[var(--card-border)] pt-2">
             <div className="mb-1 flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
-                Recent weigh-ins
+                This month's weigh-ins
               </p>
-              {weightEntries.length > 2 ? (
+              {monthWeighIns.length > 2 ? (
                 <span className="text-[10px] text-[var(--muted)]">scroll for more</span>
               ) : null}
             </div>
             <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 92 }}>
-              {weightEntries
+              {monthWeighIns
                 .slice()
                 .reverse()
                 .map(entry => (
@@ -433,11 +438,11 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
         <MeasurementProgressCard group={measureGroup} />
       </div>
 
-      {/* Measurement history */}
-      {measurements.length > 0 ? (
+      {/* Measurement history — this month only (older lives in the chart above) */}
+      {monthMeasurements.length > 0 ? (
         <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Measurements</p>
-          {measurements.map(entry => (
+          <p className="mb-2 text-sm font-semibold text-[var(--text)]">This month's measurements</p>
+          {monthMeasurements.map(entry => (
             <div
               key={entry.id}
               className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"

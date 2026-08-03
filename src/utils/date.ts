@@ -15,6 +15,13 @@ export function startOfTodayIso(): string {
   return now.toISOString();
 }
 
+/** True if the date is within the current calendar month. Used to keep in-app
+ * history lists to the current month (older entries stay in the database). */
+export function isThisMonth(date: Date): boolean {
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+}
+
 /** Shifts a `YYYY-MM-DD` date string by `days` (may be negative). */
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T00:00:00`);
