@@ -164,12 +164,12 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
       {(() => {
         if (!profile?.birth_date || !profile?.gender || !profile?.height || latestWeight == null) return null;
         const actualAge = ageFromBirthDate(profile.birth_date);
-        const bmiVal = latestWeight / Math.pow(profile.height / 100, 2);
         const bodyFat = measurement?.calculated_body_fat ?? null;
         const metabolicAge = computeMetabolicAge({
           ageYears: actualAge,
           gender: profile.gender,
-          bmi: bmiVal,
+          weightKg: latestWeight,
+          heightCm: profile.height,
           bodyFatPercent: bodyFat,
           activity: profile.activity_level ?? null,
         });

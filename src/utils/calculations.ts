@@ -227,27 +227,46 @@ export type MacroTargets = {
  * active reads younger, higher body fat / BMI + sedentary reads older. Uses
  * body-fat % when available, otherwise BMI.
  */
+/**
+ * Metabolic age the way body-composition scales (Tanita / InBody) and online
+ * calculators frame it: your resting metabolism vs. a healthy reference for
+ * your height. Resting metabolism is driven by lean (fat-free) mass, so when
+ * body fat is known we compare your lean mass to a healthy reference and add a
+ * small penalty for excess fat — more muscle / leaner reads younger, less
+ * muscle / more fat reads older. Without body fat we fall back to BMI, which is
+ * what most weight-only calculators use. Motivational, not a medical metric.
+ */
 export function computeMetabolicAge(params: {
   ageYears: number;
   gender: Gender;
-  bmi: number | null;
+  weightKg: number | null;
+  heightCm: number | null;
   bodyFatPercent: number | null;
   activity: ActivityLevel | null;
 }): number | null {
-  const { ageYears, gender, bmi, bodyFatPercent, activity } = params;
-  if (!ageYears) return null;
+  const { ageYears, gender, weightKg, heightCm, bodyFatPercent, activity } = params;
+  if (!ageYears || !weightKg || !heightCm) return null;
 
+  const refWeight = 22 * (heightCm / 100) ** 2; // healthy-BMI weight for this height
   let adj = 0;
+
   if (bodyFatPercent != null) {
-    const ref = gender === 'female' ? 23 : 15; // healthy reference body fat %
-    adj += ((bodyFatPercent - ref) / 5) * 3; // ~3 yrs per 5% off reference
-  } else if (bmi != null) {
-    adj += ((bmi - 22) / 3) * 2; // ~2 yrs per 3 BMI points off 22
+    const refBF = gender === 'female' ? 23 : 15; // healthy reference body fat %
+    const yourLeanKg = weightKg * (1 - bodyFatPercent / 100);
+    const refLeanKg = refWeight * (1 - refBF / 100);
+    adj += (refLeanKg - yourLeanKg) * 1.5; // ~1.5 yrs per kg of lean mass below reference
+    adj += (bodyFatPercent - refBF) * 0.4; // ~0.4 yrs per % body fat over reference
+  } else {
+    const bmi = weightKg / (heightCm / 100) ** 2;
+    adj += (bmi - 22) * 0.7; // ~0.7 yrs per BMI point over 22
   }
+
   adj +=
     activity === 'very_active' ? -2 : activity === 'moderate' ? -1 : activity === 'sedentary' ? 2 : 0;
 
-  return Math.max(16, Math.round(ageYears + adj));
+  // Keep it within a believable band rather than producing alarming extremes.
+  const bounded = Math.max(ageYears - 12, Math.min(ageYears + 18, ageYears + adj));
+  return Math.max(15, Math.round(bounded));
 }
 
 export function computeSuggestedMacros(params: {
