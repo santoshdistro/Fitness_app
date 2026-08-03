@@ -86,6 +86,21 @@
   background: #0b0d16;
 }
 
+/* Belt-and-suspenders: explicitly paint the status-bar safe area dark in photo
+   mode so nothing white can show through it. Scoped to photo mode only, so the
+   normal/aurora/dark surfaces are unaffected. */
+:root[data-surface='glass'][data-backdrop='image'] .app-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: #0b0d16;
+  z-index: 60;
+  pointer-events: none;
+}
+
 :root[data-surface='glass'][data-backdrop='image'] .glass-card {
   background-image: linear-gradient(
     135deg,
