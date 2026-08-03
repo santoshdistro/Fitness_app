@@ -14,6 +14,7 @@ import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
+import { MeasurementTrendChart } from '../components/MeasurementTrendChart';
 import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
 import { DateNavigator } from '../components/DateNavigator';
 import { useTabSwipe } from '../hooks/useTabSwipe';
@@ -418,6 +419,11 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
             </div>
           </div>
         ) : null}
+      </div>
+
+      {/* Per-site progress chart — week/month/year, above the measurements table */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.19s' }}>
+        <MeasurementTrendChart />
       </div>
 
       {/* Per-site progress trends */}
