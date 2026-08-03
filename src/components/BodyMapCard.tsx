@@ -3,19 +3,40 @@ import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-rea
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
 import { exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
-import { todayDateString } from '../utils/date';
+import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
 import { ExerciseDetail } from './ExerciseDetail';
 import { Sheet } from './Sheet';
 
 export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [period, setPeriod] = useState<MusclePeriod>('week');
-  const { data, loading } = useMuscleActivity(period);
+  const [viewAnchor, setViewAnchor] = useState(todayDateString());
+  const { data, loading } = useMuscleActivity(period, viewAnchor);
   const { addExercise } = useWorkoutPlan();
   const [selected, setSelected] = useState<MuscleKey | null>(null);
   const [selectedEx, setSelectedEx] = useState<MuscleExercise | null>(null);
   const [planDate, setPlanDate] = useState(todayDateString());
   const [added, setAdded] = useState(false);
+
+  const today = todayDateString();
+  // Already viewing the current day / week? (then forward is disabled)
+  const atPresent =
+    period === 'today' ? viewAnchor >= today : startOfWeek(viewAnchor) >= startOfWeek(today);
+
+  function stepView(dir: -1 | 1) {
+    setViewAnchor(a => addDays(a, dir * (period === 'today' ? 1 : 7)));
+  }
+
+  function fmtShort(d: string): string {
+    return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  // Label for the window being viewed — a day, or a Mon–Sun range.
+  function periodRangeLabel(): string {
+    if (period === 'today') return viewAnchor === today ? 'Today' : fmtShort(viewAnchor);
+    const ws = startOfWeek(viewAnchor);
+    return `${fmtShort(ws)} – ${fmtShort(addDays(ws, 6))}`;
+  }
 
   function closeSheet() {
     setSelected(null);
@@ -63,6 +84,39 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         </div>
       </div>
 
+      {/* Date navigation — page back through days / weeks */}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => stepView(-1)}
+          aria-label="Earlier"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--bg)]"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <label className="relative flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--bg)] px-3 py-1 text-xs font-semibold text-[var(--text)]">
+          <CalendarDays size={13} className="text-[var(--accent)]" />
+          {periodRangeLabel()}
+          <input
+            type="date"
+            value={viewAnchor}
+            max={today}
+            onChange={e => e.target.value && setViewAnchor(e.target.value)}
+            aria-label="Jump to date"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => stepView(1)}
+          disabled={atPresent}
+          aria-label="Later"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] disabled:opacity-30 active:bg-[var(--bg)]"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
       <MuscleMap intensity={data.intensity} onSelect={setSelected} large={large} />
 
       {/* Legend */}
@@ -105,7 +159,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
     {/* Workouts done, ranked high -> low by volume */}
     <div className="glass-card flex flex-col gap-1.5 p-5">
       <p className="text-sm font-semibold text-[var(--text)]">
-        Workouts done · {period === 'today' ? 'today' : 'this week'}
+        Workouts done · {periodRangeLabel()}
       </p>
       {loading ? (
         <p className="text-center text-xs text-[var(--muted)]">Loading…</p>

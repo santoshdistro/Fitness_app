@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
+import { addDays, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
 import { classifyMuscles, type MuscleKey } from '../data/muscles';
 import type { ExerciseSet, WorkoutLog } from '../types/database';
 
@@ -16,7 +16,7 @@ export type MuscleActivity = {
   exercises: ExerciseStat[]; // logged exercises, highest volume first
 };
 
-export function useMuscleActivity(period: MusclePeriod) {
+export function useMuscleActivity(period: MusclePeriod, anchorDate?: string) {
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [data, setData] = useState<MuscleActivity>({
@@ -27,6 +27,8 @@ export function useMuscleActivity(period: MusclePeriod) {
   });
   const [loading, setLoading] = useState(true);
 
+  const anchor = anchorDate ?? todayDateString();
+
   useEffect(() => {
     let cancelled = false;
     if (!userId) {
@@ -35,14 +37,17 @@ export function useMuscleActivity(period: MusclePeriod) {
       return;
     }
     setLoading(true);
-    const today = todayDateString();
-    const start = period === 'today' ? today : startOfWeek(today); // Monday–today
+    // Window bounded on both ends so past days/weeks can be browsed, not just
+    // "since a start date up to now".
+    const start = period === 'today' ? anchor : startOfWeek(anchor);
+    const end = period === 'today' ? addDays(anchor, 1) : addDays(start, 7);
 
     supabase
       .from('workout_logs')
       .select('session_timestamp, exercise_data')
       .eq('user_id', userId)
       .gte('session_timestamp', startOfDateIso(start))
+      .lt('session_timestamp', startOfDateIso(end))
       .then(({ data: rows }) => {
         if (cancelled) return;
         const workouts = (rows as Pick<WorkoutLog, 'session_timestamp' | 'exercise_data'>[]) ?? [];
@@ -80,7 +85,7 @@ export function useMuscleActivity(period: MusclePeriod) {
     return () => {
       cancelled = true;
     };
-  }, [userId, period]);
+  }, [userId, period, anchor]);
 
   return { data, loading };
 }

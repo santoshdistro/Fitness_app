@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, LineChart } from 'lucide-react';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import type { Measurement } from '../types/database';
+import { buildBuckets, startOfDay, stepAnchor, type Bucket, type ChartView } from '../lib/timeBuckets';
 
 type SiteKey = 'neck' | 'chest' | 'biceps' | 'forearms' | 'waist' | 'hips' | 'belly' | 'thighs' | 'calves';
-type View = 'week' | 'month' | 'year';
+type View = ChartView;
 type Group = 'all' | 'upper' | 'lower';
 
 const SITES: Record<SiteKey, { label: string; color: string }> = {
@@ -30,54 +31,6 @@ const VIEWS: { key: View; label: string }[] = [
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
 ];
-
-type Bucket = { start: number; end: number; label: string };
-
-const DAY = 86_400_000;
-
-function startOfDay(t: number): number {
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-// Build the visible time buckets for a view, ending at (and including) the
-// anchor day. Coarser buckets as the window widens keeps multi-year data from
-// jamming: daily for a week, weekly for a month, monthly for a year.
-function buildBuckets(anchorDay: number, view: View): Bucket[] {
-  const out: Bucket[] = [];
-  if (view === 'week') {
-    for (let i = 6; i >= 0; i--) {
-      const start = anchorDay - i * DAY;
-      out.push({ start, end: start + DAY, label: fmtDay(start) });
-    }
-    return out;
-  }
-  if (view === 'month') {
-    // Four trailing weeks, oldest → newest.
-    for (let i = 3; i >= 0; i--) {
-      const end = anchorDay - i * 7 * DAY + DAY;
-      const start = end - 7 * DAY;
-      out.push({ start, end, label: fmtDay(start) });
-    }
-    return out;
-  }
-  // Year: twelve calendar months, oldest → newest.
-  const anchor = new Date(anchorDay);
-  for (let i = 11; i >= 0; i--) {
-    const s = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
-    const e = new Date(anchor.getFullYear(), anchor.getMonth() - i + 1, 1);
-    out.push({ start: s.getTime(), end: e.getTime(), label: fmtMonth(s.getTime()) });
-  }
-  return out;
-}
-
-function fmtDay(t: number): string {
-  return new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
-function fmtMonth(t: number): string {
-  return new Date(t).toLocaleDateString(undefined, { month: 'short' });
-}
 
 // Average of a site's readings that fall in [start, end); null if none.
 function bucketAvg(rows: Measurement[], site: SiteKey, b: Bucket): number | null {
@@ -148,12 +101,7 @@ export function MeasurementTrendChart() {
   const canForward = anchor < startOfDay(Date.now());
   function step(dir: -1 | 1) {
     setActive(null);
-    if (view === 'week') setAnchor(a => a + dir * 7 * DAY);
-    else if (view === 'month') setAnchor(a => a + dir * 28 * DAY);
-    else {
-      const d = new Date(anchor);
-      setAnchor(startOfDay(new Date(d.getFullYear(), d.getMonth() + dir * 12, d.getDate()).getTime()));
-    }
+    setAnchor(a => stepAnchor(a, view, dir));
   }
 
   const rangeLabel = `${buckets[0].label} – ${buckets[n - 1].label}`;

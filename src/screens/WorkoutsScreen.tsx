@@ -9,6 +9,8 @@ import { Sheet } from '../components/Sheet';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { GuidedWorkout, type GuidedExercise } from '../components/GuidedWorkout';
 import { WorkoutPlanner } from '../components/WorkoutPlanner';
+import { WorkoutProgressChart } from '../components/WorkoutProgressChart';
+import { WorkoutHistoryTable } from '../components/WorkoutHistoryTable';
 import { BodyMapCard } from '../components/BodyMapCard';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
@@ -78,6 +80,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   );
   const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const [selectedGoalProgram, setSelectedGoalProgram] = useState<GoalProgram | null>(null);
+  const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
   if (guided) {
@@ -451,45 +454,78 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <p className="mt-1 text-xs text-[var(--muted)]">Tap "Log workout" to record your first session.</p>
         </div>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
-          {workouts.map((workout, index) => (
-            <div
-              key={workout.id}
-              className="glass-card anim-fade-rise p-5"
-              style={{ animationDelay: `${0.06 * Math.min(index, 6)}s` }}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text)]">
-                    {workout.routine_name || 'Workout'}
-                  </p>
-                  <p className="text-[10px] text-[var(--muted)]">
-                    {formatWorkoutDate(workout.session_timestamp)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => deleteWorkout(workout.id)}
-                  aria-label="Delete workout"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+        <>
+          {/* Strength progress chart — pick an exercise, week/month/year, date paging */}
+          <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.1s' }}>
+            <WorkoutProgressChart />
+          </div>
 
-              <div className="mt-3 flex flex-col gap-1.5">
-                {workout.exercise_data.map((set, setIndex) => (
-                  <div key={setIndex} className="flex items-center justify-between">
-                    <p className="text-xs text-[var(--text)]">{set.exercise}</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {set.reps} reps · {set.weight}kg
-                    </p>
+          {/* Condensed table — one row per exercise (latest / prev / change) */}
+          <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.11s' }}>
+            <WorkoutHistoryTable />
+          </div>
+
+          {/* Recent sessions — compact, scrollable, tap to expand, delete inline */}
+          <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.12s' }}>
+            <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent sessions</p>
+            <div className="hide-scrollbar flex max-h-80 flex-col overflow-y-auto">
+              {workouts.map(workout => {
+                const open = openSessionId === workout.id;
+                const exerciseCount = new Set(workout.exercise_data.map(s => s.exercise)).size;
+                const volume = workout.exercise_data.reduce(
+                  (sum, s) => sum + Math.max(1, s.weight || 0) * Math.max(1, s.reps || 0),
+                  0,
+                );
+                return (
+                  <div key={workout.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenSessionId(open ? null : workout.id)}
+                        className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-semibold text-[var(--text)]">
+                            {workout.routine_name || 'Workout'}
+                          </span>
+                          <span className="text-[10px] text-[var(--muted)]">
+                            {formatWorkoutDate(workout.session_timestamp)} · {exerciseCount} exercise
+                            {exerciseCount === 1 ? '' : 's'} · {Math.round(volume).toLocaleString()} kg vol
+                          </span>
+                        </span>
+                        <ChevronRight
+                          size={14}
+                          className="shrink-0 text-[var(--muted)] transition-transform"
+                          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteWorkout(workout.id)}
+                        aria-label="Delete workout"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-red-500/70"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    {open ? (
+                      <div className="mt-2 flex flex-col gap-1 pl-1">
+                        {workout.exercise_data.map((set, setIndex) => (
+                          <div key={setIndex} className="flex items-center justify-between">
+                            <p className="text-xs capitalize text-[var(--text)]">{set.exercise}</p>
+                            <p className="text-xs text-[var(--muted)]">
+                              {set.reps} reps · {set.weight}kg
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        </>
       )}
         </>
       )}
