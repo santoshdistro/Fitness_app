@@ -80,6 +80,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
   const [autofillLevel, setAutofillLevel] = useState<GymLevel>(defaultGymLevel());
+  const [autofillPhysique, setAutofillPhysique] = useState<PhysiqueGoal>('balanced');
   // Which weekday's focus is being edited (multi-select picker), and the
   // in-progress selection for it.
   const [editingDay, setEditingDay] = useState<number | null>(null);
@@ -110,12 +111,14 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
 
   // Deterministic prefill: fill 14 days from the strip start using each day's
   // split focus → template exercises, with volume scaled to the chosen level.
-  function autofillFromSplit(level: GymLevel) {
+  function autofillFromSplit(level: GymLevel, physique: PhysiqueGoal) {
+    const reps = physiqueByValue(physique)?.reps; // '' keeps template reps
     const entries: RangeEntry[] = [];
     for (let i = 0; i < STRIP_DAYS; i++) {
       const date = addDays(stripStart, i);
       const dayFocus = split[weekdayIndex(date)];
-      entries.push({ date, exercises: scaleByLevel(templatesForFocus(dayFocus), level) });
+      const scaled = scaleByLevel(templatesForFocus(dayFocus), level);
+      entries.push({ date, exercises: reps ? scaled.map(e => ({ ...e, reps })) : scaled });
     }
     applyRange(entries);
     setViewDate(stripStart);
@@ -476,9 +479,34 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                 : `${LEVEL_SET_DELTA[autofillLevel] > 0 ? '+' : ''}${LEVEL_SET_DELTA[autofillLevel]} set per exercise vs. the base template.`}
             </p>
           </div>
+          <div>
+            <label className={labelClass}>Target physique</label>
+            <div className="flex flex-wrap gap-1.5">
+              {PHYSIQUE_GOALS.map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setAutofillPhysique(p.value)}
+                  className="rounded-xl px-3 py-2 text-xs font-bold"
+                  style={
+                    autofillPhysique === p.value
+                      ? { background: 'var(--accent)', color: 'white' }
+                      : { background: 'var(--bg)', color: 'var(--muted)' }
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+              {physiqueByValue(autofillPhysique)?.reps
+                ? `Sets reps to ${physiqueByValue(autofillPhysique)?.reps} for that look.`
+                : 'Keeps each template’s own rep ranges.'}
+            </p>
+          </div>
           <button
             type="button"
-            onClick={() => autofillFromSplit(autofillLevel)}
+            onClick={() => autofillFromSplit(autofillLevel, autofillPhysique)}
             className={submitButtonClass}
           >
             <Wand2 size={15} className="mr-2" /> Fill 14 days
