@@ -138,25 +138,15 @@
   position: relative;
 }
 
-:root[data-surface='glass'] .muscle-map::after {
-  content: '';
-  position: absolute;
-  inset: -6% -4%;
-  pointer-events: none;
-  background:
-    radial-gradient(55% 40% at 30% 10%, rgba(255, 255, 255, 0.6), transparent 62%),
-    radial-gradient(70% 60% at 50% 45%, rgba(125, 211, 252, 0.16), transparent 70%);
-  mix-blend-mode: screen;
-}
-
-/* Softer, glowing, glassy figure — lighter outlines + a subtle sheen. */
+/* Softer, glassy figure in glass mode — lighter outlines + a little vibrancy,
+   no glow behind it. Normal mode is untouched. */
 :root[data-surface='glass'] .muscle-map svg {
-  filter: saturate(1.15) brightness(1.06);
+  filter: saturate(1.12) brightness(1.04);
 }
 
 :root[data-surface='glass'] .muscle-map svg path {
   stroke: rgba(255, 255, 255, 0.28);
-  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.4));
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.35));
 }
 
 html,
@@ -174,20 +164,6 @@ body {
 
 .app-bg {
   background-color: var(--bg);
-}
-
-/* The app runs edge-to-edge (black-translucent status bar), so keep the
-   status icons legible with a slim scrim behind the top safe area. */
-.app-bg::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(env(safe-area-inset-top) + 6px);
-  background: linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0));
-  z-index: 40;
-  pointer-events: none;
 }
 
 .glass-card {
