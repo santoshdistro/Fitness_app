@@ -12,6 +12,8 @@ import { WorkoutPlanner } from '../components/WorkoutPlanner';
 import { WorkoutProgressChart, type WorkoutGroup } from '../components/WorkoutProgressChart';
 import { WorkoutHistoryTable } from '../components/WorkoutHistoryTable';
 import { BodyMapCard } from '../components/BodyMapCard';
+import { MonthPager } from '../components/MonthPager';
+import { isSameMonth } from '../utils/date';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
 import {
@@ -57,7 +59,7 @@ type Props = {
 };
 
 export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
-  const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(60);
+  const { workouts, deleteWorkout, refresh: refreshWorkouts } = useRecentWorkouts(300);
   const { records, lastByExercise } = useStrengthRecords();
   const [tab, setTabState] = useState<WorkoutsTab>(persistedWorkoutsTab);
   const setTab = (next: WorkoutsTab) => {
@@ -84,13 +86,10 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   // Shared Upper/Lower/Core group so the strength chart and table stay in sync.
   const [workoutGroup, setWorkoutGroup] = useState<WorkoutGroup>('all');
 
-  // Recent sessions only lists the current calendar month; earlier months drop
-  // off this view (still in the database and browsable via the chart's date nav).
-  const now = new Date();
-  const monthWorkouts = workouts.filter(w => {
-    const d = new Date(w.session_timestamp);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  });
+  // Recent sessions list one calendar month at a time; the month pager steps
+  // back through earlier months (all still in the database).
+  const [sessionMonth, setSessionMonth] = useState(() => new Date());
+  const monthWorkouts = workouts.filter(w => isSameMonth(new Date(w.session_timestamp), sessionMonth));
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
   if (guided) {
@@ -477,14 +476,13 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 
           {/* Recent sessions — this month only, ~4 visible then scroll, tap to expand */}
           <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.12s' }}>
-            <div className="mb-2 flex items-baseline justify-between">
-              <p className="text-sm font-semibold text-[var(--text)]">Recent sessions</p>
-              <p className="text-[10px] text-[var(--muted)]">this month</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-[var(--text)]">Sessions</p>
+              <MonthPager anchor={sessionMonth} onChange={setSessionMonth} />
             </div>
             {monthWorkouts.length === 0 ? (
               <p className="py-2 text-xs text-[var(--muted)]">
-                No sessions logged this month yet. Earlier sessions are kept — browse them in the
-                chart above.
+                No sessions this month. Use ‹ › to browse earlier months.
               </p>
             ) : (
             <div className="hide-scrollbar flex flex-col overflow-y-auto" style={{ maxHeight: 232 }}>

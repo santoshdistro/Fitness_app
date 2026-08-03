@@ -29,7 +29,8 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import { isThisMonth, todayDateString } from '../utils/date';
+import { isSameMonth, todayDateString } from '../utils/date';
+import { MonthPager } from '../components/MonthPager';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
@@ -64,8 +65,8 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
   const { totals } = useTodayNutrition(selectedDate);
-  const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(14);
-  const { measurements, deleteMeasurement } = useRecentMeasurements(5);
+  const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(365);
+  const { measurements, deleteMeasurement } = useRecentMeasurements(200);
   const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
   const [refreshingWeight, setRefreshingWeight] = useState(false);
   const { profile } = useProfile();
@@ -82,10 +83,13 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
 
-  // In-app history lists show only the current month; older entries stay in the
-  // database (and in the trend charts, which page by date) so the app stays clean.
-  const monthWeighIns = weightEntries.filter(e => isThisMonth(new Date(`${e.log_date}T00:00:00`)));
-  const monthMeasurements = measurements.filter(m => isThisMonth(new Date(m.entry_timestamp)));
+  // History lists default to the current month; the month pager steps back
+  // through earlier months (older data stays in the DB and the trend charts).
+  const [statsMonth, setStatsMonth] = useState(() => new Date());
+  const monthWeighIns = weightEntries.filter(e => isSameMonth(new Date(`${e.log_date}T00:00:00`), statsMonth));
+  const monthMeasurements = measurements.filter(m => isSameMonth(new Date(m.entry_timestamp), statsMonth));
+  // Keep the compact sparkline readable regardless of how much history is loaded.
+  const sparkValues = weightValues.slice(-24);
 
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
   const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
@@ -375,8 +379,8 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {weightValues.length >= 2 ? (
-              <WeightSparkline values={weightValues} width={90} height={30} />
+            {sparkValues.length >= 2 ? (
+              <WeightSparkline values={sparkValues} width={90} height={30} />
             ) : null}
             <p className="text-2xl font-black tracking-tight text-[var(--text)]">
               {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
@@ -387,16 +391,16 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
           </div>
         </div>
 
-        {monthWeighIns.length > 0 ? (
-          <div className="mt-3 border-t border-[var(--card-border)] pt-2">
-            <div className="mb-1 flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
-                This month's weigh-ins
-              </p>
-              {monthWeighIns.length > 2 ? (
-                <span className="text-[10px] text-[var(--muted)]">scroll for more</span>
-              ) : null}
-            </div>
+        <div className="mt-3 border-t border-[var(--card-border)] pt-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Weigh-ins
+            </p>
+            <MonthPager anchor={statsMonth} onChange={setStatsMonth} />
+          </div>
+          {monthWeighIns.length === 0 ? (
+            <p className="py-1.5 text-[11px] text-[var(--muted)]">No weigh-ins this month.</p>
+          ) : (
             <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 92 }}>
               {monthWeighIns
                 .slice()
@@ -424,8 +428,8 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
                   </div>
                 ))}
             </div>
-          </div>
-        ) : null}
+          )}
+        </div>
       </div>
 
       {/* Per-site progress chart — week/month/year, above the measurements table */}
@@ -438,11 +442,16 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
         <MeasurementProgressCard group={measureGroup} />
       </div>
 
-      {/* Measurement history — this month only (older lives in the chart above) */}
-      {monthMeasurements.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">This month's measurements</p>
-          {monthMeasurements.map(entry => (
+      {/* Measurement history — month-paged (older also lives in the chart above) */}
+      <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--text)]">Measurements</p>
+          <MonthPager anchor={statsMonth} onChange={setStatsMonth} />
+        </div>
+        {monthMeasurements.length === 0 ? (
+          <p className="py-1 text-xs text-[var(--muted)]">No measurements this month.</p>
+        ) : (
+          monthMeasurements.map(entry => (
             <div
               key={entry.id}
               className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
@@ -468,9 +477,9 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
                 <Trash2 size={15} />
               </button>
             </div>
-          ))}
-        </div>
-      ) : null}
+          ))
+        )}
+      </div>
 
       {/* Body fat — sits with the body-composition group */}
       <div
