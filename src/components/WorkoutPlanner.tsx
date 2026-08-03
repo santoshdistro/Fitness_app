@@ -2,10 +2,17 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, Dumbbell, Play, Plus, Sparkles, Trash2, Wand2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
-import { useTrainingSplit, SPLIT_OPTIONS, WEEKDAYS } from '../hooks/useTrainingSplit';
+import {
+  useTrainingSplit,
+  WEEKDAYS,
+  SPLIT_FOCUSES,
+  MUSCLE_FOCUSES,
+  focusParts,
+  shortFocus,
+} from '../hooks/useTrainingSplit';
 import { useWorkoutPlan, type RangeEntry } from '../hooks/useWorkoutPlan';
 import { generateWorkoutPlan } from '../lib/aiClient';
-import { SPLIT_TEMPLATES, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
+import { templatesForFocus, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
@@ -72,6 +79,23 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
   const [autofillLevel, setAutofillLevel] = useState<GymLevel>(defaultGymLevel());
+  // Which weekday's focus is being edited (multi-select picker), and the
+  // in-progress selection for it.
+  const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [pending, setPending] = useState<string[]>([]);
+
+  function openDayPicker(index: number) {
+    setPending(focusParts(split[index]));
+    setEditingDay(index);
+  }
+  function toggleFocus(f: string) {
+    setPending(prev => (prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]));
+  }
+  function saveDayPicker() {
+    if (editingDay === null) return;
+    setDay(editingDay, pending.length ? pending.join(' + ') : 'Rest');
+    setEditingDay(null);
+  }
 
   const focus = split[weekdayIndex(viewDate)];
   const exercises = exercisesFor(viewDate);
@@ -90,7 +114,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
     for (let i = 0; i < STRIP_DAYS; i++) {
       const date = addDays(stripStart, i);
       const dayFocus = split[weekdayIndex(date)];
-      entries.push({ date, exercises: scaleByLevel(SPLIT_TEMPLATES[dayFocus] ?? [], level) });
+      entries.push({ date, exercises: scaleByLevel(templatesForFocus(dayFocus), level) });
     }
     applyRange(entries);
     setViewDate(stripStart);
@@ -136,23 +160,31 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
     <div className="flex flex-col gap-4">
       {/* Weekly split editor */}
       <div className="glass-card p-5">
-        <p className="mb-2 text-sm font-semibold text-[var(--text)]">Weekly split</p>
+        <p className="mb-1 text-sm font-semibold text-[var(--text)]">Weekly split</p>
+        <p className="mb-2 text-[10px] text-[var(--muted)]">
+          Tap a day to pick a split or specific muscles — combine several (e.g. Chest + Triceps).
+        </p>
         <div className="flex flex-col gap-1.5">
-          {WEEKDAYS.map((d, i) => (
-            <div key={d} className="flex items-center gap-2">
-              <span className="w-12 text-xs font-bold text-[var(--muted)]">{d}</span>
-              <select
-                value={split[i]}
-                onChange={e => setDay(i, e.target.value)}
-                className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-xs outline-none"
-                style={{ color: split[i] === 'Rest' ? 'var(--muted)' : 'var(--text)' }}
+          {WEEKDAYS.map((d, i) => {
+            const rest = split[i] === 'Rest' || !split[i];
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => openDayPicker(i)}
+                className="flex items-center gap-2 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2.5 py-2 text-left"
               >
-                {SPLIT_OPTIONS.map(o => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-          ))}
+                <span className="w-10 shrink-0 text-xs font-bold text-[var(--muted)]">{d}</span>
+                <span
+                  className="flex-1 truncate text-xs font-semibold"
+                  style={{ color: rest ? 'var(--muted)' : 'var(--text)' }}
+                >
+                  {split[i] || 'Rest'}
+                </span>
+                <ChevronRight size={14} className="shrink-0 text-[var(--muted)]" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -250,7 +282,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                 {date === today ? 'Today' : fmt(date, { weekday: 'short' })}
               </span>
               <span className="text-sm font-bold">{fmt(date, { day: 'numeric' })}</span>
-              <span className="text-[8px] font-semibold opacity-90">{dayFocus}</span>
+              <span className="text-[8px] font-semibold opacity-90">{shortFocus(dayFocus)}</span>
               <span
                 className="mt-0.5 h-1 w-1 rounded-full"
                 style={{ background: filled ? (active ? 'white' : 'var(--accent)') : 'transparent' }}
@@ -283,11 +315,11 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                 ? 'Recover — or add something light below.'
                 : 'Auto-fill from your split, build with AI, or add exercises by hand.'}
             </p>
-            {focus !== 'Rest' && SPLIT_TEMPLATES[focus]?.length ? (
+            {focus !== 'Rest' && templatesForFocus(focus).length ? (
               <button
                 type="button"
                 onClick={() =>
-                  applyRange([{ date: viewDate, exercises: SPLIT_TEMPLATES[focus] }])
+                  applyRange([{ date: viewDate, exercises: templatesForFocus(focus) }])
                 }
                 className="mt-2 rounded-full px-4 py-2 text-[11px] font-bold text-white"
                 style={{ background: 'var(--accent)' }}
@@ -357,6 +389,52 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         </button>
       ) : null}
 
+      <Sheet
+        open={editingDay !== null}
+        onClose={() => setEditingDay(null)}
+        title={editingDay !== null ? `Train on ${WEEKDAYS[editingDay]}` : 'Pick focus'}
+      >
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={() => setPending([])}
+            className="rounded-xl px-3 py-2 text-xs font-bold"
+            style={
+              pending.length === 0
+                ? { background: 'var(--accent)', color: '#fff' }
+                : { background: 'var(--bg)', color: 'var(--muted)' }
+            }
+          >
+            Rest day
+          </button>
+
+          <div>
+            <p className={labelClass}>Splits</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SPLIT_FOCUSES.map(f => (
+                <FocusChip key={f} label={f} on={pending.includes(f)} onClick={() => toggleFocus(f)} />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className={labelClass}>Muscles — tap several to combine</p>
+            <div className="flex flex-wrap gap-1.5">
+              {MUSCLE_FOCUSES.map(f => (
+                <FocusChip key={f} label={f} on={pending.includes(f)} onClick={() => toggleFocus(f)} />
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[11px] text-[var(--muted)]">
+            {pending.length ? `This day: ${pending.join(' + ')}` : 'This day: Rest'}
+          </p>
+          <button type="button" onClick={saveDayPicker} className={submitButtonClass}>
+            Save day
+          </button>
+        </div>
+      </Sheet>
+
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title={`Add exercise · ${longDate(viewDate)}`}>
         <AddExerciseForm
           onAdd={ex => {
@@ -423,6 +501,19 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         />
       </Sheet>
     </div>
+  );
+}
+
+function FocusChip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full px-3 py-1.5 text-xs font-bold"
+      style={on ? { background: 'var(--accent)', color: '#fff' } : { background: 'var(--bg)', color: 'var(--muted)' }}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -542,7 +633,7 @@ function AiBuilderForm({
         const fromAi = focusMap.get(dayFocus);
         entries.push({
           date,
-          exercises: fromAi ?? SPLIT_TEMPLATES[dayFocus] ?? [],
+          exercises: fromAi ?? templatesForFocus(dayFocus),
         });
       }
       onBuilt(entries, result.description || result.name);

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-// A 7-slot weekly plan (Mon..Sun) of what to train each day.
+// A 7-slot weekly plan (Mon..Sun) of what to train each day. A day can combine
+// several groups joined by " + " (e.g. "Chest + Triceps").
 export const SPLIT_OPTIONS = [
   'Rest',
   'Push',
@@ -13,6 +14,36 @@ export const SPLIT_OPTIONS = [
   'Cardio',
   'Core',
 ];
+
+// Classic split focuses (pickable alongside specific muscles).
+export const SPLIT_FOCUSES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Cardio'];
+
+// Specific muscle groups — combine several on a day.
+export const MUSCLE_FOCUSES = [
+  'Chest',
+  'Back',
+  'Shoulders',
+  'Biceps',
+  'Triceps',
+  'Quads',
+  'Hamstrings',
+  'Glutes',
+  'Calves',
+  'Abs',
+];
+
+/** Split a day's composite focus into its parts (empty for Rest). */
+export function focusParts(focus: string): string[] {
+  if (!focus || focus === 'Rest') return [];
+  return focus.split('+').map(p => p.trim()).filter(Boolean);
+}
+
+/** Short label for tight spaces: "Chest +1" for multi-group days. */
+export function shortFocus(focus: string): string {
+  const parts = focusParts(focus);
+  if (parts.length <= 1) return focus || 'Rest';
+  return `${parts[0]} +${parts.length - 1}`;
+}
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
