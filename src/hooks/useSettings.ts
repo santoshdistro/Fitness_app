@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
+export type Surface = 'normal' | 'glass';
 export type WeightUnit = 'kg' | 'lb';
 export type VolumeUnit = 'ml' | 'l';
 export type FoodUnit = 'g' | 'oz';
@@ -11,6 +12,7 @@ export type Settings = {
   waterGoalMl: number;
   activeCalorieGoal: number;
   theme: Theme;
+  surface: Surface;
   weightUnit: WeightUnit;
   volumeUnit: VolumeUnit;
   foodUnit: FoodUnit;
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   waterGoalMl: 2500,
   activeCalorieGoal: 500,
   theme: 'light',
+  surface: 'normal',
   weightUnit: 'kg',
   volumeUnit: 'l',
   foodUnit: 'g',
@@ -45,12 +48,21 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute('data-theme', theme);
 }
 
+/** Applies the surface style (normal / liquid glass) to <html>. */
+export function applySurface(surface: Surface): void {
+  document.documentElement.setAttribute('data-surface', surface);
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(read);
 
   useEffect(() => {
     applyTheme(settings.theme);
   }, [settings.theme]);
+
+  useEffect(() => {
+    applySurface(settings.surface);
+  }, [settings.surface]);
 
   const save = useCallback((next: Partial<Settings>) => {
     setSettings(current => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Layers, Moon, Sparkles, Sun } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { RemindersForm } from './RemindersForm';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
@@ -41,6 +41,28 @@ export function SettingsForm({ onSaved }: Props) {
             onClick={() => save({ theme: 'dark' })}
           />
         </div>
+      </div>
+
+      <div className="mb-4">
+        <p className={labelClass}>Surface</p>
+        <div className="flex gap-2">
+          <ThemeButton
+            active={settings.surface === 'normal'}
+            icon={<Layers size={16} />}
+            label="Normal"
+            onClick={() => save({ surface: 'normal' })}
+          />
+          <ThemeButton
+            active={settings.surface === 'glass'}
+            icon={<Sparkles size={16} />}
+            label="Liquid glass"
+            onClick={() => save({ surface: 'glass' })}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+          Liquid glass turns every card, the nav and sheets into frosted glass over a colourful
+          backdrop. Normal is the classic clean look.
+        </p>
       </div>
 
       <div className="mb-4">

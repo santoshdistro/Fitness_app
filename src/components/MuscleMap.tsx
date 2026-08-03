@@ -51,7 +51,7 @@ export function MuscleMap({
   large?: boolean;
 }) {
   return (
-    <div className="flex justify-center gap-2">
+    <div className="muscle-map flex justify-center gap-2">
       <Figure parts={FRONT_PARTS} viewBox={FRONT_VIEWBOX} label="Front" intensity={intensity} onSelect={onSelect} large={large} />
       <Figure parts={BACK_PARTS} viewBox={BACK_VIEWBOX} label="Back" intensity={intensity} onSelect={onSelect} large={large} />
     </div>

@@ -3,13 +3,15 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 
-// Apply the saved theme before first paint to avoid a light-mode flash.
+// Apply the saved theme + surface before first paint to avoid a flash.
 try {
   const saved = localStorage.getItem('app_settings');
-  const theme = saved ? (JSON.parse(saved).theme as string) : 'light';
-  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  const parsed = saved ? JSON.parse(saved) : {};
+  document.documentElement.setAttribute('data-theme', parsed.theme === 'dark' ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-surface', parsed.surface === 'glass' ? 'glass' : 'normal');
 } catch {
   document.documentElement.setAttribute('data-theme', 'light');
+  document.documentElement.setAttribute('data-surface', 'normal');
 }
 
 createRoot(document.getElementById('root')!).render(

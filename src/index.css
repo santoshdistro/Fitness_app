@@ -23,6 +23,75 @@
   --accent-dark: #4b3fe0;
 }
 
+/* ---------- Liquid glass surface ---------- */
+:root[data-surface='glass'] {
+  --card: rgba(255, 255, 255, 0.5);
+  --card-border: rgba(255, 255, 255, 0.65);
+  --input-bg: rgba(255, 255, 255, 0.45);
+}
+
+:root[data-surface='glass'][data-theme='dark'] {
+  --card: rgba(28, 28, 40, 0.45);
+  --card-border: rgba(255, 255, 255, 0.14);
+  --input-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* A colourful, fixed backdrop so the frosted cards have something to refract. */
+:root[data-surface='glass'] .app-bg {
+  background-color: transparent;
+  background-image:
+    radial-gradient(42% 34% at 12% 10%, rgba(108, 99, 255, 0.34), transparent 70%),
+    radial-gradient(38% 30% at 88% 16%, rgba(14, 165, 233, 0.3), transparent 70%),
+    radial-gradient(50% 44% at 50% 96%, rgba(168, 85, 247, 0.26), transparent 72%),
+    linear-gradient(var(--bg), var(--bg));
+  background-attachment: fixed;
+}
+
+:root[data-surface='glass'][data-theme='dark'] .app-bg {
+  background-image:
+    radial-gradient(42% 34% at 12% 10%, rgba(125, 117, 255, 0.3), transparent 70%),
+    radial-gradient(38% 30% at 88% 16%, rgba(14, 165, 233, 0.24), transparent 70%),
+    radial-gradient(50% 44% at 50% 96%, rgba(168, 85, 247, 0.24), transparent 72%),
+    linear-gradient(var(--bg), var(--bg));
+}
+
+/* Frost every surface built on .glass-card / .glass (cards, nav, sheets…). */
+:root[data-surface='glass'] .glass-card,
+:root[data-surface='glass'] .glass {
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+}
+
+:root[data-surface='glass'] .glass-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 10px 30px -12px rgba(20, 20, 43, 0.35);
+}
+
+:root[data-surface='glass'][data-theme='dark'] .glass-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 30px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* Shiny glass body-map figure. */
+:root[data-surface='glass'] .muscle-map {
+  position: relative;
+}
+
+:root[data-surface='glass'] .muscle-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 45% at 32% 12%, rgba(255, 255, 255, 0.55), transparent 60%);
+  mix-blend-mode: screen;
+}
+
+:root[data-surface='glass'] .muscle-map svg path {
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.45));
+}
+
 html,
 body,
 #root {
