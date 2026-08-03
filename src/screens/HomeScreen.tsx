@@ -216,6 +216,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onL
       unit: 'g',
     },
     { label: 'Water', value: waterMl, target: settings.waterGoalMl, color: '#0ea5e9', unit: 'ml' },
+    { label: 'Active', value: burnedKcal, target: settings.activeCalorieGoal, color: '#f59e0b', unit: 'kcal' },
   ];
 
   const hasAnyData =
