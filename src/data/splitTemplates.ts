@@ -57,6 +57,14 @@ export const SPLIT_TEMPLATES: Record<string, TemplateExercise[]> = {
     { name: 'Plank', sets: 3, reps: '45-60s' },
     { name: 'Russian twists', sets: 3, reps: '20' },
   ],
+  Crossfit: [
+    { name: 'Warm-up: row 500m + mobility', sets: 1, reps: '5 min' },
+    { name: 'Strength: power clean', sets: 5, reps: '3' },
+    { name: 'WOD: 12-min AMRAP — 10 thrusters, 10 burpees, 200m run', sets: 1, reps: 'AMRAP' },
+    { name: 'Kettlebell swings', sets: 3, reps: '15' },
+    { name: 'Box jumps', sets: 3, reps: '12' },
+    { name: 'Core finisher: hanging leg raises', sets: 3, reps: '12' },
+  ],
 
   // --- Specific muscle groups (combine several on one day, e.g. Chest + Triceps) ---
   Chest: [

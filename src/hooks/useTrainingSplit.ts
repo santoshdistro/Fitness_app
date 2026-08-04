@@ -16,7 +16,7 @@ export const SPLIT_OPTIONS = [
 ];
 
 // Classic split focuses (pickable alongside specific muscles).
-export const SPLIT_FOCUSES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Cardio'];
+export const SPLIT_FOCUSES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Cardio', 'Core', 'Crossfit'];
 
 // Specific muscle groups — combine several on a day.
 export const MUSCLE_FOCUSES = [
