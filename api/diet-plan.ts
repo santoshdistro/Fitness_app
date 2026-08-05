@@ -25,7 +25,10 @@ type Body = {
   breakfast?: string;
   prepStyle?: string;
   servings?: number;
-  kind?: 'plan' | 'prep' | 'schedule';
+  kind?: 'plan' | 'prep' | 'schedule' | 'recipe';
+  mealName?: string;
+  carbs_g?: number;
+  fat_g?: number;
   wake?: string;
   gym?: string | null;
   lastMeal?: string;
@@ -59,6 +62,20 @@ type PrepResult = { summary: string; items: PrepItem[]; shoppingList: string[] }
 
 type ScheduleEntry = { time: string; title: string; detail: string; kind: string };
 type ScheduleResult = { summary: string; entries: ScheduleEntry[] };
+
+type RecipeResult = {
+  title: string;
+  servings: number;
+  ingredients: { item: string; grams: number }[];
+  steps: string[];
+  tip?: string;
+};
+
+const RECIPE_PROMPT = `You are a practical home-cooking recipe writer. Given a meal name and its target macros, write a simple recipe for ONE serving that a normal person can cook at home.
+Give exact ingredient quantities in GRAMS (use grams for solids and ml-as-grams for liquids) so the finished dish lands roughly on the target calories/protein/carbs/fat. Respect the stated diet (e.g. vegetarian/vegan) — never include an off-diet ingredient.
+Keep it realistic, common and quick. 4-8 clear steps.
+Respond with ONLY a JSON object, no markdown and no prose, with exactly these keys:
+"title" (string), "servings" (integer, 1), "ingredients" (array of { "item": string, "grams": integer }), "steps" (array of short strings), "tip" (optional one-line string).`;
 
 const PLAN_PROMPT = `You are an experienced, practical dietitian. Read the person's week and what they have on hand, then build a realistic, varied day-by-day eating plan they can actually follow.
 Respect their diet type, likes and dislikes at all times — never include a disliked or off-diet food.
@@ -123,6 +140,28 @@ export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
         messages: [{ role: 'user', content: `Build my daily eating & wellness schedule.\n${schedDetails}` }],
       });
       const result = extractJson<ScheduleResult>(extractText(message));
+      res.status(200).json({ result, usage: usageOf(message, TEXT_MODEL) });
+      return;
+    }
+
+    if (body.kind === 'recipe') {
+      const macros = [
+        `Meal: ${body.mealName || 'a healthy meal'}`,
+        body.diet ? `Diet: ${body.diet}` : '',
+        body.calorieTarget ? `Target ~${body.calorieTarget} kcal` : '',
+        body.proteinTarget ? `protein ~${body.proteinTarget} g` : '',
+        body.carbs_g ? `carbs ~${body.carbs_g} g` : '',
+        body.fat_g ? `fat ~${body.fat_g} g` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const message = await client.messages.create({
+        model: TEXT_MODEL,
+        max_tokens: 1500,
+        system: RECIPE_PROMPT,
+        messages: [{ role: 'user', content: `Write the recipe.\n${macros}` }],
+      });
+      const result = extractJson<RecipeResult>(extractText(message));
       res.status(200).json({ result, usage: usageOf(message, TEXT_MODEL) });
       return;
     }

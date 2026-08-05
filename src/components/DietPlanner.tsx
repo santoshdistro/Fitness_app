@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Bell, BookMarked, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -12,7 +12,7 @@ import { curatedDayItems } from '../data/dietDayTemplates';
 import { DayScheduleCard } from './DayScheduleCard';
 import { useDaySchedule } from '../hooks/useDaySchedule';
 import { mealTimesFromSchedule } from '../lib/daySchedule';
-import { generateDietPlan, type DietPlanInput, type DietPlanItem, type DietPlanResult } from '../lib/aiClient';
+import { generateDietPlan, generateRecipe, type DietPlanInput, type DietPlanItem, type DietPlanResult, type RecipeResult } from '../lib/aiClient';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
@@ -119,6 +119,8 @@ export function DietPlanner() {
   // button flips to "Logged" and we don't double-add on a second tap.
   const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set());
   const [diaryMsg, setDiaryMsg] = useState<string | null>(null);
+  // Recipe sheet for a tapped planned meal.
+  const [recipeItem, setRecipeItem] = useState<PlanItem | null>(null);
 
   const items = itemsFor(viewDate);
 
@@ -438,12 +440,19 @@ export function DietPlanner() {
                     const logged = loggedIds.has(it.id);
                     return (
                     <div key={it.id} className="flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-[var(--text)]">{it.name}</p>
-                        <p className="text-[10px] text-[var(--muted)]">
-                          {it.calories} kcal · {it.protein_g}P · {it.carbs_g}C · {it.fat_g}F
+                      <button
+                        type="button"
+                        onClick={() => setRecipeItem(it)}
+                        className="min-w-0 flex-1 text-left"
+                        aria-label={`Recipe for ${it.name}`}
+                      >
+                        <p className="text-sm font-medium text-[var(--accent)] underline decoration-[var(--accent)]/30 underline-offset-2">
+                          {it.name}
                         </p>
-                      </div>
+                        <p className="text-[10px] text-[var(--muted)]">
+                          {it.calories} kcal · {it.protein_g}P · {it.carbs_g}C · {it.fat_g}F · tap for recipe
+                        </p>
+                      </button>
                       <button
                         type="button"
                         onClick={() => logItemToDiary(it, viewDate)}
@@ -627,6 +636,131 @@ export function DietPlanner() {
       <Sheet open={curatedSplitOpen} onClose={() => setCuratedSplitOpen(false)} title="Predefined meals from split">
         <CuratedSplitForm dayTypes={split} startDate={stripStart} onBuild={quickFillFromSplit} />
       </Sheet>
+
+      <Sheet open={recipeItem != null} onClose={() => setRecipeItem(null)} title="Recipe">
+        {recipeItem ? (
+          <RecipeSheet
+            userId={session?.user?.id}
+            item={recipeItem}
+            onLog={() => {
+              logItemToDiary(recipeItem, viewDate);
+              setRecipeItem(null);
+            }}
+            alreadyLogged={loggedIds.has(recipeItem.id)}
+          />
+        ) : null}
+      </Sheet>
+    </div>
+  );
+}
+
+function RecipeSheet({
+  userId,
+  item,
+  onLog,
+  alreadyLogged,
+}: {
+  userId?: string;
+  item: PlanItem;
+  onLog: () => void;
+  alreadyLogged: boolean;
+}) {
+  const [recipe, setRecipe] = useState<RecipeResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    if (!userId) {
+      setError('Sign in to generate a recipe.');
+      setLoading(false);
+      return;
+    }
+    generateRecipe(userId, {
+      mealName: item.name,
+      calories: item.calories,
+      protein_g: item.protein_g,
+      carbs_g: item.carbs_g,
+      fat_g: item.fat_g,
+    })
+      .then(r => {
+        if (!cancelled) setRecipe(r);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not fetch a recipe. Try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="text-sm font-bold text-[var(--text)]">{item.name}</p>
+        <p className="text-[11px] text-[var(--muted)]">
+          {item.meal} · {item.calories} kcal · {item.protein_g}P / {item.carbs_g}C / {item.fat_g}F
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-6 text-sm text-[var(--muted)]">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
+          Writing your recipe…
+        </div>
+      ) : error ? (
+        <p className={errorTextClass}>{error}</p>
+      ) : recipe ? (
+        <>
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+              Ingredients · {recipe.servings === 1 ? '1 serving' : `${recipe.servings} servings`}
+            </p>
+            <div className="glass-card flex flex-col gap-1 p-3">
+              {recipe.ingredients.map((ing, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--text)]">{ing.item}</span>
+                  <span className="font-semibold text-[var(--muted)]">{ing.grams} g</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Method</p>
+            <ol className="flex flex-col gap-2">
+              {recipe.steps.map((s, i) => (
+                <li key={i} className="flex gap-2 text-sm text-[var(--text)]">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/12 text-[10px] font-black text-[var(--accent)]">
+                    {i + 1}
+                  </span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {recipe.tip ? (
+            <p className="rounded-2xl bg-[var(--bg)] px-3 py-2 text-[11px] text-[var(--muted)]">💡 {recipe.tip}</p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onLog}
+            disabled={alreadyLogged}
+            className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-70"
+            style={{ background: alreadyLogged ? '#16a34a' : 'linear-gradient(135deg, #22c55e, #15803d)' }}
+          >
+            {alreadyLogged ? <><Check size={16} /> Already logged</> : <><Plus size={16} /> I ate this — log to diary</>}
+          </button>
+        </>
+      ) : null}
     </div>
   );
 }

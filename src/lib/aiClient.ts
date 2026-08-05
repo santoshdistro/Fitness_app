@@ -206,3 +206,31 @@ export async function generateMealPrep(
   if (usage) void logAiUsage(userId, 'diet_plan', usage);
   return result;
 }
+
+export type RecipeIngredient = { item: string; grams: number };
+export type RecipeResult = {
+  title: string;
+  servings: number;
+  ingredients: RecipeIngredient[];
+  steps: string[];
+  tip?: string;
+};
+
+// How-to-prep recipe for a planned meal, with per-ingredient gram quantities.
+// Shares the diet-plan function (kind:'recipe').
+export async function generateRecipe(
+  userId: string,
+  input: { mealName: string; calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; diet?: string },
+): Promise<RecipeResult> {
+  const { result, usage } = await postJson<RecipeResult>('/api/diet-plan', {
+    kind: 'recipe',
+    mealName: input.mealName,
+    calorieTarget: input.calories,
+    proteinTarget: input.protein_g,
+    carbs_g: input.carbs_g,
+    fat_g: input.fat_g,
+    diet: input.diet,
+  });
+  if (usage) void logAiUsage(userId, 'diet_plan', usage);
+  return result;
+}
