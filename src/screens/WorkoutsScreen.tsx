@@ -105,6 +105,9 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const [selectedGoalProgram, setSelectedGoalProgram] = useState<GoalProgram | null>(null);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
+  // One plan day being assigned to a calendar date (from the generated plan).
+  const [assignDay, setAssignDay] = useState<{ label: string; exercises: { name: string; sets: number; reps: string }[] } | null>(null);
+  const [assignDate, setAssignDate] = useState(todayDateString());
   // Shared Upper/Lower/Core group so the strength chart and table stay in sync.
   const [workoutGroup, setWorkoutGroup] = useState<WorkoutGroup>('all');
 
@@ -279,10 +282,30 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 
           <div className="mt-3 flex flex-col gap-2">
             {aiPlan.days.map(day => (
-              <div key={day.day} className="rounded-2xl bg-white/12 p-3">
-                <p className="text-xs font-bold text-white">
-                  {day.day} <span className="font-medium text-white/75">· {day.focus}</span>
-                </p>
+              <button
+                key={day.day}
+                type="button"
+                onClick={() => {
+                  setAssignDate(todayDateString());
+                  setAssignDay({
+                    label: `${day.day} · ${day.focus}`,
+                    exercises: day.exercises.map(ex => ({
+                      name: ex.name,
+                      sets: week ? week.setsFor(ex.sets) : ex.sets,
+                      reps: ex.reps,
+                    })),
+                  });
+                }}
+                className="rounded-2xl bg-white/12 p-3 text-left active:bg-white/20"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-white">
+                    {day.day} <span className="font-medium text-white/75">· {day.focus}</span>
+                  </p>
+                  <span className="flex items-center gap-0.5 text-[9px] font-semibold text-white/70">
+                    add to a day <CalendarPlus size={11} />
+                  </span>
+                </div>
                 <div className="mt-1.5 flex flex-col gap-1">
                   {day.exercises.map(ex => {
                     const sets = week ? week.setsFor(ex.sets) : ex.sets;
@@ -299,7 +322,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                     );
                   })}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -634,6 +657,42 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
               </div>
             ))}
             <p className="text-[11px] text-[var(--muted)]">Tap any exercise for a step-by-step how-to.</p>
+          </div>
+        ) : null}
+      </Sheet>
+
+      <Sheet open={assignDay != null} onClose={() => setAssignDay(null)} title="Add to a day">
+        {assignDay ? (
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-sm font-bold text-[var(--text)]">{assignDay.label}</p>
+              <p className="text-[11px] text-[var(--muted)]">
+                {assignDay.exercises.length} exercises · pick the date to add them to your plan.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Date
+              </label>
+              <input
+                type="date"
+                value={assignDate}
+                onChange={e => e.target.value && setAssignDate(e.target.value)}
+                className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                applyPlanToCalendar([{ date: assignDate, exercises: assignDay.exercises }]);
+                setAssignDay(null);
+                setTab('plan');
+              }}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            >
+              <CalendarPlus size={16} /> Add to {new Date(`${assignDate}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+            </button>
           </div>
         ) : null}
       </Sheet>
