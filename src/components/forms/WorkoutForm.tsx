@@ -7,9 +7,9 @@ import { LIFT_KG, rangeWarning } from '../../utils/sanity';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 import { RangeHint } from './RangeHint';
 
-type Row = { exercise: string; reps: string; weight: string };
+type Row = { exercise: string; sets: string; reps: string; weight: string };
 
-const BLANK_ROW: Row = { exercise: '', reps: '', weight: '' };
+const BLANK_ROW: Row = { exercise: '', sets: '3', reps: '', weight: '' };
 
 type Props = {
   onSaved: () => void;
@@ -38,7 +38,7 @@ export function WorkoutForm({ onSaved }: Props) {
 
   function loadTemplate(template: WorkoutTemplate) {
     setRoutineName(template.name);
-    setRows(template.exercises.map(e => ({ exercise: e.exercise, reps: String(e.reps), weight: '' })));
+    setRows(template.exercises.map(e => ({ exercise: e.exercise, sets: '3', reps: String(e.reps), weight: '' })));
   }
 
   const validRows = rows.filter(row => row.exercise.trim());
@@ -58,11 +58,17 @@ export function WorkoutForm({ onSaved }: Props) {
     const { error: saveError } = await supabase.from('workout_logs').insert({
       user_id: session.user.id,
       routine_name: routineName || null,
-      exercise_data: validRows.map(row => ({
-        exercise: row.exercise.trim(),
-        reps: Number(row.reps) || 0,
-        weight: Number(row.weight) || 0,
-      })),
+      // Each row is expanded into its number of sets (one entry per set), so
+      // volume and set counts add up correctly.
+      exercise_data: validRows.flatMap(row => {
+        const setCount = Math.max(1, Math.round(Number(row.sets) || 1));
+        const entry = {
+          exercise: row.exercise.trim(),
+          reps: Number(row.reps) || 0,
+          weight: Number(row.weight) || 0,
+        };
+        return Array.from({ length: setCount }, () => ({ ...entry }));
+      }),
     });
 
     setSaving(false);
@@ -104,7 +110,7 @@ export function WorkoutForm({ onSaved }: Props) {
 
       <div className="mb-3 flex flex-col gap-3">
         {rows.map((row, index) => (
-          <div key={index} className="flex items-end gap-2">
+          <div key={index} className="flex items-end gap-1.5">
             <div className="flex-[2]">
               {index === 0 && <label className={labelClass}>Exercise</label>}
               <input
@@ -115,7 +121,18 @@ export function WorkoutForm({ onSaved }: Props) {
                 placeholder="e.g. Bench press"
               />
             </div>
-            <div className="flex-1">
+            <div className="w-12 shrink-0">
+              {index === 0 && <label className={labelClass}>Sets</label>}
+              <input
+                className={inputClass}
+                type="number"
+                inputMode="numeric"
+                min="1"
+                value={row.sets}
+                onChange={e => updateRow(index, 'sets', e.target.value)}
+              />
+            </div>
+            <div className="w-12 shrink-0">
               {index === 0 && <label className={labelClass}>Reps</label>}
               <input
                 className={inputClass}
@@ -127,7 +144,7 @@ export function WorkoutForm({ onSaved }: Props) {
               />
             </div>
             <div className="flex-1">
-              {index === 0 && <label className={labelClass}>Weight (kg)</label>}
+              {index === 0 && <label className={labelClass}>Wt (kg)</label>}
               <input
                 className={inputClass}
                 type="number"
