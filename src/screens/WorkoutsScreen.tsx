@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Dumbbell, Sparkles, Trash2, Wand2 } from 'lucide-react';
+import { CalendarPlus, ChevronRight, Dumbbell, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
 import { useStrengthRecords } from '../hooks/useStrengthRecords';
 import { useProfile } from '../hooks/useProfile';
@@ -13,7 +13,8 @@ import { WorkoutProgressChart, type WorkoutGroup } from '../components/WorkoutPr
 import { WorkoutHistoryTable } from '../components/WorkoutHistoryTable';
 import { BodyMapCard } from '../components/BodyMapCard';
 import { MonthPager } from '../components/MonthPager';
-import { isSameMonth } from '../utils/date';
+import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
+import { addDays, isSameMonth, todayDateString } from '../utils/date';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { weeklyProgress } from '../utils/weeklyProgression';
 import {
@@ -75,6 +76,26 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
   const { profile } = useProfile();
   const { plan: aiPlan, savePlan, clearPlan, restartWeek, currentWeek } = useAiWorkoutPlan();
+  const { applyRange: applyPlanToCalendar } = useWorkoutPlan();
+
+  // Lay a generated plan onto the Plan tab's calendar: each week, the plan's
+  // training days fill the first N days and the rest stay open (editable there).
+  function sendPlanToCalendar() {
+    if (!aiPlan) return;
+    const start = todayDateString();
+    const entries = [];
+    for (let i = 0; i < 14; i++) {
+      const day = aiPlan.days[i % 7];
+      if (day) {
+        entries.push({
+          date: addDays(start, i),
+          exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
+        });
+      }
+    }
+    applyPlanToCalendar(entries);
+    setTab('plan');
+  }
   const week = currentWeek ? weeklyProgress(currentWeek) : null;
   const [curatedOpen, setCuratedOpen] = useState(false);
   const recommended = getProgram(profile?.equipment_preference);
@@ -305,8 +326,15 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
 
           <button
             type="button"
+            onClick={sendPlanToCalendar}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-2.5 text-xs font-bold text-[#4b3fe0]"
+          >
+            <CalendarPlus size={15} /> Add to Plan calendar
+          </button>
+          <button
+            type="button"
             onClick={clearPlan}
-            className="mt-3 w-full rounded-2xl border border-white/25 py-2 text-[11px] font-semibold text-white/90"
+            className="mt-2 w-full rounded-2xl border border-white/25 py-2 text-[11px] font-semibold text-white/90"
           >
             Remove plan
           </button>
