@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
+import { Bell, BookMarked, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Plus, Sparkles, Trash2, Utensils, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
+import type { MealCategory } from '../types/database';
 import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { usePushReminders } from '../hooks/usePushReminders';
@@ -36,6 +38,16 @@ const MEAL_TIME_DEFAULTS: Record<string, string> = {
 };
 // Diet-plan meals that map onto a push-reminder slot.
 const MEAL_REMINDER_KEYS = { Breakfast: 'breakfast', Lunch: 'lunch', Dinner: 'dinner' } as const;
+// Diet-plan meal label → diary meal category.
+const MEAL_CATEGORY: Record<string, MealCategory> = {
+  Breakfast: 'breakfast',
+  Lunch: 'lunch',
+  Dinner: 'dinner',
+  Snack: 'snack',
+};
+function mealCategoryFor(meal: string): MealCategory {
+  return MEAL_CATEGORY[meal] ?? 'other';
+}
 
 function defaultMealTime(meal: string): string {
   return MEAL_TIME_DEFAULTS[meal] ?? '12:00';
@@ -103,6 +115,10 @@ export function DietPlanner() {
   const [curatedSplitOpen, setCuratedSplitOpen] = useState(false);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [remindering, setRemindering] = useState(false);
+  // Planned items already logged to the diary this session (by id), so the
+  // button flips to "Logged" and we don't double-add on a second tap.
+  const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set());
+  const [diaryMsg, setDiaryMsg] = useState<string | null>(null);
 
   const items = itemsFor(viewDate);
 
@@ -197,6 +213,36 @@ export function DietPlanner() {
     } finally {
       setRemindering(false);
     }
+  }
+
+  // Log a planned meal straight into the diary (food_logs) with its macros —
+  // no searching or re-entering. Stamped at the plan day + the meal's time.
+  async function logItemToDiary(item: PlanItem, date: string) {
+    if (!session?.user || loggedIds.has(item.id)) return;
+    const meal_timestamp = new Date(`${date}T${item.time ?? '12:00'}:00`).toISOString();
+    const { error } = await supabase.from('food_logs').insert({
+      user_id: session.user.id,
+      meal_name: item.name,
+      meal_category: mealCategoryFor(item.meal),
+      meal_timestamp,
+      calories: item.calories,
+      protein_g: item.protein_g,
+      carbs_g: item.carbs_g,
+      fat_g: item.fat_g,
+      fiber_g: item.fiber_g,
+    });
+    if (!error) {
+      setLoggedIds(prev => new Set(prev).add(item.id));
+      setDiaryMsg('Added to your diary.');
+    } else {
+      setDiaryMsg('Could not add — try again.');
+    }
+  }
+
+  async function logDayToDiary(date: string) {
+    const list = itemsFor(date).filter(it => !loggedIds.has(it.id));
+    for (const it of list) await logItemToDiary(it, date);
+    if (list.length) setDiaryMsg(`Added ${list.length} meal${list.length > 1 ? 's' : ''} to your diary.`);
   }
 
   return (
@@ -388,7 +434,9 @@ export function DietPlanner() {
                   </label>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {byMeal.get(meal)!.map(it => (
+                  {byMeal.get(meal)!.map(it => {
+                    const logged = loggedIds.has(it.id);
+                    return (
                     <div key={it.id} className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-[var(--text)]">{it.name}</p>
@@ -398,19 +446,48 @@ export function DietPlanner() {
                       </div>
                       <button
                         type="button"
+                        onClick={() => logItemToDiary(it, viewDate)}
+                        disabled={logged}
+                        aria-label={logged ? 'Logged to diary' : 'Log to diary'}
+                        className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-80"
+                        style={
+                          logged
+                            ? { background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#16a34a' }
+                            : { background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }
+                        }
+                      >
+                        {logged ? <><Check size={11} /> Logged</> : <><Plus size={11} /> Log</>}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => removeItem(viewDate, it.id)}
                         aria-label="Remove"
-                        className="shrink-0 text-[var(--muted)]"
+                        className="shrink-0 pt-1 text-[var(--muted)]"
                       >
                         <X size={15} />
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               );
             })
         )}
+
+        {items.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => logDayToDiary(viewDate)}
+            className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #22c55e, #15803d)' }}
+          >
+            <BookMarked size={16} /> Log this day’s meals to diary
+          </button>
+        ) : null}
+        {diaryMsg ? (
+          <p className="text-center text-[11px] font-semibold" style={{ color: '#16a34a' }}>{diaryMsg}</p>
+        ) : null}
 
         <button
           type="button"
