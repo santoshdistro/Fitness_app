@@ -150,6 +150,7 @@ export function WorkoutForm({ onSaved }: Props) {
                 type="number"
                 inputMode="decimal"
                 min="0"
+                step="any"
                 value={row.weight}
                 onChange={e => updateRow(index, 'weight', e.target.value)}
               />
