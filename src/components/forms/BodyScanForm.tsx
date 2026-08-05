@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, ImagePlus, RefreshCw, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
+import { useSettings } from '../../hooks/useSettings';
+import { kgToUnit, unitToKg } from '../../utils/units';
 import { useRecentMeasurements } from '../../hooks/useRecentMeasurements';
 import { useRecentDailyLogs } from '../../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../../hooks/useRecentWorkouts';
@@ -36,6 +38,9 @@ export function BodyScanForm() {
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const [savePhoto, setSavePhoto] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [zoom, setZoom] = useState(false);
+  const { settings } = useSettings();
+  const wUnit = settings.weightUnit;
+  const [photoWeight, setPhotoWeight] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const lastFileRef = useRef<File | null>(null);
 
@@ -97,11 +102,20 @@ export function BodyScanForm() {
     }
   }
 
+  // Prefill the photo weight with the last recorded weigh-in (editable).
+  useEffect(() => {
+    if (latestWeight != null && photoWeight === '') {
+      setPhotoWeight(String(Math.round(kgToUnit(latestWeight, wUnit) * 10) / 10));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestWeight, wUnit]);
+
   async function saveToProgress() {
     const file = lastFileRef.current;
     if (!file || savePhoto !== 'idle') return;
     setSavePhoto('saving');
-    const { error } = await addPhoto(file, { takenOn: todayDateString(), weightKg: latestWeight });
+    const weightKg = photoWeight ? Math.round(unitToKg(Number(photoWeight), wUnit) * 100) / 100 : latestWeight;
+    const { error } = await addPhoto(file, { takenOn: todayDateString(), weightKg });
     setSavePhoto(error ? 'idle' : 'saved');
   }
 
@@ -169,6 +183,22 @@ export function BodyScanForm() {
           ) : (
             <div className="w-full">
               <BodyScanReadout result={stage.result} />
+              <div className="mt-4 flex items-center gap-2">
+                <label className="text-xs font-semibold text-[var(--muted)]" htmlFor="scan-weight">
+                  Weight for this photo
+                </label>
+                <input
+                  id="scan-weight"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  value={photoWeight}
+                  onChange={e => setPhotoWeight(e.target.value)}
+                  className="w-20 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-sm text-[var(--text)] outline-none"
+                />
+                <span className="text-xs font-semibold text-[var(--muted)]">{wUnit}</span>
+              </div>
               <button
                 type="button"
                 onClick={saveToProgress}
