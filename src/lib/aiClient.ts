@@ -133,6 +133,10 @@ export async function analyzeBody(
     weightKg?: number | null;
     lastScanSummary?: string | null;
     lastScanWeakPoints?: string[] | null;
+    measurementsSummary?: string | null;
+    activity?: string | null;
+    recentTraining?: string | null;
+    scanCount?: number | null;
   },
 ): Promise<BodyResult> {
   const { result, usage } = await postJson<BodyResult>('/api/vision-body', {

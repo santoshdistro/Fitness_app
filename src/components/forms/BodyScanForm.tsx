@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { Camera, ImagePlus } from 'lucide-react';
+import { Camera, ImagePlus, RefreshCw, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { useRecentMeasurements } from '../../hooks/useRecentMeasurements';
 import { useRecentDailyLogs } from '../../hooks/useRecentDailyLogs';
+import { useRecentWorkouts } from '../../hooks/useRecentWorkouts';
 import { useBodyScans } from '../../hooks/useBodyScans';
 import { useProgressPhotos } from '../../hooks/useProgressPhotos';
 import { analyzeBody, type BodyResult } from '../../lib/aiClient';
@@ -29,10 +30,12 @@ export function BodyScanForm() {
   const { profile } = useProfile();
   const { measurements } = useRecentMeasurements(1);
   const { logs } = useRecentDailyLogs(30);
+  const { workouts } = useRecentWorkouts(12);
   const { scans, addScan } = useBodyScans();
   const { addPhoto } = useProgressPhotos();
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const [savePhoto, setSavePhoto] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [zoom, setZoom] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastFileRef = useRef<File | null>(null);
 
@@ -41,6 +44,28 @@ export function BodyScanForm() {
   const bodyFat = measurements[0]?.calculated_body_fat ?? null;
   const latestWeight = [...logs].reverse().find(l => l.weight != null)?.weight ?? null;
   const lastScan = scans[0] ?? null;
+
+  // Give the AI the user's tracked history so it can compare, not start blind.
+  const m = measurements[0];
+  const measurementsSummary = m
+    ? [
+        m.chest != null ? `chest ${m.chest}in` : '',
+        m.waist != null ? `waist ${m.waist}in` : '',
+        m.biceps != null ? `biceps ${m.biceps}in` : '',
+        m.thighs != null ? `thighs ${m.thighs}in` : '',
+        m.hips != null ? `hips ${m.hips}in` : '',
+        m.calculated_body_fat != null ? `~${Math.round(m.calculated_body_fat)}% body fat` : '',
+      ]
+        .filter(Boolean)
+        .join(', ') || null
+    : null;
+  const recentTraining = workouts.length
+    ? `${workouts.length} session${workouts.length > 1 ? 's' : ''} logged recently; exercises include ${[
+        ...new Set(workouts.flatMap(w => w.exercise_data.map(s => s.exercise))),
+      ]
+        .slice(0, 6)
+        .join(', ')}`
+    : null;
 
   async function runScan(file: File) {
     if (!session?.user) return;
@@ -56,6 +81,10 @@ export function BodyScanForm() {
         weightKg: latestWeight,
         lastScanSummary: lastScan?.summary ?? null,
         lastScanWeakPoints: lastScan?.weak_points ?? lastScan?.focus_areas ?? null,
+        measurementsSummary,
+        activity: profile?.activity_level ?? null,
+        recentTraining,
+        scanCount: scans.length,
       });
       void addScan(result);
       setStage({ step: 'result', preview, result });
@@ -105,7 +134,21 @@ export function BodyScanForm() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
-          <img src={stage.preview} alt="Physique" className="h-44 w-44 rounded-2xl object-cover" />
+          <button type="button" onClick={() => setZoom(true)} aria-label="Zoom photo" className="relative">
+            <img src={stage.preview} alt="Physique" className="h-44 w-44 rounded-2xl object-cover" />
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white">
+              tap to zoom
+            </span>
+          </button>
+          {stage.step !== 'scanning' ? (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="-mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--accent)]"
+            >
+              <RefreshCw size={12} /> Replace photo
+            </button>
+          ) : null}
 
           {stage.step === 'scanning' ? (
             <div className="flex items-center gap-2 text-sm font-medium text-[var(--muted)]">
@@ -154,6 +197,25 @@ export function BodyScanForm() {
           )}
         </div>
       )}
+
+      {zoom && stage.step !== 'pick' ? (
+        <button
+          type="button"
+          onClick={() => setZoom(false)}
+          aria-label="Close"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+          style={{ animation: 'fadeIn 0.15s ease-out' }}
+        >
+          <img
+            src={stage.preview}
+            alt="Physique enlarged"
+            className="max-h-full max-w-full rounded-2xl object-contain"
+          />
+          <span className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white">
+            <X size={18} />
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }
