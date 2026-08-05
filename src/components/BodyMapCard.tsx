@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
-import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
+import { useMuscleActivity, type MusclePeriod, type ExerciseStat } from '../hooks/useMuscleActivity';
+import { classifyMuscles, exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
 import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
@@ -17,6 +17,22 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [selectedEx, setSelectedEx] = useState<MuscleExercise | null>(null);
   const [planDate, setPlanDate] = useState(todayDateString());
   const [added, setAdded] = useState(false);
+  const [openMuscle, setOpenMuscle] = useState<string | null>(null);
+
+  // Group the done exercises by their primary muscle so the list reads like the
+  // heat map (Back, Chest…) with an expandable per-exercise breakdown.
+  const doneGroups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; volume: number; exercises: ExerciseStat[] }>();
+    for (const ex of data.exercises) {
+      const m: string = classifyMuscles(ex.name)[0] ?? 'other';
+      const label = m === 'other' ? 'Other' : MUSCLE_LABEL[m as MuscleKey];
+      const g = map.get(m) ?? { key: m, label, volume: 0, exercises: [] };
+      g.volume += ex.volume;
+      g.exercises.push(ex);
+      map.set(m, g);
+    }
+    return [...map.values()].sort((a, b) => b.volume - a.volume);
+  }, [data.exercises]);
 
   const today = todayDateString();
   // Already viewing the current day / week? (then forward is disabled)
@@ -170,33 +186,70 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         </p>
       ) : (
         <>
-          {data.exercises.map(ex => {
-            const top = data.exercises[0].volume || 1;
-            const frac = ex.volume / top;
-            const t = Math.pow(frac, 0.6);
+          {doneGroups.map(g => {
+            const groupTop = doneGroups[0].volume || 1;
+            const gFrac = g.volume / groupTop;
+            const gT = Math.pow(gFrac, 0.6);
+            const open = openMuscle === g.key;
+            const exTop = g.exercises[0]?.volume || 1;
             return (
-              <div key={ex.name} className="relative overflow-hidden rounded-xl bg-[var(--bg)]">
-                <div
-                  className="absolute inset-y-0 left-0"
-                  style={{
-                    width: `${Math.max(8, frac * 100)}%`,
-                    background: `color-mix(in srgb, ${muscleHeat(t)} 24%, transparent)`,
-                  }}
-                />
-                <div className="relative flex items-center gap-2.5 px-3 py-2">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(t) }} />
-                  <span className="flex-1 truncate text-xs font-semibold capitalize text-[var(--text)]">
-                    {ex.name}
-                  </span>
-                  <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
-                    ×{ex.sets} · {ex.reps} reps
-                  </span>
-                </div>
+              <div key={g.key} className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => setOpenMuscle(open ? null : g.key)}
+                  className="relative overflow-hidden rounded-xl bg-[var(--bg)] text-left"
+                >
+                  <div
+                    className="absolute inset-y-0 left-0"
+                    style={{ width: `${Math.max(8, gFrac * 100)}%`, background: `color-mix(in srgb, ${muscleHeat(gT)} 24%, transparent)` }}
+                  />
+                  <div className="relative flex items-center gap-2.5 px-3 py-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(gT) }} />
+                    <span className="flex-1 text-xs font-bold text-[var(--text)]">
+                      {g.label}
+                      <span className="ml-1 font-medium text-[var(--muted)]">· {g.exercises.length}</span>
+                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+                      {Math.round(g.volume).toLocaleString()}
+                    </span>
+                    <ChevronRight
+                      size={13}
+                      className="shrink-0 text-[var(--muted)] transition-transform"
+                      style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                    />
+                  </div>
+                </button>
+                {open ? (
+                  <div className="flex flex-col gap-1 pl-3">
+                    {g.exercises
+                      .slice()
+                      .sort((a, b) => b.volume - a.volume)
+                      .map(ex => {
+                        const frac = ex.volume / exTop;
+                        const t = Math.pow(frac, 0.6);
+                        return (
+                          <div key={ex.name} className="relative overflow-hidden rounded-lg bg-[var(--bg)]">
+                            <div
+                              className="absolute inset-y-0 left-0"
+                              style={{ width: `${Math.max(8, frac * 100)}%`, background: `color-mix(in srgb, ${muscleHeat(t)} 20%, transparent)` }}
+                            />
+                            <div className="relative flex items-center gap-2 px-3 py-1.5">
+                              <span className="flex-1 truncate text-[11px] capitalize text-[var(--text)]">{ex.name}</span>
+                              <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
+                                ×{ex.sets} · {ex.reps} reps
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : null}
               </div>
             );
           })}
           <p className="mt-1 text-[9px] text-[var(--muted)]">
-            Bar length = training volume (weight × reps). Hardest-hit on top. ×sets · total reps.
+            Grouped by muscle · bar = training volume (weight × reps). Tap a muscle to see its
+            exercises. ×sets · total reps.
           </p>
         </>
       )}
