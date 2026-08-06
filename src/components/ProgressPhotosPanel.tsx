@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Camera, Check, GitCompare, Trash2, X } from 'lucide-react';
+import { Camera, Check, GitCompare, RefreshCw, Trash2, X } from 'lucide-react';
 import { useProgressPhotos, type ProgressPhotoWithUrl } from '../hooks/useProgressPhotos';
 import { todayDateString } from '../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
@@ -26,6 +26,20 @@ export function ProgressPhotosPanel() {
 
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  // A photo URL shown full-screen (tap to close).
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
+  // True while the file picker is being used to swap the pending photo, so we
+  // keep the date/weight/note the user already entered.
+  const replacingRef = useRef(false);
+
+  function onFileChange(file: File | undefined) {
+    if (replacingRef.current) {
+      replacingRef.current = false;
+      replacePick(file);
+    } else {
+      onPick(file);
+    }
+  }
 
   function onPick(file: File | undefined) {
     if (!file) return;
@@ -34,6 +48,15 @@ export function ProgressPhotosPanel() {
     setTakenOn(todayDateString());
     setWeight('');
     setNote('');
+    setError(null);
+  }
+
+  // Swap just the image, keeping the metadata already filled in.
+  function replacePick(file: File | undefined) {
+    if (!file) return;
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(file);
+    setPendingPreview(URL.createObjectURL(file));
     setError(null);
   }
 
@@ -81,18 +104,40 @@ export function ProgressPhotosPanel() {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={e => onPick(e.target.files?.[0])}
+        onChange={e => onFileChange(e.target.files?.[0])}
       />
 
       {/* Pending add form */}
       {pendingFile ? (
         <div className="glass-card flex flex-col gap-3 p-4">
           {pendingPreview ? (
-            <img
-              src={pendingPreview}
-              alt="New progress photo preview"
-              className="mx-auto max-h-56 rounded-2xl object-contain"
-            />
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setZoomUrl(pendingPreview)}
+                aria-label="Zoom photo"
+                className="relative"
+              >
+                <img
+                  src={pendingPreview}
+                  alt="New progress photo preview"
+                  className="mx-auto max-h-56 rounded-2xl object-contain"
+                />
+                <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white">
+                  tap to zoom
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  replacingRef.current = true;
+                  fileInputRef.current?.click();
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--accent)]"
+              >
+                <RefreshCw size={12} /> Replace photo
+              </button>
+            </div>
           ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -229,7 +274,7 @@ export function ProgressPhotosPanel() {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => (compareMode ? toggleSelect(p.id) : undefined)}
+                  onClick={() => (compareMode ? toggleSelect(p.id) : p.url ? setZoomUrl(p.url) : undefined)}
                   className="relative overflow-hidden rounded-xl"
                   style={{ aspectRatio: '3 / 4', background: 'var(--bg)' }}
                 >
@@ -283,6 +328,22 @@ export function ProgressPhotosPanel() {
           className="flex items-center justify-center gap-1 text-xs font-semibold text-[var(--muted)]"
         >
           <X size={13} /> Exit compare
+        </button>
+      ) : null}
+
+      {/* Full-screen zoom (tap anywhere to close) */}
+      {zoomUrl ? (
+        <button
+          type="button"
+          onClick={() => setZoomUrl(null)}
+          aria-label="Close"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+          style={{ animation: 'fadeIn 0.15s ease-out' }}
+        >
+          <img src={zoomUrl} alt="Progress enlarged" className="max-h-full max-w-full rounded-2xl object-contain" />
+          <span className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white">
+            <X size={18} />
+          </span>
         </button>
       ) : null}
     </div>
