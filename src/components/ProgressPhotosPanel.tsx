@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, Check, GitCompare, RefreshCw, Trash2, X } from 'lucide-react';
 import { useProgressPhotos, type ProgressPhotoWithUrl } from '../hooks/useProgressPhotos';
 import { todayDateString } from '../utils/date';
@@ -331,21 +332,25 @@ export function ProgressPhotosPanel() {
         </button>
       ) : null}
 
-      {/* Full-screen zoom (tap anywhere to close) */}
-      {zoomUrl ? (
-        <button
-          type="button"
-          onClick={() => setZoomUrl(null)}
-          aria-label="Close"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
-          style={{ animation: 'fadeIn 0.15s ease-out' }}
-        >
-          <img src={zoomUrl} alt="Progress enlarged" className="max-h-full max-w-full rounded-2xl object-contain" />
-          <span className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white">
-            <X size={18} />
-          </span>
-        </button>
-      ) : null}
+      {/* Full-screen zoom (tap anywhere to close). Portalled to <body> so it
+         escapes the animated (transformed) sheet and truly covers the screen. */}
+      {zoomUrl
+        ? createPortal(
+            <button
+              type="button"
+              onClick={() => setZoomUrl(null)}
+              aria-label="Close"
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+              style={{ animation: 'fadeIn 0.15s ease-out' }}
+            >
+              <img src={zoomUrl} alt="Progress enlarged" className="max-h-full max-w-full rounded-2xl object-contain" />
+              <span className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white">
+                <X size={18} />
+              </span>
+            </button>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
