@@ -1,5 +1,7 @@
 import { CalendarCheck } from 'lucide-react';
 import type { WeeklyReview } from '../hooks/useWeeklyReview';
+import type { WeightUnit } from '../hooks/useSettings';
+import { weightValue } from '../utils/units';
 
 function takeaway(r: WeeklyReview): string {
   if (r.daysLogged === 0) return 'Log a few days this week and your review appears here.';
@@ -18,11 +20,15 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-export function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
-  const weightStr =
-    review.weightChangeKg == null
-      ? '—'
-      : `${review.weightChangeKg > 0 ? '+' : ''}${review.weightChangeKg} kg`;
+export function WeeklyReviewCard({
+  review,
+  weightUnit,
+}: {
+  review: WeeklyReview;
+  weightUnit: WeightUnit;
+}) {
+  const avgWeightStr =
+    review.avgWeightKg == null ? '—' : `${weightValue(review.avgWeightKg, weightUnit)} ${weightUnit}`;
 
   return (
     <div className="glass-card flex flex-col gap-3 p-5">
@@ -48,7 +54,7 @@ export function WeeklyReviewCard({ review }: { review: WeeklyReview }) {
           value={review.avgProtein != null ? `${review.avgProtein}g` : '—'}
           hint={review.proteinHitDays != null ? `${review.proteinHitDays} days hit` : undefined}
         />
-        <Stat label="Weight Δ" value={weightStr} />
+        <Stat label="Avg weight" value={avgWeightStr} hint="this week" />
         <Stat
           label="Avg steps"
           value={review.avgSteps != null ? review.avgSteps.toLocaleString() : '—'}

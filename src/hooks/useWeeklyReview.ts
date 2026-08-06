@@ -16,6 +16,8 @@ export type WeeklyReview = {
   /** Days (of those logged) within ±15% of the calorie target. */
   calorieOnTargetDays: number | null;
   weightChangeKg: number | null;
+  /** Mean of this week's weigh-ins (kg) — the settled figure for the week. */
+  avgWeightKg: number | null;
 };
 
 type Args = { calorieTarget?: number | null; proteinTarget?: number | null };
@@ -101,6 +103,10 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       weights.length >= 2
         ? Math.round((weights[weights.length - 1].weight - weights[0].weight) * 10) / 10
         : null;
+    const avgWeightKg =
+      weights.length > 0
+        ? Math.round((weights.reduce((s, d) => s + d.weight, 0) / weights.length) * 10) / 10
+        : null;
 
     setReview({
       daysLogged,
@@ -111,6 +117,7 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       proteinHitDays,
       calorieOnTargetDays,
       weightChangeKg,
+      avgWeightKg,
     });
     setLoading(false);
   }, [session?.user, calorieTarget, proteinTarget]);

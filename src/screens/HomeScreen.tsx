@@ -9,7 +9,9 @@ import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
 import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
 import { useWeeklyReview } from '../hooks/useWeeklyReview';
-import { useStartWeight } from '../hooks/useStartWeight';
+import { useJourney } from '../hooks/useJourney';
+import { Sheet } from '../components/Sheet';
+import { unitToKg, weightValue } from '../utils/units';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
 import { type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
@@ -71,8 +73,9 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onL
   const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { settings } = useSettings();
-  const startWeight = useStartWeight();
+  const { startWeight, startDate, isManual, startJourney, clearJourney } = useJourney();
   const { workouts } = useRecentWorkouts(20);
+  const [journeyOpen, setJourneyOpen] = useState(false);
 
   const refreshing = dayLoading || recentLoading;
   const reloadData = () => {
@@ -293,7 +296,12 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onL
       {/* 1. Your journey */}
       {viewingToday && goalProgress ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.06s' }}>
-          <GoalProgressCard progress={goalProgress} weightUnit={settings.weightUnit} />
+          <GoalProgressCard
+            progress={goalProgress}
+            weightUnit={settings.weightUnit}
+            startDate={startDate}
+            onEditJourney={() => setJourneyOpen(true)}
+          />
         </div>
       ) : null}
 
@@ -365,8 +373,116 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings, onL
       {/* 7. This week */}
       {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.18s' }}>
-          <WeeklyReviewCard review={weeklyReview} />
+          <WeeklyReviewCard review={weeklyReview} weightUnit={settings.weightUnit} />
         </div>
+      ) : null}
+
+      <Sheet open={journeyOpen} onClose={() => setJourneyOpen(false)} title="Your journey">
+        <JourneyEditor
+          weightUnit={settings.weightUnit}
+          currentWeightKg={latestWeight}
+          startWeightKg={startWeight}
+          startDate={startDate}
+          isManual={isManual}
+          onStart={(kg, date) => {
+            startJourney(kg, date);
+            setJourneyOpen(false);
+          }}
+          onReset={() => {
+            clearJourney();
+            setJourneyOpen(false);
+          }}
+        />
+      </Sheet>
+    </div>
+  );
+}
+
+function JourneyEditor({
+  weightUnit,
+  currentWeightKg,
+  startWeightKg,
+  startDate,
+  isManual,
+  onStart,
+  onReset,
+}: {
+  weightUnit: 'kg' | 'lb';
+  currentWeightKg: number | null;
+  startWeightKg: number | null;
+  startDate: string | null;
+  isManual: boolean;
+  onStart: (startWeightKg: number, startDate: string) => void;
+  onReset: () => void;
+}) {
+  const u = weightUnit;
+  const seed = currentWeightKg ?? startWeightKg;
+  const [weight, setWeight] = useState(seed != null ? weightValue(seed, u) : '');
+  const [date, setDate] = useState(todayDateString());
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs leading-relaxed text-[var(--muted)]">
+        Start or restart your journey from today. Your progress card measures from this point, so
+        earlier weigh-ins won't drag the baseline. Handy if you've been logging for a while and want
+        a fresh start now.
+      </p>
+
+      {startDate ? (
+        <p className="rounded-2xl bg-[var(--bg)] px-3 py-2 text-[11px] text-[var(--muted)]">
+          Current baseline: {startWeightKg != null ? `${weightValue(startWeightKg, u)} ${u}` : '—'} from{' '}
+          {new Date(`${startDate}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+          {isManual ? ' (set by you)' : ' (your first log)'}.
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+            Start weight ({u})
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={weight}
+            onChange={e => setWeight(e.target.value)}
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+            Start date
+          </label>
+          <input
+            type="date"
+            value={date}
+            max={todayDateString()}
+            onChange={e => e.target.value && setDate(e.target.value)}
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={!weight || Number(weight) <= 0}
+        onClick={() => onStart(unitToKg(Number(weight), u), date)}
+        className="rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50"
+        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+      >
+        {startDate ? 'Restart from here' : 'Start my journey'}
+      </button>
+
+      {isManual ? (
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-center text-[11px] font-semibold text-[var(--muted)]"
+        >
+          Reset to my first logged weight
+        </button>
       ) : null}
     </div>
   );
