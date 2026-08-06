@@ -1,6 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Boxes, ChevronRight, Clock, Play, Snowflake, Sparkles, Utensils } from 'lucide-react';
+import { Boxes, Check, ChevronRight, Clock, Play, Plus, Snowflake, Sparkles, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
+import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
+import type { MealCategory } from '../types/database';
 import { useProfile } from '../hooks/useProfile';
 import { useNutritionCoach } from '../hooks/useNutritionCoach';
 import { generateNutritionPlan, generateMealPrep, type NutritionPreferences, type MealPrepResult } from '../lib/aiClient';
@@ -385,6 +388,30 @@ function RecipeImage({ recipe, className }: { recipe: Recipe; className?: string
 }
 
 function RecipeDetail({ recipe }: { recipe: Recipe }) {
+  const { session } = useAuth();
+  const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
+  const [servings, setServings] = useState('1');
+  const [logState, setLogState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Add this recipe straight into today's diary, scaled by how many servings you
+  // ate — no re-searching the food databases.
+  async function logToDiary() {
+    if (!session?.user || logState !== 'idle') return;
+    const n = Math.max(0.25, Number(servings) || 1);
+    const s = (v: number) => Math.round(v * n);
+    setLogState('saving');
+    const { error } = await supabase.from('food_logs').insert({
+      user_id: session.user.id,
+      meal_name: n === 1 ? recipe.name : `${recipe.name} (${n}×)`,
+      meal_category: category,
+      calories: s(recipe.perServing.calories),
+      protein_g: s(recipe.perServing.protein_g),
+      carbs_g: s(recipe.perServing.carbs_g),
+      fat_g: s(recipe.perServing.fat_g),
+    });
+    setLogState(error ? 'idle' : 'saved');
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <RecipeImage recipe={recipe} className="h-40 w-full rounded-2xl" />
@@ -429,6 +456,55 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
       <p className="text-[10px] text-[var(--muted)]">
         Per serving · makes {recipe.servings} · {recipe.minutes} min
       </p>
+
+      {/* Log this recipe straight into today's diary */}
+      <div className="glass-card flex flex-col gap-2 p-3">
+        <p className="text-xs font-semibold text-[var(--text)]">Add to today's diary</p>
+        <div className="flex gap-2">
+          <select
+            value={category}
+            onChange={e => {
+              setCategory(e.target.value as MealCategory);
+              setLogState('idle');
+            }}
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+          >
+            {MEAL_CATEGORY_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <label className="flex items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2.5 text-xs font-semibold text-[var(--text)]">
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0.25"
+              step="any"
+              value={servings}
+              onChange={e => {
+                setServings(e.target.value);
+                setLogState('idle');
+              }}
+              className="w-10 bg-transparent py-2 text-right outline-none"
+            />
+            <span className="text-[10px] text-[var(--muted)]">serv</span>
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={logToDiary}
+          disabled={logState !== 'idle'}
+          className="flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-80"
+          style={{ background: logState === 'saved' ? '#16a34a' : 'linear-gradient(135deg, #22c55e, #15803d)' }}
+        >
+          {logState === 'saved' ? (
+            <><Check size={15} /> Added to diary</>
+          ) : logState === 'saving' ? (
+            'Adding…'
+          ) : (
+            <><Plus size={15} /> Log to diary</>
+          )}
+        </button>
+      </div>
 
       <div>
         <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--text)]">
