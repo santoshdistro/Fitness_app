@@ -451,9 +451,24 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             </div>
             {activeProgram.days.map(day => (
               <div key={day.day} className="rounded-2xl bg-[var(--bg)] p-3">
-                <p className="text-xs font-bold text-[var(--text)]">
-                  {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-[var(--text)]">
+                    {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignDate(todayDateString());
+                      setAssignDay({
+                        label: `${activeProgram.name} · ${day.day}`,
+                        exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
+                      });
+                    }}
+                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[9px] font-bold text-[var(--accent)]"
+                  >
+                    add to a day <CalendarPlus size={11} />
+                  </button>
+                </div>
                 <div className="mt-1.5 flex flex-col gap-2">
                   {day.exercises.map(ex => (
                     <button
@@ -631,9 +646,25 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             </button>
             {selectedGoalProgram.days.map(day => (
               <div key={day.day} className="rounded-2xl bg-[var(--bg)] p-3">
-                <p className="text-xs font-bold text-[var(--text)]">
-                  {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-[var(--text)]">
+                    {day.day} <span className="font-medium text-[var(--muted)]">· {day.focus}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignDate(todayDateString());
+                      setAssignDay({
+                        label: `${selectedGoalProgram.name} · ${day.day}`,
+                        exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
+                      });
+                      setSelectedGoalProgram(null);
+                    }}
+                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[9px] font-bold text-[var(--accent)]"
+                  >
+                    add to a day <CalendarPlus size={11} />
+                  </button>
+                </div>
                 <div className="mt-1.5 flex flex-col gap-1">
                   {day.exercises.map(ex => (
                     <button
