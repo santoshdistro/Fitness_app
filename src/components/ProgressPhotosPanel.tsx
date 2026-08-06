@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Check, GitCompare, RefreshCw, Trash2, X } from 'lucide-react';
+import { Camera, Check, GitCompare, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
 import { useProgressPhotos, type ProgressPhotoWithUrl } from '../hooks/useProgressPhotos';
 import { todayDateString } from '../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
@@ -14,9 +14,12 @@ function formatDate(dateStr: string): string {
 }
 
 export function ProgressPhotosPanel() {
-  const { photos, loading, addPhoto, removePhoto } = useProgressPhotos();
+  const { photos, loading, addPhoto, updatePhoto, removePhoto } = useProgressPhotos();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // The photo being edited (null = adding a new one). The form is open whenever
+  // there's a picked file OR a photo being edited.
+  const [editingPhoto, setEditingPhoto] = useState<ProgressPhotoWithUrl | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [takenOn, setTakenOn] = useState(todayDateString());
@@ -29,21 +32,32 @@ export function ProgressPhotosPanel() {
   const [selected, setSelected] = useState<string[]>([]);
   // A photo URL shown full-screen (tap to close).
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
-  // True while the file picker is being used to swap the pending photo, so we
-  // keep the date/weight/note the user already entered.
-  const replacingRef = useRef(false);
+  // What the hidden file input is picking for: a brand-new photo or a swap.
+  const pickModeRef = useRef<'add' | 'replace'>('add');
+
+  const formOpen = pendingFile != null || editingPhoto != null;
+  const previewSrc = pendingPreview ?? editingPhoto?.url ?? null;
+
+  function revokePreview() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+  }
 
   function onFileChange(file: File | undefined) {
-    if (replacingRef.current) {
-      replacingRef.current = false;
-      replacePick(file);
+    if (!file) return;
+    if (pickModeRef.current === 'replace') {
+      // Swap just the image, keeping the metadata already filled in.
+      revokePreview();
+      setPendingFile(file);
+      setPendingPreview(URL.createObjectURL(file));
+      setError(null);
     } else {
-      onPick(file);
+      startAdd(file);
     }
   }
 
-  function onPick(file: File | undefined) {
-    if (!file) return;
+  function startAdd(file: File) {
+    revokePreview();
+    setEditingPhoto(null);
     setPendingFile(file);
     setPendingPreview(URL.createObjectURL(file));
     setTakenOn(todayDateString());
@@ -52,36 +66,40 @@ export function ProgressPhotosPanel() {
     setError(null);
   }
 
-  // Swap just the image, keeping the metadata already filled in.
-  function replacePick(file: File | undefined) {
-    if (!file) return;
-    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
-    setPendingFile(file);
-    setPendingPreview(URL.createObjectURL(file));
-    setError(null);
-  }
-
-  function cancelPending() {
-    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+  function startEdit(photo: ProgressPhotoWithUrl) {
+    revokePreview();
+    setEditingPhoto(photo);
     setPendingFile(null);
     setPendingPreview(null);
+    setTakenOn(photo.taken_on);
+    setWeight(photo.weight_kg != null ? String(photo.weight_kg) : '');
+    setNote(photo.note ?? '');
+    setError(null);
   }
 
-  async function savePending() {
-    if (!pendingFile) return;
+  function closeForm() {
+    revokePreview();
+    setEditingPhoto(null);
+    setPendingFile(null);
+    setPendingPreview(null);
+    setError(null);
+  }
+
+  async function saveForm() {
     setSaving(true);
     setError(null);
-    const { error: saveError } = await addPhoto(pendingFile, {
-      takenOn,
-      weightKg: weight ? Number(weight) : null,
-      note,
-    });
+    const meta = { takenOn, weightKg: weight ? Number(weight) : null, note };
+    const { error: saveError } = editingPhoto
+      ? await updatePhoto(editingPhoto, { file: pendingFile ?? undefined, ...meta })
+      : pendingFile
+        ? await addPhoto(pendingFile, meta)
+        : { error: new Error('Pick a photo first') };
     setSaving(false);
     if (saveError) {
       setError(saveError.message);
       return;
     }
-    cancelPending();
+    closeForm();
   }
 
   function toggleSelect(id: string) {
@@ -108,20 +126,20 @@ export function ProgressPhotosPanel() {
         onChange={e => onFileChange(e.target.files?.[0])}
       />
 
-      {/* Pending add form */}
-      {pendingFile ? (
+      {/* Add / edit form */}
+      {formOpen ? (
         <div className="glass-card flex flex-col gap-3 p-4">
-          {pendingPreview ? (
+          {previewSrc ? (
             <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
-                onClick={() => setZoomUrl(pendingPreview)}
+                onClick={() => setZoomUrl(previewSrc)}
                 aria-label="Zoom photo"
                 className="relative"
               >
                 <img
-                  src={pendingPreview}
-                  alt="New progress photo preview"
+                  src={previewSrc}
+                  alt="Progress photo preview"
                   className="mx-auto max-h-56 rounded-2xl object-contain"
                 />
                 <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white">
@@ -131,7 +149,7 @@ export function ProgressPhotosPanel() {
               <button
                 type="button"
                 onClick={() => {
-                  replacingRef.current = true;
+                  pickModeRef.current = 'replace';
                   fileInputRef.current?.click();
                 }}
                 className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--accent)]"
@@ -162,6 +180,7 @@ export function ProgressPhotosPanel() {
                 id="pp-weight"
                 type="number"
                 inputMode="decimal"
+                step="any"
                 className={inputClass}
                 value={weight}
                 onChange={e => setWeight(e.target.value)}
@@ -185,13 +204,13 @@ export function ProgressPhotosPanel() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={cancelPending}
+              onClick={closeForm}
               className="flex-1 rounded-2xl border border-[var(--card-border)] py-3 text-sm font-semibold text-[var(--text)]"
             >
               Cancel
             </button>
-            <button type="button" onClick={savePending} disabled={saving} className={`${submitButtonClass} flex-1`}>
-              {saving ? 'Saving…' : 'Save photo'}
+            <button type="button" onClick={saveForm} disabled={saving} className={`${submitButtonClass} flex-1`}>
+              {saving ? 'Saving…' : editingPhoto ? 'Save changes' : 'Save photo'}
             </button>
           </div>
         </div>
@@ -199,7 +218,10 @@ export function ProgressPhotosPanel() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              pickModeRef.current = 'add';
+              fileInputRef.current?.click();
+            }}
             className={`${submitButtonClass} flex-1`}
           >
             <Camera size={16} className="mr-2" />
@@ -300,18 +322,32 @@ export function ProgressPhotosPanel() {
                       {isSelected ? <Check size={12} strokeWidth={3} /> : null}
                     </div>
                   ) : (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={e => {
-                        e.stopPropagation();
-                        void removePhoto(p);
-                      }}
-                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
-                      aria-label="Delete photo"
-                    >
-                      <Trash2 size={12} />
-                    </span>
+                    <div className="absolute right-1 top-1 flex gap-1">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={e => {
+                          e.stopPropagation();
+                          startEdit(p);
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
+                        aria-label="Edit photo"
+                      >
+                        <Pencil size={11} />
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={e => {
+                          e.stopPropagation();
+                          void removePhoto(p);
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white"
+                        aria-label="Delete photo"
+                      >
+                        <Trash2 size={12} />
+                      </span>
+                    </div>
                   )}
                 </button>
               );
