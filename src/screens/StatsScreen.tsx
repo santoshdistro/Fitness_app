@@ -10,6 +10,7 @@ import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
+import { Sheet } from '../components/Sheet';
 import { BmiCard } from '../components/BmiCard';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
@@ -76,6 +77,7 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const { settings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
+  const openScan = bodyScans.find(s => s.id === openScanId) ?? null;
   // Shared Upper/Lower/All group so the measurement chart and table stay in sync.
   const [measureGroup, setMeasureGroup] = useState<'all' | 'upper' | 'lower'>('all');
 
@@ -319,51 +321,49 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
             a medical assessment
           </p>
 
-          {/* Scans — all collapsed by default, tap to expand (latest first).
-             Show ~2, the rest scroll so the section stays short. */}
-          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 132 }}>
-          {bodyScans.map((scan, i) => {
-            const open = openScanId === scan.id;
-            return (
-              <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOpenScanId(open ? null : scan.id)}
-                    className="flex flex-1 items-center justify-between text-left"
-                  >
+          {/* Scans — tap a row to open the full coaching read in a large sheet
+             (latest first). Show ~2, the rest scroll so the section stays short. */}
+          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 156 }}>
+          {bodyScans.map((scan, i) => (
+            <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenScanId(scan.id)}
+                  className="flex min-w-0 flex-1 flex-col text-left"
+                >
+                  <span className="flex items-center justify-between gap-2">
                     <span className="text-xs text-[var(--text)]">
                       {formatScanDate(scan.created_at)}
                       {i === 0 ? <span className="text-[var(--muted)]"> · latest</span> : null}
                     </span>
-                    <ChevronRight
-                      size={14}
-                      className="text-[var(--muted)] transition-transform"
-                      style={{ transform: open ? 'rotate(90deg)' : 'none' }}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeScan(scan.id)}
-                    aria-label="Delete scan"
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-                {open ? (
-                  <div className="mt-2">
-                    <BodyScanReadout result={scanToResult(scan)} />
-                  </div>
-                ) : (
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</p>
-                )}
+                    <ChevronRight size={14} className="shrink-0 text-[var(--muted)]" />
+                  </span>
+                  <span className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeScan(scan.id)}
+                  aria-label="Delete scan"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-red-500/70"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
-            );
-          })}
+            </div>
+          ))}
           </div>
         </div>
       ) : null}
+
+      {/* Full physique-scan readout in a roomy sheet */}
+      <Sheet
+        open={openScan != null}
+        onClose={() => setOpenScanId(null)}
+        title={openScan ? `Physique scan · ${formatScanDate(openScan.created_at)}` : 'Physique scan'}
+      >
+        {openScan ? <BodyScanReadout result={scanToResult(openScan)} /> : null}
+      </Sheet>
 
       {/* Weight (compact) — grouped with body measurements */}
       <div className="glass-card anim-fade-rise mt-4 p-4" style={{ animationDelay: '0.18s' }}>
