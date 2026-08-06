@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
-import { useMuscleActivity, type MusclePeriod, type ExerciseStat } from '../hooks/useMuscleActivity';
+import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
 import { classifyMuscles, exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
 import { addDays, startOfWeek, todayDateString } from '../utils/date';
@@ -19,20 +19,22 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [added, setAdded] = useState(false);
   const [openMuscle, setOpenMuscle] = useState<string | null>(null);
 
-  // Group the done exercises by their primary muscle so the list reads like the
-  // heat map (Back, Chest…) with an expandable per-exercise breakdown.
+  // Group "workouts done" by muscle, using the SAME volumes as the muscles-worked
+  // list above so the two stay in sync — each muscle's total is its training
+  // volume, and expanding shows every exercise that trained it.
   const doneGroups = useMemo(() => {
-    const map = new Map<string, { key: string; label: string; volume: number; exercises: ExerciseStat[] }>();
-    for (const ex of data.exercises) {
-      const m: string = classifyMuscles(ex.name)[0] ?? 'other';
-      const label = m === 'other' ? 'Other' : MUSCLE_LABEL[m as MuscleKey];
-      const g = map.get(m) ?? { key: m, label, volume: 0, exercises: [] };
-      g.volume += ex.volume;
-      g.exercises.push(ex);
-      map.set(m, g);
-    }
-    return [...map.values()].sort((a, b) => b.volume - a.volume);
-  }, [data.exercises]);
+    const ranked = (Object.keys(data.volumes) as MuscleKey[]).sort(
+      (a, b) => (data.volumes[b] ?? 0) - (data.volumes[a] ?? 0),
+    );
+    return ranked
+      .map(m => ({
+        key: m as string,
+        label: MUSCLE_LABEL[m],
+        volume: data.volumes[m] ?? 0,
+        exercises: data.exercises.filter(ex => classifyMuscles(ex.name).includes(m)),
+      }))
+      .filter(g => g.exercises.length > 0);
+  }, [data]);
 
   const today = todayDateString();
   // Already viewing the current day / week? (then forward is disabled)
@@ -191,7 +193,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
             const gFrac = g.volume / groupTop;
             const gT = Math.pow(gFrac, 0.6);
             const open = openMuscle === g.key;
-            const exTop = g.exercises[0]?.volume || 1;
+            const exTop = Math.max(1, ...g.exercises.map(e => e.volume));
             return (
               <div key={g.key} className="flex flex-col gap-1">
                 <button
