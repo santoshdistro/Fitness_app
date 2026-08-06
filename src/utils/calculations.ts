@@ -139,6 +139,10 @@ export type GoalProgress = {
   targetWeight: number;
   /** kg moved in the goal direction so far (never negative — 0 if going backwards). */
   achievedKg: number;
+  /** Signed progress toward the goal: positive = right direction, negative = moved away. */
+  netChangeKg: number;
+  /** Raw scale movement since start: positive = weight went up, negative = down. */
+  weightDeltaKg: number;
   /** kg still to go to reach target (0 once hit). */
   remainingKg: number;
   /** 0–100 share of the journey completed. */
@@ -176,7 +180,9 @@ export function computeGoalProgress(params: {
   if (totalJourney < 0.05) return null; // start already at target — nothing to chart
 
   const sign = goalType === 'lose' ? 1 : -1;
-  const achievedKg = Math.max(0, sign * (startWeight - currentWeight));
+  const netChangeKg = sign * (startWeight - currentWeight);
+  const achievedKg = Math.max(0, netChangeKg);
+  const weightDeltaKg = currentWeight - startWeight;
   const remainingKg = Math.max(0, sign * (currentWeight - targetWeight));
   const reached = remainingKg < 0.05;
   const percent = Math.max(0, Math.min(100, (achievedKg / totalJourney) * 100));
@@ -196,6 +202,8 @@ export function computeGoalProgress(params: {
     currentWeight,
     targetWeight,
     achievedKg: Math.round(achievedKg * 10) / 10,
+    netChangeKg: Math.round(netChangeKg * 10) / 10,
+    weightDeltaKg: Math.round(weightDeltaKg * 10) / 10,
     remainingKg: Math.round(remainingKg * 10) / 10,
     percent,
     reached,
