@@ -68,6 +68,13 @@ export function classifyMuscles(exerciseName: string): MuscleKey[] {
   return [];
 }
 
+// The single muscle an exercise most belongs to (its primary mover) — the first
+// muscle in its rule. Used to file each logged exercise under exactly one muscle
+// so a "back" lift (pulldown, row, deadlift) lands under Back, not also Biceps.
+export function primaryMuscle(exerciseName: string): MuscleKey | null {
+  return classifyMuscles(exerciseName)[0] ?? null;
+}
+
 export type BodyRegion = 'upper' | 'lower' | 'core';
 
 const MUSCLE_REGION: Record<MuscleKey, BodyRegion> = {

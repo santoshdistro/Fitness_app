@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { classifyMuscles, exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
+import { primaryMuscle, exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
 import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
@@ -31,7 +31,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         key: m as string,
         label: MUSCLE_LABEL[m],
         volume: data.volumes[m] ?? 0,
-        exercises: data.exercises.filter(ex => classifyMuscles(ex.name).includes(m)),
+        exercises: data.exercises.filter(ex => primaryMuscle(ex.name) === m),
       }))
       .filter(g => g.exercises.length > 0);
   }, [data]);

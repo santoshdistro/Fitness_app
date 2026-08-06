@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { addDays, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
-import { classifyMuscles, type MuscleKey } from '../data/muscles';
+import { primaryMuscle, type MuscleKey } from '../data/muscles';
 import type { ExerciseSet, WorkoutLog } from '../types/database';
 
 export type MusclePeriod = 'today' | 'week';
@@ -65,8 +65,11 @@ export function useMuscleActivity(period: MusclePeriod, anchorDate?: string) {
               cur.volume += vol;
               exMap.set(name, cur);
             }
-            const muscles = classifyMuscles(name);
-            for (const m of muscles) volumes[m] = (volumes[m] ?? 0) + vol;
+            // Credit only the primary mover so an exercise counts once, under the
+            // muscle it really belongs to — keeps the muscles-worked list and the
+            // grouped "workouts done" list in sync (no back lift bleeding into biceps).
+            const primary = primaryMuscle(name);
+            if (primary) volumes[primary] = (volumes[primary] ?? 0) + vol;
           }
         }
         const exercises = [...exMap.values()].sort((a, b) => b.volume - a.volume);
