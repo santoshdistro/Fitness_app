@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { MealCategory } from '../types/database';
 import { useProfile } from '../hooks/useProfile';
+import { useDietPlan } from '../hooks/useDietPlan';
+import { todayDateString } from '../utils/date';
 import { useNutritionCoach } from '../hooks/useNutritionCoach';
 import { generateNutritionPlan, generateMealPrep, type NutritionPreferences, type MealPrepResult } from '../lib/aiClient';
 import { MEAL_PREP_GUIDE, MEAL_PREP_TIPS } from '../data/mealPrep';
@@ -387,11 +389,33 @@ function RecipeImage({ recipe, className }: { recipe: Recipe; className?: string
   );
 }
 
+const PLAN_MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
+
 function RecipeDetail({ recipe }: { recipe: Recipe }) {
   const { session } = useAuth();
+  const { addItem } = useDietPlan();
   const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
   const [servings, setServings] = useState('1');
   const [logState, setLogState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  // "Add to daily plan" (the Diet Plan), separate from logging to the diary.
+  const [planMeal, setPlanMeal] = useState<(typeof PLAN_MEALS)[number]>('Breakfast');
+  const [planDate, setPlanDate] = useState(todayDateString());
+  const [planned, setPlanned] = useState(false);
+
+  function addToPlan() {
+    const n = Math.max(0.25, Number(servings) || 1);
+    const s = (v: number) => Math.round(v * n);
+    addItem(planDate, {
+      meal: planMeal,
+      name: n === 1 ? recipe.name : `${recipe.name} (${n}×)`,
+      calories: s(recipe.perServing.calories),
+      protein_g: s(recipe.perServing.protein_g),
+      carbs_g: s(recipe.perServing.carbs_g),
+      fat_g: s(recipe.perServing.fat_g),
+      fiber_g: 0,
+    });
+    setPlanned(true);
+  }
 
   // Add this recipe straight into today's diary, scaled by how many servings you
   // ate — no re-searching the food databases.
@@ -502,6 +526,49 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
             'Adding…'
           ) : (
             <><Plus size={15} /> Log to diary</>
+          )}
+        </button>
+      </div>
+
+      {/* Add this recipe to the Diet Plan (a planned meal on a chosen day) */}
+      <div className="glass-card flex flex-col gap-2 p-3">
+        <p className="text-xs font-semibold text-[var(--text)]">Add to daily plan</p>
+        <div className="flex gap-2">
+          <select
+            value={planMeal}
+            onChange={e => {
+              setPlanMeal(e.target.value as (typeof PLAN_MEALS)[number]);
+              setPlanned(false);
+            }}
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+          >
+            {PLAN_MEALS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={planDate}
+            onChange={e => {
+              if (e.target.value) {
+                setPlanDate(e.target.value);
+                setPlanned(false);
+              }
+            }}
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={addToPlan}
+          disabled={planned}
+          className="flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-80"
+          style={{ background: planned ? '#4b3fe0' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        >
+          {planned ? (
+            <><Check size={15} /> Added to plan</>
+          ) : (
+            <><Plus size={15} /> Add to daily plan</>
           )}
         </button>
       </div>
