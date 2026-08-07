@@ -91,12 +91,33 @@ export type MealPrepResult = { summary: string; items: MealPrepItem[]; shoppingL
 
 type ApiResponse<T> = { result?: T; usage?: AiUsage; error?: string };
 
+// AI requests (especially vision) can be slow, but a request that hangs much
+// longer than this is almost always a dead/slow connection — fail with a clear
+// message instead of spinning forever.
+const AI_TIMEOUT_MS = 60_000;
+
 async function postJson<T>(url: string, payload: unknown): Promise<{ result: T; usage?: AiUsage }> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new Error("You're offline — reconnect and try again.");
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('This is taking longer than usual — check your connection and try again.');
+    }
+    throw new Error("Couldn't reach the server — check your connection and try again.");
+  } finally {
+    clearTimeout(timeout);
+  }
   const data = (await res.json().catch(() => null)) as ApiResponse<T> | null;
   if (!res.ok || !data?.result) {
     throw new Error(data?.error ?? 'The AI request failed. Please try again.');
