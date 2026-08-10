@@ -99,6 +99,10 @@ export type ExerciseSet = {
   exercise: string;
   reps: number;
   weight: number;
+  /** Cardio only — minutes of work for this entry. */
+  durationMin?: number;
+  /** Cardio only — distance covered (km). */
+  distanceKm?: number;
 };
 
 export type WorkoutLog = {

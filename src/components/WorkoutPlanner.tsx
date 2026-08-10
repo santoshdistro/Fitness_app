@@ -13,6 +13,7 @@ import {
 import { useWorkoutPlan, type RangeEntry } from '../hooks/useWorkoutPlan';
 import { generateWorkoutPlan } from '../lib/aiClient';
 import { templatesForFocus, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
+import { planLabel } from '../data/exerciseKind';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
 import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/physiqueGoals';
 import { addDays, todayDateString } from '../utils/date';
@@ -339,7 +340,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                 <div key={ex.id} className="flex items-center gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--text)]">{ex.name}</p>
-                    <p className="text-[10px] text-[var(--muted)]">{ex.sets} × {ex.reps}</p>
+                    <p className="text-[10px] text-[var(--muted)]">{planLabel(ex.name, ex.sets, ex.reps)}</p>
                   </div>
                   <button
                     type="button"

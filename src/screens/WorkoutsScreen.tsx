@@ -33,6 +33,7 @@ import {
   type ProgramExercise,
 } from '../data/workoutPrograms';
 import { GOAL_PROGRAMS, type GoalProgram } from '../data/goalPrograms';
+import { isCardio, loggedSetLabel, planLabel } from '../data/exerciseKind';
 import { GOAL_PROGRAM_IMAGES, HERO_IMAGE } from '../data/gymImagery';
 import { PhotoBackdrop } from '../components/PhotoBackdrop';
 
@@ -313,10 +314,16 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                       <div key={ex.name} className="flex items-center justify-between">
                         <p className="text-xs text-white/95">{ex.name}</p>
                         <p className="text-[10px] text-white/70">
-                          {sets} × {ex.reps}
-                          {week && sets !== ex.sets ? (
-                            <span className="text-white/50"> (was {ex.sets})</span>
-                          ) : null}
+                          {isCardio(ex.name) ? (
+                            planLabel(ex.name, sets, ex.reps)
+                          ) : (
+                            <>
+                              {sets} × {ex.reps}
+                              {week && sets !== ex.sets ? (
+                                <span className="text-white/50"> (was {ex.sets})</span>
+                              ) : null}
+                            </>
+                          )}
                         </p>
                       </div>
                     );
@@ -597,9 +604,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                         {workout.exercise_data.map((set, setIndex) => (
                           <div key={setIndex} className="flex items-center justify-between">
                             <p className="text-xs capitalize text-[var(--text)]">{set.exercise}</p>
-                            <p className="text-xs text-[var(--muted)]">
-                              {set.reps} reps · {set.weight}kg
-                            </p>
+                            <p className="text-xs text-[var(--muted)]">{loggedSetLabel(set)}</p>
                           </div>
                         ))}
                       </div>

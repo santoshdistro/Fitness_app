@@ -3,6 +3,7 @@ import { Check, ChevronRight, Dumbbell, Timer, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl } from '../data/workoutPrograms';
+import { isCardio } from '../data/exerciseKind';
 import type { ExerciseSet } from '../types/database';
 
 export type GuidedExercise = { name: string; sets: number; reps: string; exerciseId?: string };
@@ -28,6 +29,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   const [setNum, setSetNum] = useState(1);
   const [reps, setReps] = useState(firstNumber(exercises[0]?.reps ?? ''));
   const [weight, setWeight] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [distance, setDistance] = useState('');
   const [logged, setLogged] = useState<ExerciseSet[]>([]);
   const [phase, setPhase] = useState<'active' | 'resting' | 'done'>('active');
   const [restDuration, setRestDuration] = useState(90);
@@ -36,6 +39,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   const [imgFailed, setImgFailed] = useState(false);
 
   const current = exercises[exIndex];
+  const cardio = current ? isCardio(current.name) : false;
 
   // Countdown while resting.
   useEffect(() => {
@@ -60,19 +64,30 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
 
   function completeSet() {
     if (!current) return;
-    setLogged(prev => [
-      ...prev,
-      { exercise: current.name, reps: Number(reps) || 0, weight: Number(weight) || 0 },
-    ]);
+    const entry: ExerciseSet = cardio
+      ? {
+          exercise: current.name,
+          reps: 0,
+          weight: 0,
+          durationMin: Number(minutes) || 0,
+          ...(distance ? { distanceKm: Number(distance) || 0 } : {}),
+        }
+      : { exercise: current.name, reps: Number(reps) || 0, weight: Number(weight) || 0 };
+    setLogged(prev => [...prev, entry]);
 
     if (setNum < current.sets) {
       setSetNum(n => n + 1);
+      setMinutes('');
+      setDistance('');
       startRest();
     } else if (exIndex < exercises.length - 1) {
       const next = exercises[exIndex + 1];
       setExIndex(i => i + 1);
       setSetNum(1);
       setReps(firstNumber(next.reps));
+      setWeight('');
+      setMinutes('');
+      setDistance('');
       setImgFailed(false);
       startRest();
     } else {
@@ -207,9 +222,11 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                   </p>
                   <p className="text-lg font-black leading-tight text-[var(--text)]">{current.name}</p>
                   <p className="text-xs text-[var(--muted)]">
-                    Set {setNum} of {current.sets} · target {current.reps} reps
+                    {cardio
+                      ? `Round ${setNum} of ${current.sets} · log time & distance`
+                      : `Set ${setNum} of ${current.sets} · target ${current.reps} reps`}
                   </p>
-                  {lastByExercise?.get(current.name) ? (
+                  {!cardio && lastByExercise?.get(current.name) ? (
                     <p className="text-[11px] font-semibold text-[var(--accent)]">
                       Last time: {lastByExercise.get(current.name)!.weight} kg ×{' '}
                       {lastByExercise.get(current.name)!.reps}
@@ -219,28 +236,59 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Reps</label>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
-                    type="number"
-                    inputMode="numeric"
-                    value={reps}
-                    onChange={e => setReps(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Weight (kg)</label>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
-                    type="number"
-                    inputMode="decimal"
-                    step="any"
-                    value={weight}
-                    onChange={e => setWeight(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
+                {cardio ? (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Minutes</label>
+                      <input
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        type="number"
+                        inputMode="decimal"
+                        step="any"
+                        value={minutes}
+                        onChange={e => setMinutes(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Distance (km)</label>
+                      <input
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        type="number"
+                        inputMode="decimal"
+                        step="any"
+                        value={distance}
+                        onChange={e => setDistance(e.target.value)}
+                        placeholder="optional"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Reps</label>
+                      <input
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        type="number"
+                        inputMode="numeric"
+                        value={reps}
+                        onChange={e => setReps(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Weight (kg)</label>
+                      <input
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        type="number"
+                        inputMode="decimal"
+                        step="any"
+                        value={weight}
+                        onChange={e => setWeight(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
