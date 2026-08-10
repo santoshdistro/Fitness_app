@@ -22,13 +22,22 @@ function isCardioTarget(reps: string): boolean {
   return true;
 }
 
+// Interval / burst-style cardio, where "rounds" genuinely applies. Steady-state
+// cardio (a treadmill walk, a cool-down) is one continuous effort, not rounds.
+const INTERVAL = /interval|hiit|tabata|circuit|sprint|\brounds?\b/i;
+export function isIntervalCardio(name: string): boolean {
+  return INTERVAL.test(name);
+}
+
 // One-line label for a planned exercise: reps × sets for lifts. Cardio surfaces
-// its real prescription (minutes / rounds) from the reps field where present.
+// its real prescription (minutes) when present; interval work shows rounds;
+// steady-state cardio just prompts for time / distance (no misleading "rounds").
 export function planLabel(name: string, sets: number, reps: string): string {
   if (isCardio(name)) {
     if (/^rounds?$/i.test(reps.trim())) return `${sets} rounds`;
     if (isCardioTarget(reps)) return sets > 1 ? `${sets} × ${reps}` : reps;
-    return sets > 1 ? `${sets} rounds · time / distance` : 'time / distance';
+    if (isIntervalCardio(name)) return `${sets} rounds · time / distance`;
+    return 'time / distance';
   }
   return `${sets} × ${reps}`;
 }
