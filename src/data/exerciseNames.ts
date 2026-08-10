@@ -12,6 +12,42 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+// Curated name → how-to id map for common moves whose plain names don't line up
+// with the database's specific titles (e.g. "Chest fly" → "Dumbbell_Flyes"),
+// so they get a demo photo and steps. Keys are already normalized.
+const EXERCISE_ID_ALIASES: Record<string, string> = {
+  'ab wheel': 'Ab_Roller',
+  'arnold press': 'Arnold_Dumbbell_Press',
+  'back extensions': 'Hyperextensions_Back_Extensions',
+  'back squat': 'Barbell_Squat',
+  'bicycle crunch': 'Air_Bike',
+  'cable crunch': 'Cable_Crunch',
+  'cable crossover': 'Cable_Crossover',
+  'cable curl': 'Cable_Preacher_Curl',
+  'chest fly': 'Dumbbell_Flyes',
+  'face pulls': 'Face_Pull',
+  'lateral raise': 'Side_Lateral_Raise',
+  'lateral raises': 'Side_Lateral_Raise',
+  'leg extension': 'Leg_Extensions',
+  'nordic curl': 'Natural_Glute_Ham_Raise',
+  'overhead press': 'Standing_Military_Press',
+  'overhead shoulder press': 'Standing_Military_Press',
+  'overhead extension': 'Standing_Dumbbell_Triceps_Extension',
+  'overhead triceps extension': 'Standing_Dumbbell_Triceps_Extension',
+  'preacher curl': 'Preacher_Curl',
+  'rear delt fly': 'Cable_Rear_Delt_Fly',
+  'reverse curls': 'Reverse_Barbell_Curl',
+  'russian twists': 'Russian_Twist',
+  'single arm row': 'One-Arm_Dumbbell_Row',
+  'skull crushers': 'EZ-Bar_Skullcrusher',
+  'box jumps': 'Front_Box_Jump',
+  'farmer s carry': 'Farmers_Walk',
+  'neck curls': 'Lying_Face_Up_Plate_Neck_Resistance',
+  'neck extension': 'Lying_Face_Down_Plate_Neck_Resistance',
+  'neck side flexion': 'Isometric_Neck_Exercise_-_Sides',
+  'weighted neck harness': 'Lying_Face_Up_Plate_Neck_Resistance',
+};
+
 // how-to DB key keyed by its normalized display name, for name → id lookups.
 const ID_BY_NORMALIZED = new Map<string, string>(
   Object.keys(EXERCISE_DETAILS).map(id => [normalize(id.replace(/_/g, ' ')), id]),
@@ -39,6 +75,8 @@ export function resolveExerciseId(name: string): string | undefined {
   const norm = normalize(name);
   const direct = ID_BY_NORMALIZED.get(norm);
   if (direct) return direct;
+  const aliased = EXERCISE_ID_ALIASES[norm];
+  if (aliased) return aliased;
 
   const q = norm.split(' ').map(singular).filter(w => w.length > 1 && !STOP.has(w));
   if (q.length === 0) return undefined;
