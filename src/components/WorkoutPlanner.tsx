@@ -14,6 +14,8 @@ import { useWorkoutPlan, type RangeEntry } from '../hooks/useWorkoutPlan';
 import { generateWorkoutPlan } from '../lib/aiClient';
 import { templatesForFocus, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
 import { planLabel } from '../data/exerciseKind';
+import { resolveExerciseId } from '../data/exerciseNames';
+import { ExerciseDetail } from './ExerciseDetail';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
 import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/physiqueGoals';
 import { addDays, todayDateString } from '../utils/date';
@@ -86,6 +88,8 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
   // in-progress selection for it.
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [pending, setPending] = useState<string[]>([]);
+  // The plan exercise whose how-to is open (tapping a row shows it).
+  const [detailEx, setDetailEx] = useState<{ name: string; reps: string; sets: number } | null>(null);
 
   function openDayPicker(index: number) {
     setPending(focusParts(split[index]));
@@ -338,10 +342,17 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
             <div className="flex flex-col gap-2.5">
               {exercises.map(ex => (
                 <div key={ex.id} className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[var(--text)]">{ex.name}</p>
-                    <p className="text-[10px] text-[var(--muted)]">{planLabel(ex.name, ex.sets, ex.reps)}</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDetailEx({ name: ex.name, reps: ex.reps, sets: ex.sets })}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--text)]">{ex.name}</p>
+                      <p className="text-[10px] text-[var(--muted)]">{planLabel(ex.name, ex.sets, ex.reps)}</p>
+                    </div>
+                    <ChevronRight size={14} className="shrink-0 text-[var(--muted)]" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeExercise(viewDate, ex.id)}
@@ -438,6 +449,17 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
             Save day
           </button>
         </div>
+      </Sheet>
+
+      <Sheet open={detailEx != null} onClose={() => setDetailEx(null)} title="How to do it">
+        {detailEx ? (
+          <ExerciseDetail
+            name={detailEx.name}
+            exerciseId={resolveExerciseId(detailEx.name)}
+            sets={detailEx.sets}
+            reps={detailEx.reps}
+          />
+        ) : null}
       </Sheet>
 
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title={`Add exercise · ${longDate(viewDate)}`}>

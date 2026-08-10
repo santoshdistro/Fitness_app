@@ -17,9 +17,30 @@ const ID_BY_NORMALIZED = new Map<string, string>(
   Object.keys(EXERCISE_DETAILS).map(id => [normalize(id.replace(/_/g, ' ')), id]),
 );
 
-// Best-effort match from a free-text exercise name to a how-to DB id.
+// Singularize a word so "raises" matches "raise", "twists" matches "twist".
+function singular(word: string): string {
+  return word.replace(/s$/, '');
+}
+
+// Best-effort match from a free-text exercise name to a how-to DB id: exact
+// first, then a tolerant match where every word of a DB entry appears in the
+// typed name (ignoring plurals), preferring the most specific entry.
 export function resolveExerciseId(name: string): string | undefined {
-  return ID_BY_NORMALIZED.get(normalize(name));
+  const norm = normalize(name);
+  const direct = ID_BY_NORMALIZED.get(norm);
+  if (direct) return direct;
+
+  const queryWords = new Set(norm.split(' ').map(singular));
+  let best: string | undefined;
+  let bestLen = 0;
+  for (const [key, id] of ID_BY_NORMALIZED) {
+    const keyWords = key.split(' ').map(singular);
+    if (keyWords.length > bestLen && keyWords.every(w => queryWords.has(w))) {
+      best = id;
+      bestLen = keyWords.length;
+    }
+  }
+  return best;
 }
 
 // Demonstration image paths for an exercise, resolved by id or by name.
