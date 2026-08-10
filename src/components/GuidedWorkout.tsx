@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
 import { exerciseImagesFor } from '../data/exerciseNames';
 import { isCardio, cardioTargetLabel } from '../data/exerciseKind';
+import { cardioGuide } from '../data/cardioGuide';
 import type { ExerciseSet } from '../types/database';
 
 export type GuidedExercise = { name: string; sets: number; reps: string; exerciseId?: string };
@@ -314,11 +315,12 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
 }
 
 // A same-size card under the input card showing up to two demo photos of the
-// current exercise (from the how-to database). Falls back to a placeholder when
-// the move has no imagery (e.g. treadmill work).
+// current exercise (from the how-to database). When a move has no imagery (e.g.
+// cardio), it explains what to do instead of an empty placeholder.
 function DemoPhotos({ images, name }: { images: string[]; name: string }) {
   const [failed, setFailed] = useState<Set<number>>(new Set());
   const shown = images.filter((_, i) => !failed.has(i));
+  const guide = shown.length === 0 ? cardioGuide(name) : null;
 
   return (
     <div className="glass-card mt-3 p-3">
@@ -335,6 +337,24 @@ function DemoPhotos({ images, name }: { images: string[]; name: string }) {
               />
             ),
           )}
+        </div>
+      ) : guide ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">What to do</p>
+          <p className="text-xs leading-relaxed text-[var(--text)]">{guide.summary}</p>
+          <ol className="flex flex-col gap-1.5">
+            {guide.steps.map((step, i) => (
+              <li key={i} className="flex gap-2">
+                <span
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {i + 1}
+                </span>
+                <span className="text-[11px] leading-relaxed text-[var(--text)]">{step}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       ) : (
         <div className="flex h-24 items-center justify-center gap-2 rounded-xl bg-[var(--bg)] text-[var(--muted)]">
