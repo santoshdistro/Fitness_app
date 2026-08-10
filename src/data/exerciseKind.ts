@@ -12,11 +12,32 @@ export function isCardio(name: string): boolean {
   return CARDIO.test(name);
 }
 
-// One-line label for a planned exercise: reps × sets for lifts, or a
-// time/distance hint for cardio (where a rep target is meaningless).
+// True when a cardio "reps" value is really a prescription (e.g. "25-35 min",
+// "5 min", "rounds") rather than a leftover rep count like "10-12".
+function isCardioTarget(reps: string): boolean {
+  const r = reps.trim();
+  if (!r) return false;
+  if (/^\d+(-\d+)?$/.test(r)) return false; // bare number(s) = rep count, not a target
+  if (/^rounds?$/i.test(r)) return false; // handled as "N rounds"
+  return true;
+}
+
+// One-line label for a planned exercise: reps × sets for lifts. Cardio surfaces
+// its real prescription (minutes / rounds) from the reps field where present.
 export function planLabel(name: string, sets: number, reps: string): string {
-  if (isCardio(name)) return sets > 1 ? `${sets} rounds · time / distance` : 'time / distance';
+  if (isCardio(name)) {
+    if (/^rounds?$/i.test(reps.trim())) return `${sets} rounds`;
+    if (isCardioTarget(reps)) return sets > 1 ? `${sets} × ${reps}` : reps;
+    return sets > 1 ? `${sets} rounds · time / distance` : 'time / distance';
+  }
   return `${sets} × ${reps}`;
+}
+
+// The sub-heading shown while doing a cardio move in the guided flow: its
+// target when the plan carries one, else a generic prompt.
+export function cardioTargetLabel(reps: string): string {
+  if (isCardioTarget(reps)) return `target ${reps.trim()}`;
+  return 'log time & distance';
 }
 
 // How a logged set reads back in history.

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Check, ChevronRight, Dumbbell, Timer, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { exerciseImageUrl } from '../data/workoutPrograms';
-import { isCardio } from '../data/exerciseKind';
+import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
+import { exerciseImagesFor } from '../data/exerciseNames';
+import { isCardio, cardioTargetLabel } from '../data/exerciseKind';
 import type { ExerciseSet } from '../types/database';
 
 export type GuidedExercise = { name: string; sets: number; reps: string; exerciseId?: string };
@@ -40,6 +41,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
 
   const current = exercises[exIndex];
   const cardio = current ? isCardio(current.name) : false;
+  // Demonstration photos for the current move (resolved by id or by name).
+  const demoImages = current ? exerciseImagesFor(current.exerciseId ?? current.name).slice(0, 2) : [];
 
   // Countdown while resting.
   useEffect(() => {
@@ -223,7 +226,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                   <p className="text-lg font-black leading-tight text-[var(--text)]">{current.name}</p>
                   <p className="text-xs text-[var(--muted)]">
                     {cardio
-                      ? `Round ${setNum} of ${current.sets} · log time & distance`
+                      ? `Round ${setNum} of ${current.sets} · ${cardioTargetLabel(current.reps)}`
                       : `Set ${setNum} of ${current.sets} · target ${current.reps} reps`}
                   </p>
                   {!cardio && lastByExercise?.get(current.name) ? (
@@ -292,6 +295,9 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               </div>
             </div>
 
+            {/* Demonstration photos for the current move */}
+            <DemoPhotos images={demoImages} name={current.name} />
+
             <button
               type="button"
               onClick={completeSet}
@@ -303,6 +309,39 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// A same-size card under the input card showing up to two demo photos of the
+// current exercise (from the how-to database). Falls back to a placeholder when
+// the move has no imagery (e.g. treadmill work).
+function DemoPhotos({ images, name }: { images: string[]; name: string }) {
+  const [failed, setFailed] = useState<Set<number>>(new Set());
+  const shown = images.filter((_, i) => !failed.has(i));
+
+  return (
+    <div className="glass-card mt-3 p-3">
+      {shown.length > 0 ? (
+        <div className={`grid gap-2 ${shown.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {images.map((path, i) =>
+            failed.has(i) ? null : (
+              <img
+                key={path}
+                src={exerciseDbImageUrl(path)}
+                alt={`${name} demonstration`}
+                onError={() => setFailed(prev => new Set(prev).add(i))}
+                className="h-36 w-full rounded-xl object-cover"
+              />
+            ),
+          )}
+        </div>
+      ) : (
+        <div className="flex h-24 items-center justify-center gap-2 rounded-xl bg-[var(--bg)] text-[var(--muted)]">
+          <Dumbbell size={18} />
+          <span className="text-xs font-medium">No demo photo for this move</span>
+        </div>
+      )}
     </div>
   );
 }
