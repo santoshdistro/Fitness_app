@@ -6,6 +6,7 @@ import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
 import { exerciseImagesFor } from '../data/exerciseNames';
 import { isCardio, isIntervalCardio, usesInclineSpeed, cardioTargetLabel } from '../data/exerciseKind';
 import { cardioGuide } from '../data/cardioGuide';
+import { textGuide } from '../data/textGuides';
 import type { ExerciseSet } from '../types/database';
 
 export type GuidedExercise = { name: string; sets: number; reps: string; exerciseId?: string };
@@ -542,7 +543,7 @@ function CardioTimer({
 function DemoPhotos({ images, name }: { images: string[]; name: string }) {
   const [failed, setFailed] = useState<Set<number>>(new Set());
   const shown = images.filter((_, i) => !failed.has(i));
-  const guide = shown.length === 0 ? cardioGuide(name) : null;
+  const guide = shown.length === 0 ? cardioGuide(name) ?? textGuide(name) : null;
 
   return (
     <div className="glass-card mt-3 p-3">

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, Dumbbell, Play, Plus, Sparkles, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, Dumbbell, Flame, Play, Plus, Sparkles, StretchHorizontal, Trash2, Wand2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../hooks/useProfile';
 import {
@@ -15,6 +15,7 @@ import { generateWorkoutPlan } from '../lib/aiClient';
 import { templatesForFocus, classifyFocus, type TemplateExercise } from '../data/splitTemplates';
 import { planLabel } from '../data/exerciseKind';
 import { resolveExerciseId } from '../data/exerciseNames';
+import { warmupFor, stretchFor, type Move } from '../data/warmupStretch';
 import { ExerciseDetail } from './ExerciseDetail';
 import { EQUIPMENT_OPTIONS } from '../data/workoutPrograms';
 import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/physiqueGoals';
@@ -338,6 +339,13 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
             ) : null}
           </div>
         ) : (
+          <>
+          <RoutineCard
+            kind="warmup"
+            title="Warm-up"
+            subtitle="~5 min · do these before you start"
+            moves={warmupFor(focus)}
+          />
           <div className="glass-card p-4">
             <div className="flex flex-col gap-2.5">
               {exercises.map(ex => (
@@ -373,6 +381,13 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
               <Play size={15} fill="currentColor" /> Start guided session
             </button>
           </div>
+          <RoutineCard
+            kind="stretch"
+            title="Cool-down & stretch"
+            subtitle="after your session · hold each ~30s"
+            moves={stretchFor(focus)}
+          />
+          </>
         )}
 
         <button
@@ -552,6 +567,62 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
           }}
         />
       </Sheet>
+    </div>
+  );
+}
+
+function RoutineCard({
+  kind,
+  title,
+  subtitle,
+  moves,
+}: {
+  kind: 'warmup' | 'stretch';
+  title: string;
+  subtitle: string;
+  moves: Move[];
+}) {
+  const [open, setOpen] = useState(false);
+  const tint = kind === 'warmup' ? '#f59e0b' : '#0ea5e9';
+  const Icon = kind === 'warmup' ? Flame : StretchHorizontal;
+  return (
+    <div className="glass-card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2.5 p-4 text-left"
+      >
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+          style={{ background: `color-mix(in srgb, ${tint} 15%, transparent)` }}
+        >
+          <Icon size={16} style={{ color: tint }} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[var(--text)]">
+            {title} <span className="font-medium text-[var(--muted)]">· {moves.length} moves</span>
+          </p>
+          <p className="text-[10px] text-[var(--muted)]">{subtitle}</p>
+        </div>
+        <ChevronRight
+          size={16}
+          className="shrink-0 text-[var(--muted)] transition-transform"
+          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+        />
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-1.5 px-4 pb-4">
+          {moves.map(m => (
+            <div key={m.name} className="flex gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2">
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tint }} />
+              <div>
+                <p className="text-xs font-semibold text-[var(--text)]">{m.name}</p>
+                <p className="text-[10px] text-[var(--muted)]">{m.note}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
