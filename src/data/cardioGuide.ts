@@ -34,12 +34,12 @@ const RULES: { test: RegExp; guide: CardioGuide }[] = [
   {
     test: /treadmill|\brun\b|running|\bjog/i,
     guide: {
-      summary: 'Steady-state running/jogging — one continuous effort at a pace you can sustain.',
+      summary: 'Steady-state walking/running — one continuous effort at a pace you can sustain.',
       steps: [
-        'Set an incline and speed you can hold for the target time.',
-        'Keep an upright posture and relaxed shoulders; land midfoot.',
-        'Aim to finish able to hold a short conversation (moderate effort).',
-        'Log the minutes and, if the machine shows it, the distance.',
+        'Suggested: brisk incline walk at 5-6 km/h with 6-10% incline, or an easy run at 8-10 km/h with 1-2% incline.',
+        'Hold a pace you could sustain for the whole target time (able to talk in short sentences).',
+        'Keep an upright posture and relaxed shoulders; land midfoot; avoid holding the rails.',
+        'Log the minutes, distance, and the speed & incline you used.',
       ],
     },
   },

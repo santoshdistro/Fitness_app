@@ -103,6 +103,10 @@ export type ExerciseSet = {
   durationMin?: number;
   /** Cardio only — distance covered (km). */
   distanceKm?: number;
+  /** Treadmill/cardio — average speed (km/h). */
+  speedKph?: number;
+  /** Treadmill/cardio — incline (%). */
+  inclinePct?: number;
 };
 
 export type WorkoutLog = {

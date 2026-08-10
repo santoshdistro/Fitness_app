@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
 import { exerciseImagesFor } from '../data/exerciseNames';
-import { isCardio, isIntervalCardio, cardioTargetLabel } from '../data/exerciseKind';
+import { isCardio, isIntervalCardio, usesInclineSpeed, cardioTargetLabel } from '../data/exerciseKind';
 import { cardioGuide } from '../data/cardioGuide';
 import type { ExerciseSet } from '../types/database';
 
@@ -33,6 +33,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   const [weight, setWeight] = useState('');
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
+  const [speed, setSpeed] = useState('');
+  const [incline, setIncline] = useState('');
   const [logged, setLogged] = useState<ExerciseSet[]>([]);
   const [phase, setPhase] = useState<'active' | 'resting' | 'done'>('active');
   const [restDuration, setRestDuration] = useState(90);
@@ -42,6 +44,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
 
   const current = exercises[exIndex];
   const cardio = current ? isCardio(current.name) : false;
+  const inclineSpeed = current ? usesInclineSpeed(current.name) : false;
   // Demonstration photos for the current move (resolved by id or by name).
   const demoImages = current ? exerciseImagesFor(current.exerciseId ?? current.name).slice(0, 2) : [];
 
@@ -75,6 +78,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
       setWeight('');
       setMinutes('');
       setDistance('');
+      setSpeed('');
+      setIncline('');
       setImgFailed(false);
       if (rest) startRest();
     } else {
@@ -91,6 +96,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
           weight: 0,
           durationMin: Number(minutes) || 0,
           ...(distance ? { distanceKm: Number(distance) || 0 } : {}),
+          ...(speed ? { speedKph: Number(speed) || 0 } : {}),
+          ...(incline ? { inclinePct: Number(incline) || 0 } : {}),
         }
       : { exercise: current.name, reps: Number(reps) || 0, weight: Number(weight) || 0 };
     setLogged(prev => [...prev, entry]);
@@ -277,6 +284,34 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                         placeholder="optional"
                       />
                     </div>
+                    {inclineSpeed ? (
+                      <>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Speed (km/h)</label>
+                          <input
+                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                            type="number"
+                            inputMode="decimal"
+                            step="any"
+                            value={speed}
+                            onChange={e => setSpeed(e.target.value)}
+                            placeholder="optional"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Incline (%)</label>
+                          <input
+                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                            type="number"
+                            inputMode="decimal"
+                            step="any"
+                            value={incline}
+                            onChange={e => setIncline(e.target.value)}
+                            placeholder="optional"
+                          />
+                        </div>
+                      </>
+                    ) : null}
                   </>
                 ) : (
                   <>

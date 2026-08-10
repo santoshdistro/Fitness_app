@@ -12,6 +12,12 @@ export function isCardio(name: string): boolean {
   return CARDIO.test(name);
 }
 
+// Cardio done on foot (treadmill / walking / running / hiking) where speed and
+// incline are meaningful things to prescribe and log.
+export function usesInclineSpeed(name: string): boolean {
+  return isCardio(name) && /treadmill|incline|decline|\bwalk\b|\brun\b|running|\bjog|hike/i.test(name);
+}
+
 // True when a cardio "reps" value is really a prescription (e.g. "25-35 min",
 // "5 min", "rounds") rather than a leftover rep count like "10-12".
 function isCardioTarget(reps: string): boolean {
@@ -56,11 +62,20 @@ export function loggedSetLabel(set: {
   weight: number;
   durationMin?: number;
   distanceKm?: number;
+  speedKph?: number;
+  inclinePct?: number;
 }): string {
-  if (set.durationMin != null || (set.distanceKm != null && isCardio(set.exercise))) {
+  if (
+    set.durationMin != null ||
+    set.speedKph != null ||
+    set.inclinePct != null ||
+    (set.distanceKm != null && isCardio(set.exercise))
+  ) {
     const parts: string[] = [];
     if (set.durationMin) parts.push(`${set.durationMin} min`);
     if (set.distanceKm) parts.push(`${set.distanceKm} km`);
+    if (set.speedKph) parts.push(`${set.speedKph} km/h`);
+    if (set.inclinePct) parts.push(`${set.inclinePct}% incline`);
     return parts.length ? parts.join(' · ') : 'cardio';
   }
   return `${set.reps} reps · ${set.weight}kg`;
