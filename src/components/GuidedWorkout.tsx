@@ -157,7 +157,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
         </p>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center px-6">
+      <div className="flex-1 overflow-y-auto px-6">
+       <div className="flex min-h-full flex-col justify-center py-4">
         {phase === 'done' ? (
           <div className="anim-fade-rise text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
@@ -315,9 +316,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               />
             ) : null}
 
-            {/* Demonstration photos for the current move */}
-            <DemoPhotos images={demoImages} name={current.name} />
-
+            {/* Primary action — kept above the how-to so it's always reachable */}
             <button
               type="button"
               onClick={completeSet}
@@ -332,8 +331,12 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                 you're done to move on.
               </p>
             ) : null}
+
+            {/* Demonstration photos / how-to for the current move */}
+            <DemoPhotos images={demoImages} name={current.name} />
           </div>
         )}
+       </div>
       </div>
     </div>
   );
