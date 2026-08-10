@@ -3,6 +3,7 @@ import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Barcode } from 'lucide-react';
 import { lookupBarcode } from '../../lib/openFoodFacts';
+import { parseServing } from '../../utils/units';
 import { defaultMealCategoryForNow } from '../../utils/mealCategory';
 import { MealForm, type MealInitial } from './MealForm';
 import { errorTextClass } from './formStyles';
@@ -117,6 +118,7 @@ export function BarcodeScanForm({ onSaved }: Props) {
         return;
       }
       const p = product.per100g;
+      const serving = parseServing(product.servingSize);
       setStage({
         step: 'review',
         initial: {
@@ -133,7 +135,13 @@ export function BarcodeScanForm({ onSaved }: Props) {
           monoFat: String(p.mono_fat_g),
           polyFat: String(p.poly_fat_g),
           transFat: String(p.trans_fat_g),
-          servingNote: `Per 100g${product.servingSize ? ` · serving ${product.servingSize}` : ''} · adjust amounts below`,
+          // Structured basis so the amount/unit selector scales correctly.
+          per100: true,
+          servingSize: serving?.size,
+          servingUnit: serving?.unit,
+          servingNote: serving
+            ? `Values per 100${serving.unit} · 1 serving = ${serving.size}${serving.unit}`
+            : 'Values per 100g · set the amount below',
         },
       });
     } catch (err) {

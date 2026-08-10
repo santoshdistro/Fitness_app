@@ -44,6 +44,25 @@ export function ftInToCm(ft: number, inches: number): number {
   return Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
 }
 
+/* ---- Serving size parsing ---- */
+export type ParsedServing = { size: number; unit: 'g' | 'ml' };
+
+// Turn a label serving size ("200 ml", "30g", "1 serving", 45) into a number +
+// weight/volume unit. Returns null when there's no usable numeric size.
+export function parseServing(input: string | number | null | undefined): ParsedServing | null {
+  if (input == null) return null;
+  if (typeof input === 'number') return input > 0 ? { size: input, unit: 'g' } : null;
+  const m = String(input).match(/([\d.]+)\s*(mls?|milliliters?|l|liters?|litres?|kg|g|grams?)?/i);
+  if (!m) return null;
+  let size = parseFloat(m[1]);
+  if (!size || size <= 0) return null;
+  const raw = (m[2] ?? 'g').toLowerCase();
+  let unit: 'g' | 'ml' = /ml|milli|^l|liter|litre/.test(raw) ? 'ml' : 'g';
+  if (/^l|liter|litre/.test(raw)) size *= 1000; // litres → ml
+  if (raw === 'kg') size *= 1000; // kg → g
+  return { size: Math.round(size * 100) / 100, unit };
+}
+
 /* ---- Food amount (stored in grams) ---- */
 export function gToUnit(g: number, unit: FoodUnit): number {
   return unit === 'oz' ? g * OZ_PER_G : g;
