@@ -257,6 +257,25 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
       )}
     </div>
 
+    {/* Cardio — time/distance work that isn't muscle-mapped */}
+    {data.cardio.length > 0 ? (
+      <div className="glass-card flex flex-col gap-1.5 p-5">
+        <p className="text-sm font-semibold text-[var(--text)]">Cardio · {periodRangeLabel()}</p>
+        {data.cardio.map(c => (
+          <div key={c.name} className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2">
+            <span className="flex-1 text-xs font-semibold capitalize text-[var(--text)]">{c.name}</span>
+            <span className="shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+              {c.durationMin > 0 ? `${Math.round(c.durationMin)} min` : `${c.sets}×`}
+              {c.distanceKm > 0 ? ` · ${Math.round(c.distanceKm * 10) / 10} km` : ''}
+            </span>
+          </div>
+        ))}
+        <p className="mt-1 text-[9px] text-[var(--muted)]">
+          Cardio is tracked by time &amp; distance, so it's shown here rather than on the muscle map.
+        </p>
+      </div>
+    ) : null}
+
       <Sheet
         open={selected != null}
         onClose={closeSheet}
