@@ -17,30 +17,64 @@ const ID_BY_NORMALIZED = new Map<string, string>(
   Object.keys(EXERCISE_DETAILS).map(id => [normalize(id.replace(/_/g, ' ')), id]),
 );
 
+// Same keys with spaces removed, so "pull ups" can match a DB "Pullups".
+const ID_BY_SQUASHED = new Map<string, string>(
+  Object.keys(EXERCISE_DETAILS).map(id => [normalize(id.replace(/_/g, ' ')).replace(/\s+/g, ''), id]),
+);
+
 // Singularize a word so "raises" matches "raise", "twists" matches "twist".
 function singular(word: string): string {
   return word.replace(/s$/, '');
 }
 
-// Best-effort match from a free-text exercise name to a how-to DB id: exact
-// first, then a tolerant match where every word of a DB entry appears in the
-// typed name (ignoring plurals), preferring the most specific entry.
+// Words that carry no matching signal — dropped before comparing names.
+const STOP = new Set(['the', 'a', 'with', 'and', 'to', 'of', 'on', 'in', 'for']);
+
+// Best-effort match from a free-text exercise name to a how-to DB id. Exact
+// first, then the best word-overlap: every typed word appearing in a DB entry
+// wins even if that entry has extra qualifiers (e.g. "Barbell Bench Press"
+// matches "Barbell Bench Press - Medium Grip"). Falls back to strong partial
+// overlap, and rejects weak matches so unrelated moves don't borrow a photo.
 export function resolveExerciseId(name: string): string | undefined {
   const norm = normalize(name);
   const direct = ID_BY_NORMALIZED.get(norm);
   if (direct) return direct;
 
-  const queryWords = new Set(norm.split(' ').map(singular));
+  const q = norm.split(' ').map(singular).filter(w => w.length > 1 && !STOP.has(w));
+  if (q.length === 0) return undefined;
+  const qSet = new Set(q);
+
   let best: string | undefined;
-  let bestLen = 0;
+  let bestScore = 0;
+  let bestLen = Infinity;
   for (const [key, id] of ID_BY_NORMALIZED) {
-    const keyWords = key.split(' ').map(singular);
-    if (keyWords.length > bestLen && keyWords.every(w => queryWords.has(w))) {
+    const kWords = key.split(' ').map(singular).filter(w => w.length > 1 && !STOP.has(w));
+    const kSet = new Set(kWords);
+    let inter = 0;
+    for (const w of qSet) if (kSet.has(w)) inter++;
+    if (inter === 0) continue;
+    const union = new Set([...qSet, ...kSet]).size;
+    const jaccard = inter / union;
+    const allQueryMatched = inter === qSet.size;
+    if (!allQueryMatched && jaccard < 0.5) continue; // too weak — skip
+    const score = (allQueryMatched ? 1 : 0) + jaccard;
+    // Prefer a higher score; tie-break toward the closest-length entry.
+    if (score > bestScore || (score === bestScore && kWords.length < bestLen)) {
       best = id;
-      bestLen = keyWords.length;
+      bestScore = score;
+      bestLen = kWords.length;
     }
   }
-  return best;
+  if (best) return best;
+
+  // Squashed fallback: "pull ups" ↔ "pullups", "push ups" ↔ "pushups".
+  const squashed = norm.replace(/\s+/g, '');
+  const exactSquash = ID_BY_SQUASHED.get(squashed);
+  if (exactSquash) return exactSquash;
+  for (const [key, id] of ID_BY_SQUASHED) {
+    if (squashed.length >= 5 && (key.includes(squashed) || squashed.includes(key))) return id;
+  }
+  return undefined;
 }
 
 // Demonstration image paths for an exercise, resolved by id or by name.

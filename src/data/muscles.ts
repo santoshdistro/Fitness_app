@@ -41,6 +41,13 @@ const RULES: { test: RegExp; muscles: MuscleKey[] }[] = [
   { test: /leg curl|lying curl|seated curl.*ham|hamstring/, muscles: ['hamstrings'] },
   { test: /romanian|rdl|good morning|stiff leg/, muscles: ['hamstrings', 'glutes', 'lowerBack'] },
   { test: /deadlift/, muscles: ['back', 'hamstrings', 'glutes', 'lowerBack'] },
+  { test: /clean|snatch/, muscles: ['back', 'hamstrings', 'glutes', 'traps'] },
+  { test: /swing/, muscles: ['glutes', 'hamstrings'] },
+  { test: /pull[- ]?apart/, muscles: ['shoulders', 'back'] },
+  { test: /box jump|broad jump|jump squat|plyo/, muscles: ['quads', 'glutes'] },
+  { test: /superman|bird[- ]?dog/, muscles: ['lowerBack'] },
+  { test: /farmer|suitcase|\bcarry\b/, muscles: ['traps', 'forearms'] },
+  { test: /dead hang/, muscles: ['forearms'] },
   { test: /hip thrust|glute/, muscles: ['glutes'] },
   { test: /squat|leg press|hack squat/, muscles: ['quads', 'glutes'] },
   { test: /lunge|bulgarian|step[- ]?up/, muscles: ['quads', 'glutes'] },
@@ -56,7 +63,7 @@ const RULES: { test: RegExp; muscles: MuscleKey[] }[] = [
   { test: /forearm|wrist|grip/, muscles: ['forearms'] },
   { test: /curl/, muscles: ['biceps'] },
   { test: /plank|crunch|sit[- ]?up|leg raise|russian|\bab\b|abs|core/, muscles: ['abs'] },
-  { test: /incline|bench|chest|fly|push[- ]?up|pec/, muscles: ['chest'] },
+  { test: /incline|bench|chest|fly|push[- ]?up|pec|crossover/, muscles: ['chest'] },
   { test: /\bpress\b/, muscles: ['chest'] },
 ];
 
