@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
 import { exerciseImagesFor } from '../data/exerciseNames';
-import { isCardio, cardioTargetLabel } from '../data/exerciseKind';
+import { isCardio, isIntervalCardio, cardioTargetLabel } from '../data/exerciseKind';
 import { cardioGuide } from '../data/cardioGuide';
 import type { ExerciseSet } from '../types/database';
 
@@ -66,6 +66,22 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     setPhase('resting');
   }
 
+  function goToNextExercise(rest: boolean) {
+    if (exIndex < exercises.length - 1) {
+      const next = exercises[exIndex + 1];
+      setExIndex(i => i + 1);
+      setSetNum(1);
+      setReps(firstNumber(next.reps));
+      setWeight('');
+      setMinutes('');
+      setDistance('');
+      setImgFailed(false);
+      if (rest) startRest();
+    } else {
+      setPhase('done');
+    }
+  }
+
   function completeSet() {
     if (!current) return;
     const entry: ExerciseSet = cardio
@@ -79,23 +95,15 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
       : { exercise: current.name, reps: Number(reps) || 0, weight: Number(weight) || 0 };
     setLogged(prev => [...prev, entry]);
 
-    if (setNum < current.sets) {
+    // Cardio logs as one block (the timer handles the rounds) → straight to the
+    // next exercise, no rest screen. Lifts step through their sets as before.
+    if (cardio) {
+      goToNextExercise(false);
+    } else if (setNum < current.sets) {
       setSetNum(n => n + 1);
-      setMinutes('');
-      setDistance('');
-      startRest();
-    } else if (exIndex < exercises.length - 1) {
-      const next = exercises[exIndex + 1];
-      setExIndex(i => i + 1);
-      setSetNum(1);
-      setReps(firstNumber(next.reps));
-      setWeight('');
-      setMinutes('');
-      setDistance('');
-      setImgFailed(false);
       startRest();
     } else {
-      setPhase('done');
+      goToNextExercise(true);
     }
   }
 
@@ -111,8 +119,10 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     onSaved();
   }
 
-  const totalSets = exercises.reduce((s, e) => s + e.sets, 0);
+  // Cardio counts as one block for progress (not one per round).
+  const totalSets = exercises.reduce((s, e) => s + (isCardio(e.name) ? 1 : e.sets), 0);
   const doneSets = logged.length;
+  const lastExercise = exIndex >= exercises.length - 1;
 
   return (
     <div className="app-bg fixed inset-0 z-50 flex flex-col pt-[env(safe-area-inset-top)]">
@@ -227,7 +237,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                   <p className="text-lg font-black leading-tight text-[var(--text)]">{current.name}</p>
                   <p className="text-xs text-[var(--muted)]">
                     {cardio
-                      ? `Round ${setNum} of ${current.sets} · ${cardioTargetLabel(current.reps)}`
+                      ? `${isIntervalCardio(current.name) ? `${current.sets} rounds · ` : ''}${cardioTargetLabel(current.reps)}`
                       : `Set ${setNum} of ${current.sets} · target ${current.reps} reps`}
                   </p>
                   {!cardio && lastByExercise?.get(current.name) ? (
@@ -300,6 +310,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             {cardio ? (
               <CardioTimer
                 name={current.name}
+                totalRounds={current.sets}
                 onUseMinutes={mins => setMinutes(String(mins))}
               />
             ) : null}
@@ -312,9 +323,15 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               onClick={completeSet}
               className="mt-4 flex w-full items-center justify-center gap-1 rounded-2xl py-4 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
             >
-              Complete set
+              {cardio ? (lastExercise ? 'Log & finish' : 'Log & next exercise') : 'Complete set'}
               <ChevronRight size={18} />
             </button>
+            {cardio && !lastExercise ? (
+              <p className="mt-2 text-center text-[11px] text-[var(--muted)]">
+                Do as many rounds as you like — the timer stops at {current.sets}. Tap above when
+                you're done to move on.
+              </p>
+            ) : null}
           </div>
         )}
       </div>
@@ -337,46 +354,77 @@ function parseIntervals(name: string): { work: number; rest: number } | null {
 }
 
 // A live timer for cardio: an interval timer (work/rest countdown + round count,
-// buzzes on each switch) when the move encodes intervals, otherwise a count-up
-// stopwatch. Either way, "Log Nmin" drops the elapsed time into the minutes field.
-function CardioTimer({ name, onUseMinutes }: { name: string; onUseMinutes: (mins: number) => void }) {
+// buzzes on each switch, auto-stops after the target rounds) when the move
+// encodes intervals, otherwise a count-up stopwatch. "Log Nmin" (and the auto-
+// stop) drop the elapsed time into the minutes field.
+function CardioTimer({
+  name,
+  totalRounds,
+  onUseMinutes,
+}: {
+  name: string;
+  totalRounds?: number;
+  onUseMinutes: (mins: number) => void;
+}) {
   const intervals = parseIntervals(name);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // total seconds
   const [phase, setPhase] = useState<'work' | 'rest'>('work');
   const [phaseLeft, setPhaseLeft] = useState(intervals?.work ?? 0);
   const [round, setRound] = useState(1);
-  const phaseRef = useRef(phase);
-  phaseRef.current = phase;
+  const [done, setDone] = useState(false);
+
+  // Mirror latest state so the once-a-second tick reads fresh values.
+  const st = useRef({ phase, phaseLeft, round, elapsed });
+  st.current = { phase, phaseLeft, round, elapsed };
+  const onUse = useRef(onUseMinutes);
+  onUse.current = onUseMinutes;
+
+  const buzz = (pattern: number | number[]) => {
+    try {
+      navigator.vibrate?.(pattern);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
-      setElapsed(e => e + 1);
-      if (intervals) {
-        setPhaseLeft(left => {
-          if (left > 1) return left - 1;
-          // Phase boundary — buzz and flip work ⇄ rest.
-          try {
-            navigator.vibrate?.(150);
-          } catch {
-            /* ignore */
-          }
-          if (phaseRef.current === 'work') {
-            setPhase('rest');
-            return intervals.rest;
-          }
-          setPhase('work');
-          setRound(r => r + 1);
-          return intervals.work;
-        });
+      const cur = st.current;
+      const nextElapsed = cur.elapsed + 1;
+      setElapsed(nextElapsed);
+      if (!intervals) return;
+      if (cur.phaseLeft > 1) {
+        setPhaseLeft(cur.phaseLeft - 1);
+        return;
       }
+      // Phase boundary.
+      if (cur.phase === 'work') {
+        buzz(150);
+        setPhase('rest');
+        setPhaseLeft(intervals.rest);
+        return;
+      }
+      // A round (work + rest) just finished.
+      if (totalRounds && cur.round >= totalRounds) {
+        buzz([200, 100, 200]);
+        setRunning(false);
+        setDone(true);
+        onUse.current(Math.max(0, Math.round((nextElapsed / 60) * 10) / 10));
+        return;
+      }
+      buzz(150);
+      setPhase('work');
+      setRound(cur.round + 1);
+      setPhaseLeft(intervals.work);
     }, 1000);
     return () => clearInterval(id);
-  }, [running, intervals]);
+  }, [running, intervals, totalRounds]);
 
   function reset() {
     setRunning(false);
+    setDone(false);
     setElapsed(0);
     setPhase('work');
     setPhaseLeft(intervals?.work ?? 0);
@@ -384,16 +432,25 @@ function CardioTimer({ name, onUseMinutes }: { name: string; onUseMinutes: (mins
   }
 
   const mins = Math.max(0, Math.round((elapsed / 60) * 10) / 10);
+  const roundLabel = totalRounds ? `${Math.min(round, totalRounds)} / ${totalRounds}` : `${round}`;
 
   return (
     <div className="glass-card mt-3 flex flex-col items-center gap-2 p-4">
-      {intervals ? (
+      {done ? (
+        <>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#22c55e' }}>
+            Done · {totalRounds ?? round} rounds
+          </span>
+          <span className="text-4xl font-black tabular-nums text-[var(--text)]">{fmtClock(elapsed)}</span>
+          <span className="text-[11px] text-[var(--muted)]">Logged {mins} min below</span>
+        </>
+      ) : intervals ? (
         <>
           <span
             className="text-[10px] font-black uppercase tracking-widest"
             style={{ color: phase === 'work' ? '#ef4444' : 'var(--accent)' }}
           >
-            {phase === 'work' ? 'Work' : 'Recover'} · round {round}
+            {phase === 'work' ? 'Work' : 'Recover'} · round {roundLabel}
           </span>
           <span className="text-5xl font-black tabular-nums text-[var(--text)]">{phaseLeft}s</span>
           <span className="text-[11px] text-[var(--muted)]">Total {fmtClock(elapsed)}</span>
@@ -408,11 +465,14 @@ function CardioTimer({ name, onUseMinutes }: { name: string; onUseMinutes: (mins
       <div className="mt-1 flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setRunning(r => !r)}
+          onClick={() => {
+            if (done) reset();
+            setRunning(r => !r);
+          }}
           className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
           style={{ background: running ? '#ef4444' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
         >
-          {running ? <><Pause size={14} /> Pause</> : <><Play size={14} fill="currentColor" /> Start</>}
+          {running ? <><Pause size={14} /> Pause</> : <><Play size={14} fill="currentColor" /> {done ? 'Restart' : 'Start'}</>}
         </button>
         <button
           type="button"
