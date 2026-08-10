@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, ChevronRight, Dumbbell, Timer, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronRight, Dumbbell, Pause, Play, RotateCcw, Timer, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
@@ -296,6 +296,14 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               </div>
             </div>
 
+            {/* Timer for cardio — interval or stopwatch, fills the minutes */}
+            {cardio ? (
+              <CardioTimer
+                name={current.name}
+                onUseMinutes={mins => setMinutes(String(mins))}
+              />
+            ) : null}
+
             {/* Demonstration photos for the current move */}
             <DemoPhotos images={demoImages} name={current.name} />
 
@@ -309,6 +317,122 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function fmtClock(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// Pull a work/rest interval out of a name like "Intervals (30s hard / 90s easy)".
+function parseIntervals(name: string): { work: number; rest: number } | null {
+  const hard = name.match(/(\d+)\s*s(?:ec(?:onds)?)?\s*(?:hard|work|on|fast|sprint)/i);
+  const easy = name.match(/(\d+)\s*s(?:ec(?:onds)?)?\s*(?:easy|rest|off|slow|recover)/i);
+  if (hard && easy) return { work: Number(hard[1]), rest: Number(easy[1]) };
+  return null;
+}
+
+// A live timer for cardio: an interval timer (work/rest countdown + round count,
+// buzzes on each switch) when the move encodes intervals, otherwise a count-up
+// stopwatch. Either way, "Log Nmin" drops the elapsed time into the minutes field.
+function CardioTimer({ name, onUseMinutes }: { name: string; onUseMinutes: (mins: number) => void }) {
+  const intervals = parseIntervals(name);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0); // total seconds
+  const [phase, setPhase] = useState<'work' | 'rest'>('work');
+  const [phaseLeft, setPhaseLeft] = useState(intervals?.work ?? 0);
+  const [round, setRound] = useState(1);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setElapsed(e => e + 1);
+      if (intervals) {
+        setPhaseLeft(left => {
+          if (left > 1) return left - 1;
+          // Phase boundary — buzz and flip work ⇄ rest.
+          try {
+            navigator.vibrate?.(150);
+          } catch {
+            /* ignore */
+          }
+          if (phaseRef.current === 'work') {
+            setPhase('rest');
+            return intervals.rest;
+          }
+          setPhase('work');
+          setRound(r => r + 1);
+          return intervals.work;
+        });
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running, intervals]);
+
+  function reset() {
+    setRunning(false);
+    setElapsed(0);
+    setPhase('work');
+    setPhaseLeft(intervals?.work ?? 0);
+    setRound(1);
+  }
+
+  const mins = Math.max(0, Math.round((elapsed / 60) * 10) / 10);
+
+  return (
+    <div className="glass-card mt-3 flex flex-col items-center gap-2 p-4">
+      {intervals ? (
+        <>
+          <span
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: phase === 'work' ? '#ef4444' : 'var(--accent)' }}
+          >
+            {phase === 'work' ? 'Work' : 'Recover'} · round {round}
+          </span>
+          <span className="text-5xl font-black tabular-nums text-[var(--text)]">{phaseLeft}s</span>
+          <span className="text-[11px] text-[var(--muted)]">Total {fmtClock(elapsed)}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">Timer</span>
+          <span className="text-5xl font-black tabular-nums text-[var(--text)]">{fmtClock(elapsed)}</span>
+        </>
+      )}
+
+      <div className="mt-1 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setRunning(r => !r)}
+          className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
+          style={{ background: running ? '#ef4444' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        >
+          {running ? <><Pause size={14} /> Pause</> : <><Play size={14} fill="currentColor" /> Start</>}
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          aria-label="Reset timer"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)]"
+        >
+          <RotateCcw size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRunning(false);
+            onUseMinutes(mins);
+          }}
+          disabled={elapsed === 0}
+          className="rounded-full bg-[var(--bg)] px-3 py-2 text-xs font-bold text-[var(--accent)] disabled:opacity-40"
+        >
+          Log {mins} min
+        </button>
       </div>
     </div>
   );
