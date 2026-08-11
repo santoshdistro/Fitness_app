@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { canonicalExercise } from '../data/exerciseCanonical';
 import type { WorkoutLog } from '../types/database';
 
 export type ExercisePoint = { t: number; topWeight: number; oneRm: number; volume: number };
@@ -57,7 +58,7 @@ export function useExerciseProgress() {
       // Aggregate each exercise within this one session first.
       const perEx = new Map<string, { topWeight: number; oneRm: number; volume: number }>();
       for (const set of w.exercise_data ?? []) {
-        const name = (set.exercise || '').trim();
+        const name = canonicalExercise(set.exercise || '');
         if (!name) continue;
         const weight = set.weight || 0;
         const reps = set.reps || 0;
