@@ -7,6 +7,7 @@ import { exerciseImagesFor } from '../data/exerciseNames';
 import { isCardio, isIntervalCardio, usesInclineSpeed, cardioTargetLabel } from '../data/exerciseKind';
 import { cardioGuide } from '../data/cardioGuide';
 import { textGuide } from '../data/textGuides';
+import { loadGuided, saveGuided, clearGuided, sameSession } from '../lib/guidedSession';
 import type { ExerciseSet } from '../types/database';
 
 export type GuidedExercise = { name: string; sets: number; reps: string; exerciseId?: string };
@@ -28,15 +29,21 @@ function firstNumber(text: string): string {
 
 export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExercise }: Props) {
   const { session } = useAuth();
-  const [exIndex, setExIndex] = useState(0);
-  const [setNum, setSetNum] = useState(1);
-  const [reps, setReps] = useState(firstNumber(exercises[0]?.reps ?? ''));
+  // Resume an in-progress session for this exact workout, if one was saved.
+  const resumed = (() => {
+    const s = loadGuided();
+    return sameSession(s, title, exercises) && s!.logged.length > 0 ? s : null;
+  })();
+  const [exIndex, setExIndex] = useState(resumed?.exIndex ?? 0);
+  const [setNum, setSetNum] = useState(resumed?.setNum ?? 1);
+  const [reps, setReps] = useState(firstNumber(exercises[resumed?.exIndex ?? 0]?.reps ?? ''));
   const [weight, setWeight] = useState('');
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
   const [speed, setSpeed] = useState('');
   const [incline, setIncline] = useState('');
-  const [logged, setLogged] = useState<ExerciseSet[]>([]);
+  const [logged, setLogged] = useState<ExerciseSet[]>(resumed?.logged ?? []);
+  const [didResume, setDidResume] = useState(Boolean(resumed));
   const [phase, setPhase] = useState<'active' | 'resting' | 'done'>('active');
   const [restDuration, setRestDuration] = useState(90);
   const [restLeft, setRestLeft] = useState(0);
@@ -65,9 +72,32 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     return () => clearTimeout(t);
   }, [phase, restLeft]);
 
+  // Persist progress so a reload / navigating away doesn't lose logged sets.
+  // (Not while on the completion screen — that's cleared when saved.)
+  useEffect(() => {
+    if (phase === 'done') return;
+    if (logged.length === 0 && exIndex === 0 && setNum === 1) return;
+    saveGuided({ title, exercises, logged, exIndex, setNum, savedAt: Date.now() });
+  }, [logged, exIndex, setNum, phase, title, exercises]);
+
   function startRest() {
     setRestLeft(restDuration);
     setPhase('resting');
+  }
+
+  function restartSession() {
+    clearGuided();
+    setLogged([]);
+    setExIndex(0);
+    setSetNum(1);
+    setReps(firstNumber(exercises[0]?.reps ?? ''));
+    setWeight('');
+    setMinutes('');
+    setDistance('');
+    setSpeed('');
+    setIncline('');
+    setDidResume(false);
+    setPhase('active');
   }
 
   function goToNextExercise(rest: boolean) {
@@ -124,6 +154,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
       exercise_data: logged,
     });
     setSaving(false);
+    clearGuided();
     onSaved();
   }
 
@@ -164,6 +195,21 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
           {doneSets} / {totalSets} sets
         </p>
       </div>
+
+      {didResume && phase !== 'done' ? (
+        <div className="mx-6 mt-3 flex items-center gap-2 rounded-2xl bg-[var(--accent)]/10 px-3 py-2">
+          <p className="flex-1 text-[11px] font-medium text-[var(--text)]">
+            Resumed from where you left off — {doneSets} logged.
+          </p>
+          <button
+            type="button"
+            onClick={restartSession}
+            className="shrink-0 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-white"
+          >
+            Restart
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto px-6">
        <div className="flex min-h-full flex-col justify-center py-4">

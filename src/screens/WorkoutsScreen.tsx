@@ -34,6 +34,7 @@ import {
 } from '../data/workoutPrograms';
 import { GOAL_PROGRAMS, type GoalProgram } from '../data/goalPrograms';
 import { isCardio, loggedSetLabel, planLabel } from '../data/exerciseKind';
+import { loadGuided, clearGuided, type GuidedSaved } from '../lib/guidedSession';
 import { GOAL_PROGRAM_IMAGES, HERO_IMAGE } from '../data/gymImagery';
 import { PhotoBackdrop } from '../components/PhotoBackdrop';
 
@@ -75,6 +76,11 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
     setTab,
   );
   const [guided, setGuided] = useState<{ title: string; exercises: GuidedExercise[] } | null>(null);
+  // A guided session left in progress (e.g. after an accidental reload).
+  const [resumable, setResumable] = useState<GuidedSaved | null>(() => {
+    const s = loadGuided();
+    return s && s.logged.length > 0 ? s : null;
+  });
   const { profile } = useProfile();
   const { plan: aiPlan, savePlan, clearPlan, restartWeek, currentWeek } = useAiWorkoutPlan();
   const { applyRange: applyPlanToCalendar } = useWorkoutPlan();
@@ -118,15 +124,25 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
   const monthWorkouts = workouts.filter(w => isSameMonth(new Date(w.session_timestamp), sessionMonth));
   const activeProgram = getProgram(selectedEquipment) ?? recommended;
 
+  function openGuided(next: { title: string; exercises: GuidedExercise[] }) {
+    setResumable(null);
+    setGuided(next);
+  }
+
   if (guided) {
     return (
       <GuidedWorkout
         title={guided.title}
         exercises={guided.exercises}
         lastByExercise={lastByExercise}
-        onClose={() => setGuided(null)}
+        onClose={() => {
+          // Leaving without finishing keeps the progress saved for resuming.
+          setGuided(null);
+          setResumable(loadGuided());
+        }}
         onSaved={() => {
           setGuided(null);
+          setResumable(null);
           refreshWorkouts();
         }}
       />
@@ -146,6 +162,39 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           + Log workout
         </button>
       </div>
+
+      {/* Resume an in-progress guided session (survives reload / leaving) */}
+      {resumable ? (
+        <div className="anim-fade-rise mt-3 flex items-center gap-2 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold text-[var(--text)]">
+              Workout in progress · {resumable.title}
+            </p>
+            <p className="text-[10px] text-[var(--muted)]">
+              {resumable.logged.length} set{resumable.logged.length === 1 ? '' : 's'} logged — pick up where you left off.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openGuided({ title: resumable.title, exercises: resumable.exercises })}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          >
+            Continue
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              clearGuided();
+              setResumable(null);
+            }}
+            aria-label="Discard in-progress workout"
+            className="shrink-0 rounded-full px-2 py-1.5 text-[11px] font-semibold text-[var(--muted)]"
+          >
+            Discard
+          </button>
+        </div>
+      ) : null}
 
       {/* Motivational hero */}
       <div
