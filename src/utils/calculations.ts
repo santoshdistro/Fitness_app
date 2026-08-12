@@ -285,6 +285,59 @@ export function computeMetabolicAge(params: {
   return Math.max(15, Math.round(bounded));
 }
 
+export type HydrationTargets = {
+  waterMl: number;
+  sodiumMg: number;
+  potassiumMg: number;
+  magnesiumMg: number;
+  note: string;
+};
+
+/**
+ * Smart hydration + electrolyte targets that scale with the things that
+ * actually drive them: bodyweight, protein (urea load), fibre (gut transit),
+ * activity (sweat), and whether you're cutting (more water/sodium loss) or
+ * gaining. General wellness guidance, not medical advice.
+ */
+export function computeHydrationTargets(params: {
+  weightKg: number | null;
+  gender: Gender | null;
+  proteinG: number | null;
+  fiberG: number | null;
+  deficitKcal: number | null;
+  activity: ActivityLevel | null;
+}): HydrationTargets | null {
+  const { weightKg, gender, proteinG, fiberG, deficitKcal, activity } = params;
+  if (!weightKg) return null;
+  const cutting = (deficitKcal ?? 0) > 0;
+  const gaining = (deficitKcal ?? 0) < 0;
+
+  const actWater =
+    activity === 'very_active' ? 750 : activity === 'moderate' ? 500 : activity === 'light' ? 250 : 0;
+  // ~35 ml/kg base, +water to process protein & fibre, +sweat, +cutting diuresis.
+  const rawWater = 35 * weightKg + (proteinG ?? 0) * 3 + (fiberG ?? 0) * 15 + actWater + (cutting ? 300 : 0);
+  const waterMl = Math.round(Math.min(4500, Math.max(2000, rawWater)) / 100) * 100;
+
+  const actElyte =
+    activity === 'very_active' ? 600 : activity === 'moderate' ? 350 : activity === 'light' ? 150 : 0;
+  const sodiumMg = Math.round(Math.min(3500, 2000 + actElyte + (cutting ? 400 : 0)) / 100) * 100;
+  const potassiumMg =
+    Math.round(
+      Math.min(4700, 3500 + ((fiberG ?? 0) > 25 ? 300 : 0) + (activity === 'very_active' ? 400 : 0)) / 100,
+    ) * 100;
+  let magnesiumMg = gender === 'female' ? 310 : 400;
+  if (cutting || activity === 'very_active') magnesiumMg += 40;
+  magnesiumMg = Math.round(magnesiumMg / 10) * 10;
+
+  const note = cutting
+    ? 'On a cut you lose water and sodium quickly — keep sodium, potassium & magnesium up to avoid cramps and fatigue, and match water to your protein & fibre.'
+    : gaining
+      ? 'Building: extra carbs hold water so hydration is easier, but higher protein & fibre still need enough water and magnesium to digest well.'
+      : 'Match water to your protein & fibre, and keep electrolytes balanced so what you drink is actually absorbed.';
+
+  return { waterMl, sodiumMg, potassiumMg, magnesiumMg, note };
+}
+
 export function computeSuggestedMacros(params: {
   weightKg: number;
   calorieTarget: number;

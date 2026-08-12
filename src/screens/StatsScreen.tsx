@@ -12,6 +12,8 @@ import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
 import { Sheet } from '../components/Sheet';
 import { BmiCard } from '../components/BmiCard';
+import { HydrationCard } from '../components/HydrationCard';
+import { computeHydrationTargets } from '../utils/calculations';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
@@ -74,7 +76,7 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
   const { profile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
   const { data: adaptiveTdee } = useAdaptiveTdee();
-  const { settings } = useSettings();
+  const { settings, save: saveSettings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
   const openScan = bodyScans.find(s => s.id === openScanId) ?? null;
@@ -182,6 +184,28 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
               metabolicAge={metabolicAge}
               actualAge={actualAge}
               basis={bodyFat != null ? 'bodyFat' : 'bmi'}
+            />
+          </div>
+        );
+      })()}
+
+      {/* Smart hydration + electrolytes */}
+      {(() => {
+        const targets = computeHydrationTargets({
+          weightKg: latestWeight ?? null,
+          gender: profile?.gender ?? null,
+          proteinG: profile?.protein_target_g ?? suggestedMacros?.proteinG ?? null,
+          fiberG: profile?.fiber_target_g ?? null,
+          deficitKcal,
+          activity: profile?.activity_level ?? null,
+        });
+        if (!targets) return null;
+        return (
+          <div className="mt-4">
+            <HydrationCard
+              targets={targets}
+              currentWaterGoalMl={settings.waterGoalMl}
+              onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
             />
           </div>
         );
