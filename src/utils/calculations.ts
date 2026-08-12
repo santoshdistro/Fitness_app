@@ -255,17 +255,25 @@ export function computeMetabolicAge(params: {
   const { ageYears, gender, weightKg, heightCm, bodyFatPercent, activity } = params;
   if (!ageYears || !weightKg || !heightCm) return null;
 
-  const refWeight = 22 * (heightCm / 100) ** 2; // healthy-BMI weight for this height
+  const heightM = heightCm / 100;
   let adj = 0;
 
   if (bodyFatPercent != null) {
     const refBF = gender === 'female' ? 23 : 15; // healthy reference body fat %
-    const yourLeanKg = weightKg * (1 - bodyFatPercent / 100);
-    const refLeanKg = refWeight * (1 - refBF / 100);
-    adj += (refLeanKg - yourLeanKg) * 1.5; // ~1.5 yrs per kg of lean mass below reference
-    adj += (bodyFatPercent - refBF) * 0.4; // ~0.4 yrs per % body fat over reference
+    // Body fat is the main signal: more fat reads older, leaner reads younger.
+    adj += (bodyFatPercent - refBF) * 0.5;
+
+    // Muscularity judged by fat-free mass index (lean kg per height²), NOT
+    // absolute lean kg — otherwise simply being heavy/over-fat would wrongly
+    // read as "muscular" and cancel the fat penalty. Clamped so it nudges, not
+    // dominates.
+    const leanKg = weightKg * (1 - bodyFatPercent / 100);
+    const ffmi = leanKg / (heightM * heightM);
+    const refFFMI = gender === 'female' ? 15 : 18;
+    const ffmiDelta = Math.max(-5, Math.min(8, ffmi - refFFMI));
+    adj += -ffmiDelta * 1.0; // ~1 yr younger per FFMI point above average
   } else {
-    const bmi = weightKg / (heightCm / 100) ** 2;
+    const bmi = weightKg / (heightM * heightM);
     adj += (bmi - 22) * 0.7; // ~0.7 yrs per BMI point over 22
   }
 
