@@ -13,6 +13,7 @@ import { DayScheduleCard } from './DayScheduleCard';
 import { useDaySchedule } from '../hooks/useDaySchedule';
 import { mealTimesFromSchedule } from '../lib/daySchedule';
 import { generateDietPlan, generateRecipe, type DietPlanInput, type DietPlanItem, type DietPlanResult, type RecipeResult } from '../lib/aiClient';
+import { getCachedRecipe, setCachedRecipe } from '../lib/recipeCache';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
@@ -450,7 +451,7 @@ export function DietPlanner() {
                           {it.name}
                         </p>
                         <p className="text-[10px] text-[var(--muted)]">
-                          {it.calories} kcal · {it.protein_g}P · {it.carbs_g}C · {it.fat_g}F · tap for recipe
+                          {it.calories} kcal · {it.protein_g}P · {it.carbs_g}C · {it.fat_g}F · ✨ tap for recipe
                         </p>
                       </button>
                       <button
@@ -671,8 +672,15 @@ function RecipeSheet({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     setError(null);
+    // Reuse a previously generated recipe for this exact meal (no AI spend).
+    const cached = getCachedRecipe(item.name, item.calories, item.protein_g, item.carbs_g, item.fat_g);
+    if (cached) {
+      setRecipe(cached);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     if (!userId) {
       setError('Sign in to generate a recipe.');
       setLoading(false);
@@ -686,7 +694,9 @@ function RecipeSheet({
       fat_g: item.fat_g,
     })
       .then(r => {
-        if (!cancelled) setRecipe(r);
+        if (cancelled) return;
+        setRecipe(r);
+        setCachedRecipe(item.name, item.calories, item.protein_g, item.carbs_g, item.fat_g, r);
       })
       .catch(() => {
         if (!cancelled) setError('Could not fetch a recipe. Try again.');
