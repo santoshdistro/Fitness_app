@@ -306,16 +306,21 @@ export function computeHydrationTargets(params: {
   fiberG: number | null;
   deficitKcal: number | null;
   activity: ActivityLevel | null;
+  /** Today's active calories burned — adds sweat replacement to the water goal. */
+  activeKcal?: number | null;
 }): HydrationTargets | null {
-  const { weightKg, gender, proteinG, fiberG, deficitKcal, activity } = params;
+  const { weightKg, gender, proteinG, fiberG, deficitKcal, activity, activeKcal } = params;
   if (!weightKg) return null;
   const cutting = (deficitKcal ?? 0) > 0;
   const gaining = (deficitKcal ?? 0) < 0;
 
   const actWater =
     activity === 'very_active' ? 750 : activity === 'moderate' ? 500 : activity === 'light' ? 250 : 0;
+  // Replace fluid lost to today's training sweat (~1 ml per active kcal, capped).
+  const sweatWater = Math.min(1000, Math.max(0, activeKcal ?? 0));
   // ~35 ml/kg base, +water to process protein & fibre, +sweat, +cutting diuresis.
-  const rawWater = 35 * weightKg + (proteinG ?? 0) * 3 + (fiberG ?? 0) * 15 + actWater + (cutting ? 300 : 0);
+  const rawWater =
+    35 * weightKg + (proteinG ?? 0) * 3 + (fiberG ?? 0) * 15 + actWater + sweatWater + (cutting ? 300 : 0);
   const waterMl = Math.round(Math.min(4500, Math.max(2000, rawWater)) / 100) * 100;
 
   const actElyte =

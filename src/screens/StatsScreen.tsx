@@ -198,12 +198,21 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
           fiberG: profile?.fiber_target_g ?? null,
           deficitKcal,
           activity: profile?.activity_level ?? null,
+          activeKcal: todayLog?.active_calories_burned ?? null,
         });
         if (!targets) return null;
+        // Today's intake: water + logged electrolytes, plus dietary sodium from meals.
+        const intake = {
+          waterMl: todayLog?.water_ml ?? 0,
+          sodiumMg: (todayLog?.sodium_mg ?? 0) + Math.round(totals.sodium_mg ?? 0),
+          potassiumMg: todayLog?.potassium_mg ?? 0,
+          magnesiumMg: todayLog?.magnesium_mg ?? 0,
+        };
         return (
           <div className="mt-4">
             <HydrationCard
               targets={targets}
+              intake={intake}
               currentWaterGoalMl={settings.waterGoalMl}
               onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
             />
