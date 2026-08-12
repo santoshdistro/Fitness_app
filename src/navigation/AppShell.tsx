@@ -152,11 +152,13 @@ export function AppShell() {
               onNavigateStats={() => setActiveTab('stats')}
               onOpenProfile={() => setActiveSheet('profile')}
               onOpenSettings={() => setActiveSheet('settings')}
-              onLogElectrolytes={() => setActiveSheet('electrolytes')}
             />
           </div>
           <div className={activeTab === 'stats' ? 'contents' : 'hidden'}>
-            <StatsScreen onOpenProgressPhotos={() => setActiveSheet('progressPhotos')} />
+            <StatsScreen
+              onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
+              onLogElectrolytes={() => setActiveSheet('electrolytes')}
+            />
           </div>
           <div className={activeTab === 'discover' ? 'contents' : 'hidden'}>
             <DiscoverScreen onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />

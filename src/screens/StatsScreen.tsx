@@ -62,9 +62,10 @@ function formatShortDate(dateStr: string): string {
 
 type Props = {
   onOpenProgressPhotos: () => void;
+  onLogElectrolytes: () => void;
 };
 
-export function StatsScreen({ onOpenProgressPhotos }: Props) {
+export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) {
   const [tab, setTab] = usePersistentState<'stats' | 'trends'>('ui:statsTab', 'stats');
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
@@ -215,6 +216,7 @@ export function StatsScreen({ onOpenProgressPhotos }: Props) {
               intake={intake}
               currentWaterGoalMl={settings.waterGoalMl}
               onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
+              onLogElectrolytes={onLogElectrolytes}
             />
           </div>
         );

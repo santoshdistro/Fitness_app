@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Droplets } from 'lucide-react';
+import { AlertTriangle, Check, Droplets, Zap } from 'lucide-react';
 import type { HydrationTargets } from '../utils/calculations';
 
 export type HydrationIntake = {
@@ -16,11 +16,13 @@ export function HydrationCard({
   intake,
   currentWaterGoalMl,
   onApplyWater,
+  onLogElectrolytes,
 }: {
   targets: HydrationTargets;
   intake?: HydrationIntake;
   currentWaterGoalMl: number;
   onApplyWater: (ml: number) => void;
+  onLogElectrolytes?: () => void;
 }) {
   const applied = currentWaterGoalMl === targets.waterMl;
 
@@ -39,16 +41,28 @@ export function HydrationCard({
 
   return (
     <div className="glass-card flex flex-col gap-3 p-5">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500/10">
-          <Droplets size={16} className="text-sky-500" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500/10">
+            <Droplets size={16} className="text-sky-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--text)]">Hydration & minerals</p>
+            <p className="text-[10px] text-[var(--muted)]">
+              {intake ? 'Today vs your goal · protein, fibre, sweat & goal' : 'Scaled to your protein, fibre, activity & goal'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--text)]">Hydration & minerals</p>
-          <p className="text-[10px] text-[var(--muted)]">
-            {intake ? 'Today vs your goal · scales with protein, fibre, sweat & goal' : 'Scaled to your protein, fibre, activity & goal'}
-          </p>
-        </div>
+        {onLogElectrolytes ? (
+          <button
+            type="button"
+            onClick={onLogElectrolytes}
+            className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          >
+            <Zap size={12} /> Log
+          </button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
