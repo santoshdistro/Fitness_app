@@ -69,7 +69,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
   const [tab, setTab] = usePersistentState<'stats' | 'trends'>('ui:statsTab', 'stats');
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
-  const { totals } = useTodayNutrition(selectedDate);
+  const { totals, meals } = useTodayNutrition(selectedDate);
   const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(365);
   const { measurements, deleteMeasurement } = useRecentMeasurements(200);
   const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
@@ -209,11 +209,26 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
           potassiumMg: todayLog?.potassium_mg ?? 0,
           magnesiumMg: todayLog?.magnesium_mg ?? 0,
         };
+        // Attribution: per-mineral list of where today's amount came from, so
+        // tapping a mineral shows the meals / manual entries behind the number.
+        const sodiumFromMeals = meals
+          .filter(m => (m.sodium_mg ?? 0) > 0)
+          .map(m => ({ label: m.meal_name ?? 'Meal', mg: m.sodium_mg ?? 0 }))
+          .sort((a, b) => b.mg - a.mg);
+        const sources = {
+          sodium: [
+            ...(todayLog?.sodium_mg ? [{ label: 'Added manually', mg: todayLog.sodium_mg }] : []),
+            ...sodiumFromMeals,
+          ].sort((a, b) => b.mg - a.mg),
+          potassium: todayLog?.potassium_mg ? [{ label: 'Added manually', mg: todayLog.potassium_mg }] : [],
+          magnesium: todayLog?.magnesium_mg ? [{ label: 'Added manually', mg: todayLog.magnesium_mg }] : [],
+        };
         return (
           <div className="mt-4">
             <HydrationCard
               targets={targets}
               intake={intake}
+              sources={sources}
               currentWaterGoalMl={settings.waterGoalMl}
               onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
               onLogElectrolytes={onLogElectrolytes}

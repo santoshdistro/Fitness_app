@@ -1,5 +1,8 @@
-import { AlertTriangle, Check, Droplets, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Check, ChevronRight, Droplets, Zap } from 'lucide-react';
 import type { HydrationTargets } from '../utils/calculations';
+import { MINERAL_GUIDES, type MineralKey } from '../data/mineralGuide';
+import { Sheet } from './Sheet';
 
 export type HydrationIntake = {
   waterMl: number;
@@ -8,29 +11,44 @@ export type HydrationIntake = {
   magnesiumMg: number;
 };
 
+// Where today's mineral came from, richest contributor first (e.g. logged
+// meals for sodium, or a manual electrolyte entry). Optional per mineral.
+export type MineralSource = { label: string; mg: number };
+export type MineralSources = Partial<Record<MineralKey, MineralSource[]>>;
+
 // Goal-aware hydration + electrolyte targets, with today's intake tracked
 // against them and a caution when water is high but sodium is low (the
 // dilution / over-hydration risk).
 export function HydrationCard({
   targets,
   intake,
+  sources,
   currentWaterGoalMl,
   onApplyWater,
   onLogElectrolytes,
 }: {
   targets: HydrationTargets;
   intake?: HydrationIntake;
+  sources?: MineralSources;
   currentWaterGoalMl: number;
   onApplyWater: (ml: number) => void;
   onLogElectrolytes?: () => void;
 }) {
   const applied = currentWaterGoalMl === targets.waterMl;
+  const [openMineral, setOpenMineral] = useState<MineralKey | null>(null);
 
-  const cells = [
+  const cells: {
+    label: string;
+    tint: string;
+    target: number;
+    have: number | null;
+    fmt: (v: number) => string;
+    mineral?: MineralKey;
+  }[] = [
     { label: 'Water', tint: '#0ea5e9', target: targets.waterMl, have: intake?.waterMl ?? null, fmt: (v: number) => `${(v / 1000).toFixed(1)} L` },
-    { label: 'Sodium', tint: '#f59e0b', target: targets.sodiumMg, have: intake?.sodiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg` },
-    { label: 'Potassium', tint: '#22c55e', target: targets.potassiumMg, have: intake?.potassiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg` },
-    { label: 'Magnesium', tint: '#a855f7', target: targets.magnesiumMg, have: intake?.magnesiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg` },
+    { label: 'Sodium', tint: '#f59e0b', target: targets.sodiumMg, have: intake?.sodiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'sodium' },
+    { label: 'Potassium', tint: '#22c55e', target: targets.potassiumMg, have: intake?.potassiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'potassium' },
+    { label: 'Magnesium', tint: '#a855f7', target: targets.magnesiumMg, have: intake?.magnesiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'magnesium' },
   ];
 
   // Drinking plenty but under-salted → the water won't hold / hyponatremia risk.
@@ -40,6 +58,7 @@ export function HydrationCard({
     intake.sodiumMg < targets.sodiumMg * 0.5;
 
   return (
+    <>
     <div className="glass-card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -68,9 +87,13 @@ export function HydrationCard({
       <div className="grid grid-cols-2 gap-2">
         {cells.map(c => {
           const pct = c.have != null ? Math.min(100, Math.round((c.have / c.target) * 100)) : null;
-          return (
-            <div key={c.label} className="rounded-2xl bg-[var(--bg)] p-3">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{c.label}</p>
+          const tappable = c.mineral != null;
+          const body = (
+            <>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{c.label}</p>
+                {tappable ? <ChevronRight size={12} className="text-[var(--muted)]" /> : null}
+              </div>
               {c.have != null ? (
                 <>
                   <p className="text-sm font-black leading-tight text-[var(--text)]">
@@ -87,10 +110,27 @@ export function HydrationCard({
                   <span className="text-[9px] font-semibold text-[var(--muted)]"> / day</span>
                 </p>
               )}
+            </>
+          );
+          return tappable ? (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => setOpenMineral(c.mineral!)}
+              className="rounded-2xl bg-[var(--bg)] p-3 text-left transition active:scale-[0.98]"
+            >
+              {body}
+            </button>
+          ) : (
+            <div key={c.label} className="rounded-2xl bg-[var(--bg)] p-3">
+              {body}
             </div>
           );
         })}
       </div>
+      {intake ? (
+        <p className="-mt-1 text-center text-[9px] text-[var(--muted)]">Tap a mineral to see your sources & best foods</p>
+      ) : null}
 
       {dilutionRisk ? (
         <div className="flex items-start gap-2 rounded-2xl bg-amber-500/10 px-3 py-2">
@@ -121,5 +161,83 @@ export function HydrationCard({
         General wellness guidance — not medical advice. Adjust to how you feel and any clinical advice.
       </p>
     </div>
+
+    {openMineral ? (() => {
+      const g = MINERAL_GUIDES[openMineral];
+      const target = openMineral === 'sodium' ? targets.sodiumMg : openMineral === 'potassium' ? targets.potassiumMg : targets.magnesiumMg;
+      const have = intake ? (openMineral === 'sodium' ? intake.sodiumMg : openMineral === 'potassium' ? intake.potassiumMg : intake.magnesiumMg) : 0;
+      const mineralSources = sources?.[openMineral] ?? [];
+      const pct = target > 0 ? Math.min(100, Math.round((have / target) * 100)) : 0;
+      const remaining = Math.max(0, Math.round(target - have));
+      return (
+        <Sheet open onClose={() => setOpenMineral(null)} title={g.label}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm leading-relaxed text-[var(--text)]">{g.role}</p>
+
+            {/* Today's tally + where it came from */}
+            <div className="rounded-2xl bg-[var(--bg)] p-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Today</p>
+                <p className="text-sm font-black text-[var(--text)]">
+                  {Math.round(have)} <span className="text-[10px] font-semibold text-[var(--muted)]">/ {Math.round(target)} mg</span>
+                </p>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--card-border)]">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: g.tint }} />
+              </div>
+              {mineralSources.length > 0 ? (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <p className="text-[10px] font-semibold text-[var(--muted)]">Where it came from</p>
+                  {mineralSources.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px]">
+                      <span className="truncate text-[var(--text)]">{s.label}</span>
+                      <span className="shrink-0 font-semibold text-[var(--muted)]">{Math.round(s.mg)} mg</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-[11px] text-[var(--muted)]">
+                  Nothing logged yet today. Log a meal with this mineral, or tap “Log” on the card to add it manually.
+                </p>
+              )}
+              {remaining > 0 ? (
+                <p className="mt-2 text-[11px] font-semibold" style={{ color: g.tint }}>
+                  {remaining} mg to go — try one of these:
+                </p>
+              ) : (
+                <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-green-600">
+                  <Check size={12} /> Target reached
+                </p>
+              )}
+            </div>
+
+            {/* Best foods to top up */}
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Best foods · richest first</p>
+              <div className="flex flex-col gap-1.5">
+                {g.foods.map(f => (
+                  <div key={f.name} className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] px-3 py-2">
+                    <span className="text-lg">{f.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[var(--text)]">{f.name}</p>
+                      <p className="text-[10px] text-[var(--muted)]">{f.per}</p>
+                    </div>
+                    <span className="shrink-0 text-[13px] font-black" style={{ color: g.tint }}>+{f.mg} mg</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* How it fits the protein → fibre → water flow */}
+            <div className="rounded-2xl px-3 py-2.5" style={{ background: `${g.tint}1a` }}>
+              <p className="text-[11px] leading-relaxed text-[var(--text)]">
+                <span className="font-bold">Why it matters: </span>{g.flowNote}
+              </p>
+            </div>
+          </div>
+        </Sheet>
+      );
+    })() : null}
+    </>
   );
 }
