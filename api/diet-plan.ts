@@ -25,7 +25,7 @@ type Body = {
   breakfast?: string;
   prepStyle?: string;
   servings?: number;
-  kind?: 'plan' | 'prep' | 'schedule' | 'recipe';
+  kind?: 'plan' | 'prep' | 'schedule' | 'recipe' | 'cravings';
   mealName?: string;
   carbs_g?: number;
   fat_g?: number;
@@ -35,6 +35,8 @@ type Body = {
   sleep?: string;
   hasWorkout?: boolean;
   notes?: string;
+  craving?: string;
+  remainingKcal?: number;
 };
 
 type PlanItem = {
@@ -70,6 +72,20 @@ type RecipeResult = {
   steps: string[];
   tip?: string;
 };
+
+type CravingSwap = { name: string; emoji: string; kcal: number; why: string };
+type CravingResult = { swaps: CravingSwap[] };
+
+const CRAVINGS_PROMPT = `You are a supportive, practical nutrition coach helping someone who is (usually after a meal) hit by a craving and wants healthier ways to satisfy it without derailing their goal.
+Given the craving type, their goal and diet, and roughly how many calories they have left today, suggest fresh alternative options that scratch the SAME itch (same taste/texture — sweet, salty, crunchy, creamy, fizzy, etc.) for less damage.
+Rules:
+- Respect their diet strictly (e.g. vegetarian/vegan) — never suggest an off-diet food.
+- Prefer options that fit their remaining calories; each should be a realistic single portion.
+- Give a rough honest calorie number per portion.
+- Keep it non-judgemental and never encourage disordered eating. For alcohol, only suggest lower-calorie or alcohol-free swaps and moderation — never encourage drinking.
+- Suggest 5 options they may not have thought of, varied and easy to get.
+Respond with ONLY a JSON object, no markdown and no prose, with exactly this shape:
+{ "swaps": [ { "name": short food name + portion, "emoji": one food emoji, "kcal": integer, "why": one short line on why it satisfies the craving } ] }.`;
 
 const RECIPE_PROMPT = `You are a practical home-cooking recipe writer. Given a meal name and its target macros, write a simple recipe for ONE serving that a normal person can cook at home.
 Give exact ingredient quantities in GRAMS (use grams for solids and ml-as-grams for liquids) so the finished dish lands roughly on the target calories/protein/carbs/fat. Respect the stated diet (e.g. vegetarian/vegan) — never include an off-diet ingredient.
@@ -140,6 +156,27 @@ export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
         messages: [{ role: 'user', content: `Build my daily eating & wellness schedule.\n${schedDetails}` }],
       });
       const result = extractJson<ScheduleResult>(extractText(message));
+      res.status(200).json({ result, usage: usageOf(message, TEXT_MODEL) });
+      return;
+    }
+
+    if (body.kind === 'cravings') {
+      const cravingDetails = [
+        `Craving: ${body.craving || 'something tasty'}`,
+        `Goal: ${body.goal || 'general health'}`,
+        `Diet preference: ${body.diet || 'no restrictions'}`,
+        body.dislikes ? `Foods to avoid: ${body.dislikes}` : '',
+        body.remainingKcal != null ? `Calories left today: about ${Math.round(body.remainingKcal)} kcal` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const message = await client.messages.create({
+        model: TEXT_MODEL,
+        max_tokens: 900,
+        system: CRAVINGS_PROMPT,
+        messages: [{ role: 'user', content: `Give me healthier swaps for my craving.\n${cravingDetails}` }],
+      });
+      const result = extractJson<CravingResult>(extractText(message));
       res.status(200).json({ result, usage: usageOf(message, TEXT_MODEL) });
       return;
     }

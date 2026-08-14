@@ -259,3 +259,19 @@ export async function generateRecipe(
   if (usage) void logAiUsage(userId, 'diet_plan', usage);
   return result;
 }
+
+export type CravingSwapResult = { swaps: { name: string; emoji: string; kcal: number; why: string }[] };
+
+// More craving swaps tailored to goal / diet / calories left, on demand.
+// Shares the diet-plan function (kind:'cravings').
+export async function generateCravingSwaps(
+  userId: string,
+  input: { craving: string; goal?: string; diet?: string; dislikes?: string; remainingKcal?: number },
+): Promise<CravingSwapResult> {
+  const { result, usage } = await postJson<CravingSwapResult>('/api/diet-plan', {
+    kind: 'cravings',
+    ...input,
+  });
+  if (usage) void logAiUsage(userId, 'diet_plan', usage);
+  return result;
+}

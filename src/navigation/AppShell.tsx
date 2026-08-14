@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, BarChart3, Barcode, BookOpen, Camera, Droplets, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
+import { Activity, BarChart3, Barcode, BookOpen, Camera, Cookie, Droplets, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { CoachChat } from '../components/CoachChat';
@@ -32,6 +32,7 @@ import { FastingPanel } from '../components/FastingPanel';
 import { HealthSyncPanel } from '../components/HealthSyncPanel';
 import { CardioForm } from '../components/forms/CardioForm';
 import { ElectrolyteForm } from '../components/forms/ElectrolyteForm';
+import { CravingsCorner } from '../components/CravingsCorner';
 import { useAiWorkoutPlan } from '../hooks/useAiWorkoutPlan';
 
 type Tab = 'home' | 'stats' | 'discover' | 'handbook' | 'workouts';
@@ -49,6 +50,7 @@ type ActiveSheet =
   | 'fasting'
   | 'cardio'
   | 'electrolytes'
+  | 'cravings'
   | 'healthSync'
   | 'workoutPlan'
   | 'profile'
@@ -271,6 +273,11 @@ export function AppShell() {
             onClick={() => setActiveSheet('quickAddCalories')}
           />
           <QuickAddOption
+            icon={Cookie}
+            label="Craving something? Get a swap"
+            onClick={() => setActiveSheet('cravings')}
+          />
+          <QuickAddOption
             icon={ScanLine}
             label="Scan my physique (AI)"
             onClick={() => setActiveSheet('bodyScan')}
@@ -351,6 +358,10 @@ export function AppShell() {
 
       <Sheet open={activeSheet === 'activity'} onClose={closeSheet} title="Log activity">
         <ActivityForm onSaved={onSaved} />
+      </Sheet>
+
+      <Sheet open={activeSheet === 'cravings'} onClose={closeSheet} title="Cravings corner">
+        <CravingsCorner />
       </Sheet>
 
       <Sheet open={activeSheet === 'electrolytes'} onClose={closeSheet} title="Log electrolytes">

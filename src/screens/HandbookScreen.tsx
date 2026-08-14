@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Boxes, Check, ChevronRight, Clock, Play, Plus, Snowflake, Sparkles, Utensils } from 'lucide-react';
+import { Boxes, Check, ChevronRight, Clock, Cookie, Play, Plus, Snowflake, Sparkles, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
@@ -11,6 +11,7 @@ import { useNutritionCoach } from '../hooks/useNutritionCoach';
 import { generateNutritionPlan, generateMealPrep, type NutritionPreferences, type MealPrepResult } from '../lib/aiClient';
 import { MEAL_PREP_GUIDE, MEAL_PREP_TIPS } from '../data/mealPrep';
 import { Sheet } from '../components/Sheet';
+import { CravingsCorner } from '../components/CravingsCorner';
 import { DietPlanner } from '../components/DietPlanner';
 import { useTabSwipe } from '../hooks/useTabSwipe';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -59,6 +60,7 @@ export function HandbookScreen() {
   const [tab, setTab] = usePersistentState<'handbook' | 'plan'>('ui:handbookTab', 'handbook');
   const { handlers, change, animClass } = useTabSwipe(['handbook', 'plan'] as const, tab, setTab);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [cravingsOpen, setCravingsOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [dietFilter, setDietFilter] = useState<DietTag | 'all'>('all');
 
@@ -255,6 +257,32 @@ export function HandbookScreen() {
         )}
       </div>
 
+      {/* Cravings corner */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.06s' }}>
+        <button
+          type="button"
+          onClick={() => setCravingsOpen(true)}
+          className="flex w-full items-center gap-3 overflow-hidden p-4 text-left"
+          style={{
+            borderRadius: 'var(--radius-card)',
+            background: 'linear-gradient(135deg, #ec4899, #d97706)',
+            boxShadow: '0 12px 28px -12px rgba(236,72,153,0.55)',
+          }}
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20">
+            <Cookie size={20} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-white">Cravings corner</p>
+            <p className="text-[11px] leading-snug text-white/85">
+              Craving sweets, a beer, something fried? Get healthier swaps that fit your day — or log
+              it guilt-free.
+            </p>
+          </div>
+          <ChevronRight size={18} className="shrink-0 text-white/80" />
+        </button>
+      </div>
+
       {/* Recipe book */}
       <div className="anim-fade-rise mt-6" style={{ animationDelay: '0.08s' }}>
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recipe book</p>
@@ -349,6 +377,11 @@ export function HandbookScreen() {
         title={selectedRecipe?.name ?? 'Recipe'}
       >
         {selectedRecipe ? <RecipeDetail recipe={selectedRecipe} /> : null}
+      </Sheet>
+
+      {/* Cravings corner */}
+      <Sheet open={cravingsOpen} onClose={() => setCravingsOpen(false)} title="Cravings corner">
+        <CravingsCorner />
       </Sheet>
 
       {/* Coach preferences form */}
