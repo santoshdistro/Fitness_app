@@ -98,7 +98,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
     );
     await refreshTodayLog();
   }
-  const { profile } = useProfile();
+  const { profile, saveProfile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
   const { data: adaptiveTdee } = useAdaptiveTdee();
   const { settings, save: saveSettings } = useSettings();
@@ -605,7 +605,13 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
       {/* Adaptive maintenance from real data — last, it's the most advanced read */}
       {adaptiveTdee ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.26s' }}>
-          <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
+          <AdaptiveTdeeCard
+            data={adaptiveTdee}
+            formulaTdee={tdee}
+            currentTarget={calorieTarget}
+            deficitKcal={deficitKcal}
+            onApplyTarget={kcal => void saveProfile({ calorie_target_override: kcal })}
+          />
         </div>
       ) : null}
         </>

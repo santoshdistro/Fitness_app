@@ -1,9 +1,25 @@
-import { Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Sparkles } from 'lucide-react';
 import type { AdaptiveTdee } from '../hooks/useAdaptiveTdee';
 
 // Shows real maintenance from logged data vs the formula estimate, and what to
-// eat to keep losing/gaining based on the truth.
-export function AdaptiveTdeeCard({ data, formulaTdee }: { data: AdaptiveTdee; formulaTdee: number | null }) {
+// eat to keep losing/gaining based on the truth. When it diverges from the
+// current daily target, offers to update the target (and the macros +
+// hydration that derive from it) to match your real data.
+export function AdaptiveTdeeCard({
+  data,
+  formulaTdee,
+  currentTarget,
+  deficitKcal,
+  onApplyTarget,
+}: {
+  data: AdaptiveTdee;
+  formulaTdee: number | null;
+  currentTarget?: number | null;
+  deficitKcal?: number | null;
+  onApplyTarget?: (kcal: number) => void;
+}) {
+  const [applied, setApplied] = useState(false);
   if (!data.ready) {
     return (
       <div className="glass-card p-5">
@@ -18,6 +34,15 @@ export function AdaptiveTdeeCard({ data, formulaTdee }: { data: AdaptiveTdee; fo
 
   const lost = data.weightChangeKg < 0;
   const diff = formulaTdee != null ? data.observedTdee - formulaTdee : null;
+
+  // Recommended daily target from real maintenance minus your goal deficit
+  // (a surplus is a negative deficit). Only offered when it meaningfully
+  // differs from what you're currently targeting.
+  const recommended = Math.max(1200, Math.round((data.observedTdee - (deficitKcal ?? 0)) / 10) * 10);
+  const showApply =
+    onApplyTarget != null &&
+    currentTarget != null &&
+    Math.abs(recommended - currentTarget) >= 100;
 
   return (
     <div
@@ -61,7 +86,29 @@ export function AdaptiveTdeeCard({ data, formulaTdee }: { data: AdaptiveTdee; fo
           <p className="text-lg font-black">{data.observedTdee + 550}</p>
         </div>
       </div>
+      {showApply ? (
+        <button
+          type="button"
+          onClick={() => {
+            onApplyTarget!(recommended);
+            setApplied(true);
+          }}
+          disabled={applied}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-2.5 text-xs font-bold disabled:opacity-90"
+          style={{ color: '#4b3fe0' }}
+        >
+          {applied ? (
+            <><Check size={14} /> Target set to {recommended} kcal</>
+          ) : (
+            <>Update my daily target to {recommended} kcal</>
+          )}
+        </button>
+      ) : null}
+
       <p className="mt-2 text-[10px] text-white/70">
+        {showApply
+          ? 'Sets your calorie target from real data — macros & hydration follow. '
+          : ''}
         Assumes your logging is roughly complete. Recheck every couple of weeks.
       </p>
     </div>
