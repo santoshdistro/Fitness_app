@@ -9,6 +9,8 @@ export type HydrationIntake = {
   sodiumMg: number;
   potassiumMg: number;
   magnesiumMg: number;
+  calciumMg: number;
+  fiberG: number;
 };
 
 // Where today's mineral came from, richest contributor first (e.g. logged
@@ -56,9 +58,11 @@ export function HydrationCard({
     mineral?: MineralKey;
   }[] = [
     { label: 'Water', tint: '#0ea5e9', target: targets.waterMl, have: intake?.waterMl ?? null, fmt: (v: number) => `${(v / 1000).toFixed(1)} L` },
+    { label: 'Fibre', tint: '#84cc16', target: targets.fiberG, have: intake?.fiberG ?? null, fmt: (v: number) => `${Math.round(v)} g` },
     { label: 'Sodium', tint: '#f59e0b', target: targets.sodiumMg, have: intake?.sodiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'sodium' },
     { label: 'Potassium', tint: '#22c55e', target: targets.potassiumMg, have: intake?.potassiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'potassium' },
     { label: 'Magnesium', tint: '#a855f7', target: targets.magnesiumMg, have: intake?.magnesiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'magnesium' },
+    { label: 'Calcium', tint: '#eab308', target: targets.calciumMg, have: intake?.calciumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'calcium' },
   ];
 
   // Drinking plenty but under-salted → the water won't hold / hyponatremia risk.
@@ -207,8 +211,10 @@ export function HydrationCard({
 
     {openMineral ? (() => {
       const g = MINERAL_GUIDES[openMineral];
-      const target = openMineral === 'sodium' ? targets.sodiumMg : openMineral === 'potassium' ? targets.potassiumMg : targets.magnesiumMg;
-      const have = intake ? (openMineral === 'sodium' ? intake.sodiumMg : openMineral === 'potassium' ? intake.potassiumMg : intake.magnesiumMg) : 0;
+      const targetByKey = { sodium: targets.sodiumMg, potassium: targets.potassiumMg, magnesium: targets.magnesiumMg, calcium: targets.calciumMg };
+      const haveByKey = { sodium: intake?.sodiumMg ?? 0, potassium: intake?.potassiumMg ?? 0, magnesium: intake?.magnesiumMg ?? 0, calcium: intake?.calciumMg ?? 0 };
+      const target = targetByKey[openMineral];
+      const have = haveByKey[openMineral];
       const mineralSources = sources?.[openMineral] ?? [];
       const pct = target > 0 ? Math.min(100, Math.round((have / target) * 100)) : 0;
       const remaining = Math.max(0, Math.round(target - have));

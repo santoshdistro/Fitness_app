@@ -290,6 +290,8 @@ export type HydrationTargets = {
   sodiumMg: number;
   potassiumMg: number;
   magnesiumMg: number;
+  calciumMg: number;
+  fiberG: number;
   note: string;
 };
 
@@ -334,13 +336,21 @@ export function computeHydrationTargets(params: {
   if (cutting || activity === 'very_active') magnesiumMg += 40;
   magnesiumMg = Math.round(magnesiumMg / 10) * 10;
 
+  // Calcium ~1000 mg/day baseline (bones + muscle function); a touch more when
+  // training hard or cutting, when more is lost in sweat / mobilised.
+  let calciumMg = 1000;
+  if (cutting || activity === 'very_active') calciumMg += 200;
+
+  // Fibre target: use the person's own target if set, else a sensible ~30 g/day.
+  const fiberTarget = fiberG && fiberG > 0 ? Math.round(fiberG) : 30;
+
   const note = cutting
     ? 'On a cut you lose water and sodium quickly — keep sodium, potassium & magnesium up to avoid cramps and fatigue, and match water to your protein & fibre.'
     : gaining
       ? 'Building: extra carbs hold water so hydration is easier, but higher protein & fibre still need enough water and magnesium to digest well.'
       : 'Match water to your protein & fibre, and keep electrolytes balanced so what you drink is actually absorbed.';
 
-  return { waterMl, sodiumMg, potassiumMg, magnesiumMg, note };
+  return { waterMl, sodiumMg, potassiumMg, magnesiumMg, calciumMg, fiberG: fiberTarget, note };
 }
 
 export function computeSuggestedMacros(params: {

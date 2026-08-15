@@ -14,7 +14,8 @@ export type CravingKey =
   | 'alcohol'
   | 'spicy'
   | 'cheesy'
-  | 'coffee';
+  | 'coffee'
+  | 'fruity';
 
 export type CravingSwap = {
   name: string;
@@ -212,6 +213,22 @@ export const CRAVINGS: Craving[] = [
       { name: 'Coffee + cinnamon + splash milk', emoji: '☕', kcal: 30, why: 'Warm ritual, naturally sweet-smelling, tiny calories' },
       { name: 'Decaf oat flat white (small)', emoji: '☕', kcal: 90, why: 'The creamy hit without a late caffeine spike' },
       { name: 'Protein hot chocolate', emoji: '🍫', kcal: 130, why: 'If it’s really the cosy warm drink you want' },
+    ],
+  },
+  {
+    key: 'fruity',
+    label: 'Fruity / refreshing',
+    emoji: '🍊',
+    tint: '#f97316',
+    reason:
+      'Wanting something fresh and juicy is often thirst or a light-sweet dip — real fruit hits it with fibre and water, not just sugar.',
+    realThing: { name: 'Fruit juice / smoothie (large)', kcal: 250 },
+    swaps: [
+      { name: 'Watermelon / melon', emoji: '🍉', kcal: 80, why: 'Juicy, hydrating, huge volume for the calories' },
+      { name: 'Orange or berries', emoji: '🍓', kcal: 70, why: 'Naturally sweet with fibre + vitamin C' },
+      { name: 'Frozen grapes', emoji: '🍇', kcal: 90, why: 'Ice-cold pops that eat like sorbet' },
+      { name: 'Fruit-infused sparkling water', emoji: '🫧', kcal: 15, why: 'Fresh and fizzy if it’s really thirst' },
+      { name: 'Apple + few nuts', emoji: '🍎', kcal: 150, why: 'Crisp and sweet, with fat/protein so it lasts' },
     ],
   },
 ];

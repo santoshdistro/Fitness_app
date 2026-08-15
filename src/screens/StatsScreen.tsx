@@ -84,7 +84,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
   // needed. Sodium here stacks on top of dietary sodium already counted.
   async function addMineralFromFood(key: MineralKey, mg: number) {
     if (!session?.user) return;
-    const column = `${key}_mg` as 'sodium_mg' | 'potassium_mg' | 'magnesium_mg';
+    const column = `${key}_mg` as 'sodium_mg' | 'potassium_mg' | 'magnesium_mg' | 'calcium_mg';
     const current = (todayLog?.[column] as number | null) ?? 0;
     await supabase.from('daily_logs').upsert(
       {
@@ -230,6 +230,8 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
           sodiumMg: (todayLog?.sodium_mg ?? 0) + Math.round(totals.sodium_mg ?? 0),
           potassiumMg: todayLog?.potassium_mg ?? 0,
           magnesiumMg: todayLog?.magnesium_mg ?? 0,
+          calciumMg: todayLog?.calcium_mg ?? 0,
+          fiberG: Math.round(totals.fiber_g ?? 0),
         };
         // Attribution: per-mineral list of where today's amount came from, so
         // tapping a mineral shows the meals / manual entries behind the number.
@@ -244,6 +246,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
           ].sort((a, b) => b.mg - a.mg),
           potassium: todayLog?.potassium_mg ? [{ label: 'Added manually', mg: todayLog.potassium_mg }] : [],
           magnesium: todayLog?.magnesium_mg ? [{ label: 'Added manually', mg: todayLog.magnesium_mg }] : [],
+          calcium: todayLog?.calcium_mg ? [{ label: 'Added manually', mg: todayLog.calcium_mg }] : [],
         };
         return (
           <div className="mt-4">
