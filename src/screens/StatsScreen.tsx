@@ -9,6 +9,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import type { MineralKey } from '../data/mineralGuide';
+import { estimateMineralsFromMeals } from '../data/foodMinerals';
 import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
@@ -225,12 +226,15 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
         });
         if (!targets) return null;
         // Today's intake: water + logged electrolytes, plus dietary sodium from meals.
+        // Estimate potassium/magnesium/calcium from the foods logged today so
+        // logging a banana etc. fills the mineral tiles automatically.
+        const foodMin = estimateMineralsFromMeals(meals);
         const intake = {
           waterMl: todayLog?.water_ml ?? 0,
           sodiumMg: (todayLog?.sodium_mg ?? 0) + Math.round(totals.sodium_mg ?? 0),
-          potassiumMg: todayLog?.potassium_mg ?? 0,
-          magnesiumMg: todayLog?.magnesium_mg ?? 0,
-          calciumMg: todayLog?.calcium_mg ?? 0,
+          potassiumMg: (todayLog?.potassium_mg ?? 0) + foodMin.totals.potassium,
+          magnesiumMg: (todayLog?.magnesium_mg ?? 0) + foodMin.totals.magnesium,
+          calciumMg: (todayLog?.calcium_mg ?? 0) + foodMin.totals.calcium,
           fiberG: Math.round(totals.fiber_g ?? 0),
         };
         // Attribution: per-mineral list of where today's amount came from, so
@@ -239,14 +243,27 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
           .filter(m => (m.sodium_mg ?? 0) > 0)
           .map(m => ({ label: m.meal_name ?? 'Meal', mg: m.sodium_mg ?? 0 }))
           .sort((a, b) => b.mg - a.mg);
+        const foodSource = (mineral: 'potassium' | 'magnesium' | 'calcium') =>
+          foodMin.byFood
+            .filter(f => f[mineral] > 0)
+            .map(f => ({ label: `${f.name} (est.)`, mg: f[mineral] }));
         const sources = {
           sodium: [
             ...(todayLog?.sodium_mg ? [{ label: 'Added manually', mg: todayLog.sodium_mg }] : []),
             ...sodiumFromMeals,
           ].sort((a, b) => b.mg - a.mg),
-          potassium: todayLog?.potassium_mg ? [{ label: 'Added manually', mg: todayLog.potassium_mg }] : [],
-          magnesium: todayLog?.magnesium_mg ? [{ label: 'Added manually', mg: todayLog.magnesium_mg }] : [],
-          calcium: todayLog?.calcium_mg ? [{ label: 'Added manually', mg: todayLog.calcium_mg }] : [],
+          potassium: [
+            ...(todayLog?.potassium_mg ? [{ label: 'Added manually', mg: todayLog.potassium_mg }] : []),
+            ...foodSource('potassium'),
+          ].sort((a, b) => b.mg - a.mg),
+          magnesium: [
+            ...(todayLog?.magnesium_mg ? [{ label: 'Added manually', mg: todayLog.magnesium_mg }] : []),
+            ...foodSource('magnesium'),
+          ].sort((a, b) => b.mg - a.mg),
+          calcium: [
+            ...(todayLog?.calcium_mg ? [{ label: 'Added manually', mg: todayLog.calcium_mg }] : []),
+            ...foodSource('calcium'),
+          ].sort((a, b) => b.mg - a.mg),
         };
         return (
           <div className="mt-4">
