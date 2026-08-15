@@ -187,7 +187,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
       <div className="mt-3 px-6">
         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--card-border)]">
           <div
-            className="h-full rounded-full transition-all"
+            className="h-full rounded-full transition-[width] duration-500 ease-out"
             style={{ width: `${(doneSets / totalSets) * 100}%`, background: 'var(--accent)' }}
           />
         </div>

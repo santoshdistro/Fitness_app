@@ -78,7 +78,7 @@ export function GoalProgressCard({
       <div className="mt-2">
         <div className="relative h-2 overflow-hidden rounded-full" style={{ background: 'var(--bg)' }}>
           <div
-            className="h-full rounded-full transition-all"
+            className="h-full rounded-full transition-[width] duration-500 ease-out"
             style={{ width: `${progress.percent}%`, background: barColor }}
           />
         </div>

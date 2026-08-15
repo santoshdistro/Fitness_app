@@ -77,7 +77,7 @@ export function SleepBarChart({
                 >
                   {hasData ? (
                     <div
-                      className="w-full rounded-full transition-all"
+                      className="w-full rounded-full transition-[height] duration-500 ease-out"
                       style={{
                         height: `${Math.max(heightPercent, 6)}%`,
                         background: barGradient(entry.hours ?? 0, goalHours),

@@ -23,7 +23,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
       style={{ background: on ? 'var(--accent)' : 'var(--card-border)' }}
     >
       <span
-        className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
+        className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-[left] duration-200 ease-out"
         style={{ left: on ? '1.375rem' : '0.125rem' }}
       />
     </button>
