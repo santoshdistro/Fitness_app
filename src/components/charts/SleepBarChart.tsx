@@ -39,7 +39,7 @@ export function SleepBarChart({
   return (
     <div className="mt-2">
       <div className="mb-1 flex justify-end">
-        <span className="rounded-full bg-[var(--accent)]/12 px-2 py-0.5 text-[8px] font-bold text-[var(--accent)]">
+        <span className="rounded-full bg-[var(--accent)]/12 px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">
           {`Goal ${goalHours}h`}
         </span>
       </div>
@@ -59,7 +59,7 @@ export function SleepBarChart({
               <div key={idx} className="flex w-8 flex-col items-center gap-1.5">
                 {/* value */}
                 <span
-                  className={`text-[8px] font-bold leading-none ${
+                  className={`text-[10px] font-bold leading-none ${
                     hasData ? 'text-[var(--text)]' : 'text-transparent'
                   }`}
                 >
@@ -89,14 +89,14 @@ export function SleepBarChart({
                 </div>
                 {/* labels */}
                 <span
-                  className={`text-[9px] font-bold leading-none ${
+                  className={`text-[10px] font-bold leading-none ${
                     isFocus ? 'text-[var(--accent)]' : 'text-[var(--muted)]'
                   }`}
                 >
                   {entry.weekday}
                 </span>
                 <span
-                  className={`text-[8px] leading-none ${
+                  className={`text-[10px] leading-none ${
                     isFocus ? 'font-bold text-[var(--text)]' : 'text-[var(--muted)]/70'
                   }`}
                 >

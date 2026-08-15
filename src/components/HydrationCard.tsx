@@ -107,7 +107,7 @@ export function HydrationCard({
           const body = (
             <>
               <div className="flex items-center justify-between gap-1">
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{c.label}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{c.label}</p>
                 {tappable ? <ChevronRight size={12} className="text-[var(--muted)]" /> : null}
               </div>
               {c.have != null ? (
@@ -123,7 +123,7 @@ export function HydrationCard({
               ) : (
                 <p className="text-base font-black leading-tight" style={{ color: c.tint }}>
                   {c.fmt(c.target)}
-                  <span className="text-[9px] font-semibold text-[var(--muted)]"> / day</span>
+                  <span className="text-[10px] font-semibold text-[var(--muted)]"> / day</span>
                 </p>
               )}
             </>
@@ -145,7 +145,7 @@ export function HydrationCard({
         })}
       </div>
       {intake ? (
-        <p className="-mt-1 text-center text-[9px] text-[var(--muted)]">Tap fibre or a mineral to see your sources & best foods</p>
+        <p className="-mt-1 text-center text-[10px] text-[var(--muted)]">Tap fibre or a mineral to see your sources & best foods</p>
       ) : null}
 
       {/* Potassium : sodium balance — the ratio that actually drives cramps and
@@ -168,7 +168,7 @@ export function HydrationCard({
               <div style={{ width: `${naShare}%`, background: '#f59e0b' }} />
               <div style={{ width: `${100 - naShare}%`, background: '#22c55e' }} />
             </div>
-            <div className="mt-1 flex items-center justify-between text-[9px] font-semibold">
+            <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
               <span className="text-amber-600">Na {Math.round(na)} mg</span>
               <span className="text-green-600">K {Math.round(k)} mg</span>
             </div>
@@ -206,7 +206,7 @@ export function HydrationCard({
           <>Use {(targets.waterMl / 1000).toFixed(1)} L as my water goal</>
         )}
       </button>
-      <p className="text-center text-[9px] text-[var(--muted)]">
+      <p className="text-center text-[10px] text-[var(--muted)]">
         General wellness guidance — not medical advice. Adjust to how you feel and any clinical advice.
       </p>
     </div>

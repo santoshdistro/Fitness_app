@@ -352,7 +352,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                   <p className="text-xs font-bold text-white">
                     {day.day} <span className="font-medium text-white/75">· {day.focus}</span>
                   </p>
-                  <span className="flex items-center gap-0.5 text-[9px] font-semibold text-white/70">
+                  <span className="flex items-center gap-0.5 text-[10px] font-semibold text-white/70">
                     add to a day <CalendarPlus size={11} />
                   </span>
                 </div>
@@ -390,7 +390,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
               <div className="flex flex-col gap-2">
                 {aiPlan.progression.map((step, i) => (
                   <div key={i} className="flex gap-2.5">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[9px] font-black text-white">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] font-black text-white">
                       {i + 1}
                     </span>
                     <div>
@@ -520,7 +520,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                         exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
                       });
                     }}
-                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[9px] font-bold text-[var(--accent)]"
+                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[10px] font-bold text-[var(--accent)]"
                   >
                     add to a day <CalendarPlus size={11} />
                   </button>
@@ -714,7 +714,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                       });
                       setSelectedGoalProgram(null);
                     }}
-                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[9px] font-bold text-[var(--accent)]"
+                    className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--accent)]/10 px-2 py-1 text-[10px] font-bold text-[var(--accent)]"
                   >
                     add to a day <CalendarPlus size={11} />
                   </button>

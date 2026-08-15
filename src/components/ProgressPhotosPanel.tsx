@@ -142,7 +142,7 @@ export function ProgressPhotosPanel() {
                   alt="Progress photo preview"
                   className="mx-auto max-h-56 rounded-2xl object-contain"
                 />
-                <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white">
+                <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
                   tap to zoom
                 </span>
               </button>
@@ -305,9 +305,9 @@ export function ProgressPhotosPanel() {
                     <img src={p.url} alt={`Progress ${p.taken_on}`} className="h-full w-full object-cover" />
                   ) : null}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-4">
-                    <p className="text-[9px] font-bold text-white">{formatDate(p.taken_on)}</p>
+                    <p className="text-[10px] font-bold text-white">{formatDate(p.taken_on)}</p>
                     {p.weight_kg != null ? (
-                      <p className="text-[8px] text-white/80">{p.weight_kg} kg</p>
+                      <p className="text-[10px] text-white/80">{p.weight_kg} kg</p>
                     ) : null}
                   </div>
                   {compareMode ? (

@@ -288,11 +288,11 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                   : { background: 'var(--bg)', color: rest ? 'var(--muted)' : 'var(--text)' }
               }
             >
-              <span className="text-[9px] font-bold uppercase opacity-80">
+              <span className="text-[10px] font-bold uppercase opacity-80">
                 {date === today ? 'Today' : fmt(date, { weekday: 'short' })}
               </span>
               <span className="text-sm font-bold">{fmt(date, { day: 'numeric' })}</span>
-              <span className="text-[8px] font-semibold opacity-90">{shortFocus(dayFocus)}</span>
+              <span className="text-[10px] font-semibold opacity-90">{shortFocus(dayFocus)}</span>
               <span
                 className="mt-0.5 h-1 w-1 rounded-full"
                 style={{ background: filled ? (active ? 'white' : 'var(--accent)') : 'transparent' }}

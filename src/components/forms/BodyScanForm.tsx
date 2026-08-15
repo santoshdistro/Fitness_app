@@ -150,7 +150,7 @@ export function BodyScanForm() {
         <div className="flex flex-col items-center gap-4">
           <button type="button" onClick={() => setZoom(true)} aria-label="Zoom photo" className="relative">
             <img src={stage.preview} alt="Physique" className="h-44 w-44 rounded-2xl object-cover" />
-            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-semibold text-white">
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
               tap to zoom
             </span>
           </button>

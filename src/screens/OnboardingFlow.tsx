@@ -483,7 +483,7 @@ function MacroPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-2xl bg-[var(--bg)] p-2.5">
       <p className="text-sm font-bold text-[var(--text)]">{value}</p>
-      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
     </div>
   );
 }

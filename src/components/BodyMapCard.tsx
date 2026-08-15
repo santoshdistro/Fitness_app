@@ -139,7 +139,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
       <MuscleMap intensity={data.intensity} onSelect={setSelected} large={large} />
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-2 text-[9px] text-[var(--muted)]">
+      <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--muted)]">
         <span>Less</span>
         <span className="flex h-2 w-24 rounded-full" style={{ background: 'linear-gradient(90deg, #eef1f6, #fdba74, #b91c1c)' }} />
         <span>More</span>
@@ -168,7 +168,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
               </span>
             </button>
           ))}
-          <p className="mt-1 text-[9px] text-[var(--muted)]">
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
             Numbers are training volume (weight × reps). Tap a muscle for exercises.
           </p>
         </div>
@@ -250,7 +250,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
               </div>
             );
           })}
-          <p className="mt-1 text-[9px] text-[var(--muted)]">
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
             Grouped by muscle · bar = training volume (weight × reps). Tap a muscle to see its
             exercises. ×sets · total reps.
           </p>
@@ -271,7 +271,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
             </span>
           </div>
         ))}
-        <p className="mt-1 text-[9px] text-[var(--muted)]">
+        <p className="mt-1 text-[10px] text-[var(--muted)]">
           Cardio is tracked by time &amp; distance, so it's shown here rather than on the muscle map.
         </p>
       </div>

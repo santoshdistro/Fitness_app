@@ -34,7 +34,7 @@ export function TodayDashboard({
           }}
         >
           <span className="text-sm font-black leading-none">{doneCount}</span>
-          <span className="text-[8px] font-bold leading-none opacity-80">/ {items.length}</span>
+          <span className="text-[10px] font-bold leading-none opacity-80">/ {items.length}</span>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export function TodayDashboard({
                   >
                     {item.label}
                   </span>
-                  <span className="shrink-0 text-[9px] font-medium text-[var(--muted)]">{item.detail}</span>
+                  <span className="shrink-0 text-[10px] font-medium text-[var(--muted)]">{item.detail}</span>
                 </div>
                 <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-[var(--bg)]">
                   <div

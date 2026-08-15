@@ -75,7 +75,7 @@ export function WorkoutOverviewCard() {
           return (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
               <span
-                className="text-[8px] font-bold leading-none"
+                className="text-[10px] font-bold leading-none"
                 style={{ color: active ? 'var(--accent)' : 'var(--muted)' }}
               >
                 {d.future ? '' : `${d.pct}%`}
@@ -94,7 +94,7 @@ export function WorkoutOverviewCard() {
                 }}
               />
               <span
-                className="text-[9px] font-semibold"
+                className="text-[10px] font-semibold"
                 style={{ color: active ? 'var(--accent)' : 'var(--muted)' }}
               >
                 {d.label}

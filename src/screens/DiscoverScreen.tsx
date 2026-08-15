@@ -837,7 +837,7 @@ function MacroSplitBar({ protein, carbs, fat }: { protein: number; carbs: number
           </>
         ) : null}
       </div>
-      <div className="relative mt-1 h-3 text-[9px] font-semibold">
+      <div className="relative mt-1 h-3 text-[10px] font-semibold">
         <span className="absolute whitespace-nowrap" style={{ ...pos(pW / 2), color: MACRO_COLORS.protein }}>
           {Math.round(protein)}g P
         </span>
@@ -917,7 +917,7 @@ function NutritionTab({
           >
             <div className="absolute inset-[14px] flex flex-col items-center justify-center rounded-full bg-[var(--card)]">
               <span className="text-lg font-black leading-none text-[var(--text)]">{calories}</span>
-              <span className="text-[8px] font-bold uppercase text-[var(--muted)]">kcal</span>
+              <span className="text-[10px] font-bold uppercase text-[var(--muted)]">kcal</span>
             </div>
           </div>
           <div className="flex-1">
@@ -1087,7 +1087,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center rounded-xl bg-[var(--bg)] p-2">
       <p className="text-xs font-bold text-[var(--text)]">{value}</p>
-      <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
 }

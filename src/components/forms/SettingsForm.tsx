@@ -303,7 +303,7 @@ function BackdropPicker({ current, onPick }: { current: string; onPick: (url: st
 
   const tile = 'relative h-20 overflow-hidden rounded-2xl border-2';
   const caption =
-    'absolute inset-x-0 bottom-0 bg-black/45 py-0.5 text-center text-[9px] font-bold text-white';
+    'absolute inset-x-0 bottom-0 bg-black/45 py-0.5 text-center text-[10px] font-bold text-white';
 
   return (
     <div>

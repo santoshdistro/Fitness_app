@@ -97,7 +97,7 @@ export function GoalProgressCard({
       {/* Achieved + projection */}
       <div className="mt-2 flex gap-2 text-[var(--text)]">
         <div className="flex-1 rounded-xl p-2" style={{ background: 'var(--bg)' }}>
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
             {offTrack ? 'Since start' : 'Achieved'}
           </p>
           {offTrack ? (
@@ -115,7 +115,7 @@ export function GoalProgressCard({
           )}
         </div>
         <div className="flex-1 rounded-xl p-2" style={{ background: 'var(--bg)' }}>
-          <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
             {progress.reached ? 'Status' : 'On track for'}
           </p>
           {progress.reached ? (

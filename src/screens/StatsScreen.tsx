@@ -371,12 +371,12 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
                 </div>
               ))}
             </div>
-            <p className="mt-1.5 text-[9px] text-[var(--muted)]">
+            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
               Estimates from your BMR + activity. Losing faster than ~1 kg/week or eating below
               ~1500 kcal isn't usually recommended.
             </p>
             {latestWeight != null && profile?.height && profile?.birth_date && profile?.gender ? (
-              <div className="mt-2 grid grid-cols-2 gap-x-3 border-t border-[var(--card-border)] pt-1.5 text-[9px] text-[var(--muted)]">
+              <div className="mt-2 grid grid-cols-2 gap-x-3 border-t border-[var(--card-border)] pt-1.5 text-[10px] text-[var(--muted)]">
                 <span>* Weight {weightValue(latestWeight, wUnit)}{wUnit}</span>
                 <span>Height {Math.round(profile.height)} cm</span>
                 <span>Age {ageFromBirthDate(profile.birth_date)} yr · {profile.gender}</span>
@@ -628,7 +628,7 @@ function MacroTile({ label, value, target }: { label: string; value: string; tar
         {value}
         {target ? <span className="font-medium text-[var(--muted)]"> / {target}</span> : null}
       </p>
-      <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
 }

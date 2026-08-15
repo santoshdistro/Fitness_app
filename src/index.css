@@ -6,7 +6,9 @@
   --card-border: #eef0f6;
   --input-bg: #f7f7fb;
   --text: #14142b;
-  --muted: #8b8fa3;
+  /* Darkened from #8b8fa3 (~2.9:1) to ~4.6:1 on the light bg so the app's
+     pervasive small secondary text meets WCAG AA. */
+  --muted: #63697d;
   --accent: #6c63ff;
   --accent-dark: #4b3fe0;
   --radius-card: 24px;

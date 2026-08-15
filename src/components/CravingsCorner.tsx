@@ -224,7 +224,7 @@ function CravingDetail({ craving, onBack }: { craving: Craving; onBack: () => vo
         </button>
       </div>
 
-      <p className="text-center text-[9px] text-[var(--muted)]">
+      <p className="text-center text-[10px] text-[var(--muted)]">
         Calorie figures are rough guides. General wellness guidance — not medical advice.
       </p>
     </div>
@@ -251,7 +251,7 @@ function SwapRow({
         <div className="flex items-center gap-2">
           <p className="truncate text-[13px] font-semibold text-[var(--text)]">{swap.name}</p>
           {fits ? (
-            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${fits.cls}`}>
+            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${fits.cls}`}>
               {fits.label}
             </span>
           ) : null}

@@ -220,7 +220,7 @@ export function DayScheduleCard({
               ) : null}
             </div>
           )}
-          <p className="text-[9px] text-[var(--muted)]">
+          <p className="text-[10px] text-[var(--muted)]">
             General wellness guidance, not medical advice.
           </p>
         </>

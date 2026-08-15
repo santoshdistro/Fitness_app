@@ -31,7 +31,7 @@ export function TodayGamePlan({ items }: { items: GamePlanItem[] }) {
           }}
         >
           <span className="text-sm font-black leading-none">{doneCount}</span>
-          <span className="text-[8px] font-bold leading-none opacity-80">/ {items.length}</span>
+          <span className="text-[10px] font-bold leading-none opacity-80">/ {items.length}</span>
         </div>
       </div>
 

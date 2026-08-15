@@ -385,7 +385,7 @@ export function DietPlanner() {
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
-              <span className="text-[9px] font-bold uppercase opacity-80">
+              <span className="text-[10px] font-bold uppercase opacity-80">
                 {isToday ? 'Today' : fmt(date, { weekday: 'short' })}
               </span>
               <span className="text-sm font-bold">{fmt(date, { day: 'numeric' })}</span>
@@ -815,8 +815,8 @@ function CuratedSplitForm({
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
-              <span className="text-[9px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
-              <span className="text-[9px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
+              <span className="text-[10px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
+              <span className="text-[10px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
             </button>
           ))}
         </div>
@@ -959,7 +959,7 @@ function PredefinedPlanPicker({
         ].map(m => (
           <div key={m.label} className="rounded-xl bg-[var(--bg)] p-2">
             <p className="text-sm font-black text-[var(--text)]">{m.value}</p>
-            <p className="text-[9px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
+            <p className="text-[10px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
           </div>
         ))}
       </div>
@@ -1261,8 +1261,8 @@ function PlanBuilderForm({
                     : { background: 'var(--bg)', color: 'var(--muted)' }
                 }
               >
-                <span className="text-[9px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
-                <span className="text-[9px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
+                <span className="text-[10px] font-bold uppercase">{DIET_WEEKDAYS[i]}</span>
+                <span className="text-[10px] font-semibold">{locations[i] === 'Office' ? 'Office' : 'Home'}</span>
               </button>
             ))}
           </div>

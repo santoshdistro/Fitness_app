@@ -13,7 +13,7 @@ function takeaway(r: WeeklyReview): string {
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-2xl bg-[var(--bg)] p-3">
-      <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
       <p className="text-base font-black leading-tight text-[var(--text)]">{value}</p>
       {hint ? <p className="text-[10px] text-[var(--muted)]">{hint}</p> : null}
     </div>

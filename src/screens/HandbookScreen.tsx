@@ -478,7 +478,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
           {recipe.dietTags.map(tag => (
             <span
               key={tag}
-              className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-semibold text-[var(--accent)]"
+              className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]"
             >
               {DIET_TAG_LABEL[tag]}
             </span>
@@ -506,7 +506,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
         ].map(stat => (
           <div key={stat.label} className="flex flex-col items-center rounded-2xl bg-[var(--bg)] p-2">
             <p className="text-sm font-bold text-[var(--text)]">{stat.value}</p>
-            <p className="text-[8px] font-bold uppercase text-[var(--muted)]">{stat.label}</p>
+            <p className="text-[10px] font-bold uppercase text-[var(--muted)]">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -893,7 +893,7 @@ function MealPrepSection({
                 <div key={f.name} className="border-b border-[var(--card-border)] pb-2 last:border-b-0 last:pb-0">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="text-xs font-semibold text-[var(--text)]">{f.name}</p>
-                    <p className="shrink-0 text-[9px] font-semibold text-[var(--accent)]">{f.keeps}</p>
+                    <p className="shrink-0 text-[10px] font-semibold text-[var(--accent)]">{f.keeps}</p>
                   </div>
                   <p className="text-[10px] text-[var(--muted)]">↻ {f.reuse}</p>
                 </div>

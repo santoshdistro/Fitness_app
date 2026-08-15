@@ -615,7 +615,7 @@ function DemoPhotos({ images, name }: { images: string[]; name: string }) {
             {guide.steps.map((step, i) => (
               <li key={i} className="flex gap-2">
                 <span
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                   style={{ background: 'var(--accent)' }}
                 >
                   {i + 1}

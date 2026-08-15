@@ -258,7 +258,7 @@ export function AppShell() {
                 style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
               >
                 <Icon size={20} strokeWidth={2.5} />
-                <span className="text-[9px] font-bold tracking-wider">{label}</span>
+                <span className="text-[10px] font-bold tracking-wider">{label}</span>
               </button>
             );
           })}

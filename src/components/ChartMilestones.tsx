@@ -40,7 +40,7 @@ export function ChartMilestones({ marks, lineBottom = 16 }: { marks: ChartMark[]
             if (!m) return null;
             return (
               <div
-                className="absolute z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2 py-1 text-[9px] font-semibold text-[var(--text)] shadow-lg"
+                className="absolute z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2 py-1 text-[10px] font-semibold text-[var(--text)] shadow-lg"
                 style={{ left: `${Math.min(80, Math.max(20, m.left))}%`, top: 12 }}
               >
                 <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: m.color }} />

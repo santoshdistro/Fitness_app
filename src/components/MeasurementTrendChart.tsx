@@ -192,8 +192,8 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
       ) : (
         <>
           <div className="relative" style={{ height: 150 }}>
-            <div className="absolute left-0 top-0 text-[9px] text-[var(--muted)]">{Math.round(max)}"</div>
-            <div className="absolute bottom-4 left-0 text-[9px] text-[var(--muted)]">{Math.round(min)}"</div>
+            <div className="absolute left-0 top-0 text-[10px] text-[var(--muted)]">{Math.round(max)}"</div>
+            <div className="absolute bottom-4 left-0 text-[10px] text-[var(--muted)]">{Math.round(min)}"</div>
             <ChartMilestones marks={milestonesForBuckets(milestones, buckets)} />
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               {active != null ? (
@@ -248,7 +248,7 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
             </div>
 
             {/* x labels */}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between text-[8px] text-[var(--muted)]">
+            <div className="absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-[var(--muted)]">
               <span>{buckets[0].label}</span>
               {n > 2 ? <span>{buckets[Math.floor(n / 2)].label}</span> : null}
               <span>{buckets[n - 1].label}</span>
@@ -257,7 +257,7 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
             {/* Tooltip for the active bucket */}
             {active != null ? (
               <div
-                className="pointer-events-none absolute z-10 max-w-[60%] -translate-x-1/2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2 py-1.5 text-[9px] shadow-lg"
+                className="pointer-events-none absolute z-10 max-w-[60%] -translate-x-1/2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2 py-1.5 text-[10px] shadow-lg"
                 style={{ left: `${Math.min(78, Math.max(22, x(active)))}%`, top: 4 }}
               >
                 <p className="mb-0.5 font-bold text-[var(--text)]">{buckets[active].label}</p>

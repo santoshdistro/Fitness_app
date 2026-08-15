@@ -78,11 +78,11 @@ export function AdaptiveTdeeCard({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-white/15 p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-white/70">Lose 0.5 kg/wk</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-white/70">Lose 0.5 kg/wk</p>
           <p className="text-lg font-black">{Math.max(0, data.observedTdee - 550)}</p>
         </div>
         <div className="rounded-2xl bg-white/15 p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-white/70">Gain 0.5 kg/wk</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-white/70">Gain 0.5 kg/wk</p>
           <p className="text-lg font-black">{data.observedTdee + 550}</p>
         </div>
       </div>

@@ -81,7 +81,7 @@ export function BmiCard({
             style={{ left: `${markerPercent}%`, background: color }}
           />
         </div>
-        <div className="mt-1 flex justify-between text-[8px] font-semibold text-[var(--muted)]">
+        <div className="mt-1 flex justify-between text-[10px] font-semibold text-[var(--muted)]">
           <span>15</span>
           <span>18.5</span>
           <span>25</span>

@@ -65,7 +65,7 @@ export function MealEditSheet({
                   {m.value}
                   {m.unit}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{m.label}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{m.label}</p>
               </div>
             ))}
           </div>

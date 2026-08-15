@@ -40,12 +40,12 @@ export function StepsCard({ steps, goal }: { steps: number; goal: number }) {
         {/* 4 boxes: today (with goal) + week / month / year */}
         <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
           <div className="rounded-xl p-2" style={{ background: 'var(--bg)' }}>
-            <p className="text-[8px] font-bold uppercase tracking-wide text-[var(--muted)]">Today</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Today</p>
             <p className="text-sm font-black leading-tight text-[var(--text)]">
               {fmt(steps)}
               <span className="text-[10px] font-semibold text-[var(--muted)]">/{goalK}</span>
             </p>
-            <p className="text-[9px] font-semibold" style={{ color: 'var(--accent)' }}>
+            <p className="text-[10px] font-semibold" style={{ color: 'var(--accent)' }}>
               {filled >= 100 ? 'Goal 🎉' : `${filled}% of goal`}
             </p>
           </div>
@@ -61,9 +61,9 @@ export function StepsCard({ steps, goal }: { steps: number; goal: number }) {
 function Box({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl p-2" style={{ background: 'var(--bg)' }}>
-      <p className="text-[8px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
       <p className="text-sm font-black leading-tight text-[var(--text)]">{fmt(value)}</p>
-      <p className="text-[9px] text-[var(--muted)]">steps</p>
+      <p className="text-[10px] text-[var(--muted)]">steps</p>
     </div>
   );
 }

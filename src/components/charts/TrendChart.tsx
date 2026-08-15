@@ -171,13 +171,13 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
         ) : null}
       </div>
 
-      <div className="mt-1 flex items-center justify-between text-[9px] text-[var(--muted)]">
+      <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--muted)]">
         <span>{points[0].label}</span>
         <span>{points[points.length - 1].label}</span>
       </div>
 
       {goal != null ? (
-        <div className="mt-1.5 flex items-center gap-3 text-[9px] text-[var(--muted)]">
+        <div className="mt-1.5 flex items-center gap-3 text-[10px] text-[var(--muted)]">
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-sm" style={{ background: color }} />
             {type === 'bar' ? 'Intake' : 'Actual'}

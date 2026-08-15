@@ -256,7 +256,7 @@ function MacroCalc({ wUnit, defaultWeight }: { wUnit: 'kg' | 'lb'; defaultWeight
             <p className="text-lg font-black" style={{ color: m.color }}>
               {m.g}g
             </p>
-            <p className="text-[9px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
+            <p className="text-[10px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
           </div>
         ))}
       </div>
