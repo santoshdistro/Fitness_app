@@ -1,71 +1,34 @@
-/* Service worker: push reminders + offline app shell. Dependency-free.
-   Strategy:
-   - Navigations (HTML): network-first, cache the fresh shell, fall back to the
-     cached shell (then the offline page) when offline — so the app opens with
-     no connection and never serves a stale shell while online.
-   - Same-origin build assets (/assets/*, hashed & immutable): cache-first.
-   - Other same-origin files (icons, manifest): stale-while-revalidate.
-   - Cross-origin (Supabase API, remote images): left to the network. */
+/* Service worker for push reminders + an offline fallback. Dependency-free. */
 
-const CACHE = 'fb-cache-v2';
+const OFFLINE_CACHE = 'fb-offline-v1';
 const OFFLINE_URL = '/offline.html';
-const SHELL_URL = '/';
 
+// Precache the offline fallback page on install.
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([SHELL_URL, OFFLINE_URL])));
+  event.waitUntil(caches.open(OFFLINE_CACHE).then(cache => cache.add(OFFLINE_URL)));
   self.skipWaiting();
 });
 
-// Drop caches from older versions and take control of open pages.
+// Drop any stale offline caches and take control of open pages.
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches
       .keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys =>
+        Promise.all(keys.filter(k => k !== OFFLINE_CACHE).map(k => caches.delete(k))),
+      )
       .then(() => self.clients.claim()),
   );
 });
 
-function cachePut(request, response) {
-  const clone = response.clone();
-  caches.open(CACHE).then(cache => cache.put(request, clone));
-  return response;
-}
-
+// Network-first for page navigations; if the network is unavailable, show the
+// cached offline screen instead of the browser's error page. Other requests
+// (assets, API calls) are left untouched.
 self.addEventListener('fetch', event => {
   const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  const sameOrigin = url.origin === self.location.origin;
-
-  // App shell / navigations: network-first → cached shell → offline page.
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then(res => cachePut(SHELL_URL, res))
-        .catch(() => caches.match(SHELL_URL).then(hit => hit || caches.match(OFFLINE_URL))),
-    );
-    return;
-  }
-
-  if (!sameOrigin) return; // Supabase / remote images: network handles it.
-
-  // Hashed build assets are immutable — serve from cache, fetch once.
-  if (url.pathname.startsWith('/assets/')) {
-    event.respondWith(
-      caches.match(req).then(hit => hit || fetch(req).then(res => cachePut(req, res))),
-    );
-    return;
-  }
-
-  // Other same-origin files: serve cached immediately, refresh in background.
+  if (req.mode !== 'navigate') return;
   event.respondWith(
-    caches.match(req).then(hit => {
-      const net = fetch(req)
-        .then(res => cachePut(req, res))
-        .catch(() => hit);
-      return hit || net;
-    }),
+    fetch(req).catch(() => caches.open(OFFLINE_CACHE).then(cache => cache.match(OFFLINE_URL))),
   );
 });
 
