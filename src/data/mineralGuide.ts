@@ -82,3 +82,31 @@ export const MINERAL_GUIDES: Record<MineralKey, MineralGuide> = {
     ],
   },
 };
+
+// Fibre isn't an electrolyte (it's counted from logged food, in grams), so it
+// gets its own reference guide rather than a MineralKey entry.
+export type FibreFood = { name: string; emoji: string; g: number; per: string };
+
+export const FIBRE_GUIDE: {
+  label: string;
+  tint: string;
+  role: string;
+  flowNote: string;
+  foods: FibreFood[];
+} = {
+  label: 'Fibre',
+  tint: '#84cc16',
+  role: 'Keeps digestion moving, feeds gut bacteria and keeps you full — most people fall short of ~30 g/day.',
+  flowNote:
+    'Fibre pulls water into your gut, so ramp it up gradually and drink enough — adding lots of fibre without water is the usual cause of bloating and constipation, the opposite of what you want.',
+  foods: [
+    { name: 'Chia seeds', emoji: '🌱', g: 10, per: '2 tbsp' },
+    { name: 'Lentils / beans', emoji: '🫘', g: 8, per: '1 cup cooked' },
+    { name: 'Raspberries', emoji: '🍓', g: 8, per: '1 cup' },
+    { name: 'Avocado', emoji: '🥑', g: 7, per: '½ fruit' },
+    { name: 'Broccoli', emoji: '🥦', g: 5, per: '1 cup cooked' },
+    { name: 'Apple / pear (with skin)', emoji: '🍎', g: 5, per: '1 medium' },
+    { name: 'Rolled oats', emoji: '🌾', g: 4, per: '40 g dry' },
+    { name: 'Whole-grain bread', emoji: '🍞', g: 4, per: '2 slices' },
+  ],
+};

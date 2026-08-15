@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, Check, ChevronRight, Droplets, Plus, Zap } from 'lucide-react';
 import type { HydrationTargets } from '../utils/calculations';
-import { MINERAL_GUIDES, type MineralKey } from '../data/mineralGuide';
+import { MINERAL_GUIDES, FIBRE_GUIDE, type MineralKey } from '../data/mineralGuide';
 import { Sheet } from './Sheet';
 
 export type HydrationIntake = {
@@ -40,6 +40,7 @@ export function HydrationCard({
 }) {
   const applied = currentWaterGoalMl === targets.waterMl;
   const [openMineral, setOpenMineral] = useState<MineralKey | null>(null);
+  const [openFibre, setOpenFibre] = useState(false);
   const [addedFood, setAddedFood] = useState<string | null>(null);
 
   async function handleAddFood(key: MineralKey, name: string, mg: number) {
@@ -56,9 +57,10 @@ export function HydrationCard({
     have: number | null;
     fmt: (v: number) => string;
     mineral?: MineralKey;
+    fibre?: boolean;
   }[] = [
     { label: 'Water', tint: '#0ea5e9', target: targets.waterMl, have: intake?.waterMl ?? null, fmt: (v: number) => `${(v / 1000).toFixed(1)} L` },
-    { label: 'Fibre', tint: '#84cc16', target: targets.fiberG, have: intake?.fiberG ?? null, fmt: (v: number) => `${Math.round(v)} g` },
+    { label: 'Fibre', tint: '#84cc16', target: targets.fiberG, have: intake?.fiberG ?? null, fmt: (v: number) => `${Math.round(v)} g`, fibre: true },
     { label: 'Sodium', tint: '#f59e0b', target: targets.sodiumMg, have: intake?.sodiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'sodium' },
     { label: 'Potassium', tint: '#22c55e', target: targets.potassiumMg, have: intake?.potassiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'potassium' },
     { label: 'Magnesium', tint: '#a855f7', target: targets.magnesiumMg, have: intake?.magnesiumMg ?? null, fmt: (v: number) => `${Math.round(v)} mg`, mineral: 'magnesium' },
@@ -101,7 +103,7 @@ export function HydrationCard({
       <div className="grid grid-cols-2 gap-2">
         {cells.map(c => {
           const pct = c.have != null ? Math.min(100, Math.round((c.have / c.target) * 100)) : null;
-          const tappable = c.mineral != null;
+          const tappable = c.mineral != null || c.fibre === true;
           const body = (
             <>
               <div className="flex items-center justify-between gap-1">
@@ -130,7 +132,7 @@ export function HydrationCard({
             <button
               key={c.label}
               type="button"
-              onClick={() => setOpenMineral(c.mineral!)}
+              onClick={() => (c.fibre ? setOpenFibre(true) : setOpenMineral(c.mineral!))}
               className="rounded-2xl bg-[var(--bg)] p-3 text-left transition active:scale-[0.98]"
             >
               {body}
@@ -143,7 +145,7 @@ export function HydrationCard({
         })}
       </div>
       {intake ? (
-        <p className="-mt-1 text-center text-[9px] text-[var(--muted)]">Tap a mineral to see your sources & best foods</p>
+        <p className="-mt-1 text-center text-[9px] text-[var(--muted)]">Tap fibre or a mineral to see your sources & best foods</p>
       ) : null}
 
       {/* Potassium : sodium balance — the ratio that actually drives cramps and
@@ -295,6 +297,57 @@ export function HydrationCard({
             <div className="rounded-2xl px-3 py-2.5" style={{ background: `${g.tint}1a` }}>
               <p className="text-[11px] leading-relaxed text-[var(--text)]">
                 <span className="font-bold">Why it matters: </span>{g.flowNote}
+              </p>
+            </div>
+          </div>
+        </Sheet>
+      );
+    })() : null}
+
+    {openFibre ? (() => {
+      const target = targets.fiberG;
+      const have = intake?.fiberG ?? 0;
+      const pct = target > 0 ? Math.min(100, Math.round((have / target) * 100)) : 0;
+      const remaining = Math.max(0, Math.round(target - have));
+      return (
+        <Sheet open onClose={() => setOpenFibre(false)} title={FIBRE_GUIDE.label}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm leading-relaxed text-[var(--text)]">{FIBRE_GUIDE.role}</p>
+
+            <div className="rounded-2xl bg-[var(--bg)] p-4">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Today</p>
+                <p className="text-sm font-black text-[var(--text)]">
+                  {Math.round(have)} <span className="text-[10px] font-semibold text-[var(--muted)]">/ {Math.round(target)} g</span>
+                </p>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--card-border)]">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: FIBRE_GUIDE.tint }} />
+              </div>
+              <p className="mt-2 text-[11px] text-[var(--muted)]">
+                Fibre is counted from the food you log in your diary. {remaining > 0 ? `About ${remaining} g to go today — reach for one of these:` : 'Target reached — nice.'}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Best sources · per serving</p>
+              <div className="flex flex-col gap-1.5">
+                {FIBRE_GUIDE.foods.map(f => (
+                  <div key={f.name} className="flex items-center gap-3 rounded-2xl bg-[var(--bg)] px-3 py-2">
+                    <span className="text-lg">{f.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[var(--text)]">{f.name}</p>
+                      <p className="text-[10px] text-[var(--muted)]">{f.per}</p>
+                    </div>
+                    <span className="shrink-0 text-[13px] font-black" style={{ color: FIBRE_GUIDE.tint }}>+{f.g} g</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl px-3 py-2.5" style={{ background: `${FIBRE_GUIDE.tint}1a` }}>
+              <p className="text-[11px] leading-relaxed text-[var(--text)]">
+                <span className="font-bold">Why it matters: </span>{FIBRE_GUIDE.flowNote}
               </p>
             </div>
           </div>
