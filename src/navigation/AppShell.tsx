@@ -1,13 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Activity, BarChart3, Barcode, BookOpen, Camera, Cookie, Droplets, Dumbbell, Footprints, Home, Images, Loader2, NotebookPen, Plus, Ruler, ScanLine, Sparkles, Timer, UtensilsCrossed, Weight, Zap } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { CoachChat } from '../components/CoachChat';
 import { HomeScreen } from '../screens/HomeScreen';
-import { StatsScreen } from '../screens/StatsScreen';
-import { WorkoutsScreen } from '../screens/WorkoutsScreen';
-import { DiscoverScreen } from '../screens/DiscoverScreen';
-import { HandbookScreen } from '../screens/HandbookScreen';
+// Non-Home screens are code-split: their chunks (and heavy deps like the
+// exercise how-to DB) load the first time you open that tab, keeping the
+// initial app load small.
+const StatsScreen = lazy(() => import('../screens/StatsScreen').then(m => ({ default: m.StatsScreen })));
+const WorkoutsScreen = lazy(() => import('../screens/WorkoutsScreen').then(m => ({ default: m.WorkoutsScreen })));
+const DiscoverScreen = lazy(() => import('../screens/DiscoverScreen').then(m => ({ default: m.DiscoverScreen })));
+const HandbookScreen = lazy(() => import('../screens/HandbookScreen').then(m => ({ default: m.HandbookScreen })));
 import { OnboardingFlow } from '../screens/OnboardingFlow';
 import { useProfile } from '../hooks/useProfile';
 import { Sheet } from '../components/Sheet';
@@ -16,7 +19,9 @@ import { MeasurementsForm } from '../components/forms/MeasurementsForm';
 import { MealForm } from '../components/forms/MealForm';
 import { ProfileForm } from '../components/forms/ProfileForm';
 import { ActivityForm } from '../components/forms/ActivityForm';
-import { WorkoutForm } from '../components/forms/WorkoutForm';
+// Lazy — WorkoutForm pulls the exercise how-to DB (~200KB) for its autocomplete;
+// keep that out of the initial load until the log-workout sheet is opened.
+const WorkoutForm = lazy(() => import('../components/forms/WorkoutForm').then(m => ({ default: m.WorkoutForm })));
 import { GoalsForm } from '../components/forms/GoalsForm';
 import { QuickAddCaloriesForm } from '../components/forms/QuickAddCaloriesForm';
 import { FoodScanForm } from '../components/forms/FoodScanForm';
@@ -72,6 +77,9 @@ const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
 
 export function AppShell() {
   const [activeTab, setActiveTab] = usePersistentState<Tab>('ui:tab', 'home');
+  // Which tabs have been opened at least once — a lazy screen only mounts after
+  // its first visit, then stays mounted (so scroll/input survive tab switches).
+  const [visited, setVisited] = useState<Set<Tab>>(() => new Set<Tab>(['home', activeTab]));
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
   const [coachOpen, setCoachOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -89,6 +97,7 @@ export function AppShell() {
   // Screens share one scroll container, so reset to the top when the tab changes.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
+    setVisited(prev => (prev.has(activeTab) ? prev : new Set(prev).add(activeTab)));
   }, [activeTab]);
 
   function closeSheet() {
@@ -156,24 +165,40 @@ export function AppShell() {
               onOpenSettings={() => setActiveSheet('settings')}
             />
           </div>
-          <div className={activeTab === 'stats' ? 'contents' : 'hidden'}>
-            <StatsScreen
-              onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
-              onLogElectrolytes={() => setActiveSheet('electrolytes')}
-            />
-          </div>
-          <div className={activeTab === 'discover' ? 'contents' : 'hidden'}>
-            <DiscoverScreen onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
-          </div>
-          <div className={activeTab === 'handbook' ? 'contents' : 'hidden'}>
-            <HandbookScreen />
-          </div>
-          <div className={activeTab === 'workouts' ? 'contents' : 'hidden'}>
-            <WorkoutsScreen
-              onLogWorkout={() => setActiveSheet('workout')}
-              onGeneratePlan={() => setActiveSheet('workoutPlan')}
-            />
-          </div>
+          {visited.has('stats') ? (
+            <div className={activeTab === 'stats' ? 'contents' : 'hidden'}>
+              <Suspense fallback={<ScreenLoader />}>
+                <StatsScreen
+                  onOpenProgressPhotos={() => setActiveSheet('progressPhotos')}
+                  onLogElectrolytes={() => setActiveSheet('electrolytes')}
+                />
+              </Suspense>
+            </div>
+          ) : null}
+          {visited.has('discover') ? (
+            <div className={activeTab === 'discover' ? 'contents' : 'hidden'}>
+              <Suspense fallback={<ScreenLoader />}>
+                <DiscoverScreen onQuickAddCalories={() => setActiveSheet('quickAddCalories')} />
+              </Suspense>
+            </div>
+          ) : null}
+          {visited.has('handbook') ? (
+            <div className={activeTab === 'handbook' ? 'contents' : 'hidden'}>
+              <Suspense fallback={<ScreenLoader />}>
+                <HandbookScreen />
+              </Suspense>
+            </div>
+          ) : null}
+          {visited.has('workouts') ? (
+            <div className={activeTab === 'workouts' ? 'contents' : 'hidden'}>
+              <Suspense fallback={<ScreenLoader />}>
+                <WorkoutsScreen
+                  onLogWorkout={() => setActiveSheet('workout')}
+                  onGeneratePlan={() => setActiveSheet('workoutPlan')}
+                />
+              </Suspense>
+            </div>
+          ) : null}
         </div>
 
       </div>
@@ -369,7 +394,9 @@ export function AppShell() {
       </Sheet>
 
       <Sheet open={activeSheet === 'workout'} onClose={closeSheet} title="Log workout">
-        <WorkoutForm onSaved={onSaved} />
+        <Suspense fallback={<ScreenLoader />}>
+          <WorkoutForm onSaved={onSaved} />
+        </Suspense>
       </Sheet>
 
       <Sheet open={activeSheet === 'profile'} onClose={closeSheet} title="Your profile">
@@ -414,6 +441,15 @@ export function AppShell() {
       <Sheet open={activeSheet === 'settings'} onClose={closeSheet} title="Settings">
         <SettingsForm onSaved={closeSheet} />
       </Sheet>
+    </div>
+  );
+}
+
+// Shown briefly the first time a code-split tab is opened, while its chunk loads.
+function ScreenLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
     </div>
   );
 }

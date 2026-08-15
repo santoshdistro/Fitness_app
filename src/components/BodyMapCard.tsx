@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { primaryMuscle, exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
+import { primaryMuscle, MUSCLE_LABEL, muscleHeat, type MuscleKey } from '../data/muscles';
+import { exercisesForMuscle, type MuscleExercise } from '../data/muscleExercises';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
 import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
