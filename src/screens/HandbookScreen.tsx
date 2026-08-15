@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Boxes, Check, ChevronRight, Clock, Cookie, Play, Plus, Snowflake, Sparkles, Utensils } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient';
+import { insertFoodLog } from '../lib/foodLog';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { MealCategory } from '../types/database';
 import { useProfile } from '../hooks/useProfile';
@@ -457,7 +457,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
     const n = Math.max(0.25, Number(servings) || 1);
     const s = (v: number) => Math.round(v * n);
     setLogState('saving');
-    const { error } = await supabase.from('food_logs').insert({
+    const { error } = await insertFoodLog({
       user_id: session.user.id,
       meal_name: n === 1 ? recipe.name : `${recipe.name} (${n}×)`,
       meal_category: category,
@@ -465,6 +465,8 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
       protein_g: s(recipe.perServing.protein_g),
       carbs_g: s(recipe.perServing.carbs_g),
       fat_g: s(recipe.perServing.fat_g),
+      amount: n,
+      unit: 'serving',
     });
     setLogState(error ? 'idle' : 'saved');
   }

@@ -13,11 +13,19 @@ function isUnknownColumn(error: { code?: string; message?: string } | null): boo
   );
 }
 
-export async function insertFoodLog(row: Record<string, unknown>) {
-  const first = await supabase.from('food_logs').insert(row);
-  if (first.error && isUnknownColumn(first.error) && ('amount' in row || 'unit' in row)) {
-    const { amount: _a, unit: _u, ...rest } = row;
-    return supabase.from('food_logs').insert(rest);
+type Row = Record<string, unknown>;
+const stripAmount = (r: Row): Row => {
+  const { amount: _a, unit: _u, ...rest } = r;
+  return rest;
+};
+
+// Accepts a single row or an array (batch). Retries without amount/unit if the
+// DB rejects those columns (migration 0023 not yet applied).
+export async function insertFoodLog(rows: Row | Row[]) {
+  const first = await supabase.from('food_logs').insert(rows as Row);
+  if (first.error && isUnknownColumn(first.error)) {
+    const stripped = Array.isArray(rows) ? rows.map(stripAmount) : stripAmount(rows);
+    return supabase.from('food_logs').insert(stripped as Row);
   }
   return first;
 }

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowLeftRight, Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { insertFoodLog } from '../lib/foodLog';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
@@ -299,7 +300,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     if (!session?.user || items.length === 0) return;
     setSaving(true);
     const meal_timestamp = timestampForDay();
-    await supabase.from('food_logs').insert(
+    await insertFoodLog(
       items.map(i => ({
         user_id: session.user!.id,
         meal_name: i.name,
@@ -316,6 +317,8 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
         trans_fat_g: i.transFat,
         poly_fat_g: i.polyFat,
         mono_fat_g: i.monoFat,
+        amount: i.grams,
+        unit: i.unit,
       })),
     );
     setSaving(false);
@@ -338,7 +341,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     const previousMeals = (data as FoodLog[]) ?? [];
     if (previousMeals.length > 0) {
       const meal_timestamp = timestampForDay();
-      await supabase.from('food_logs').insert(
+      await insertFoodLog(
         previousMeals.map(meal => ({
           user_id: session.user!.id,
           meal_name: meal.meal_name,
@@ -350,6 +353,8 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
           fat_g: meal.fat_g,
           fiber_g: meal.fiber_g,
           sodium_mg: meal.sodium_mg,
+          amount: meal.amount,
+          unit: meal.unit,
         })),
       );
       await refreshNutrition();
