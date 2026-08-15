@@ -196,7 +196,7 @@ export function AppShell() {
         type="button"
         onClick={() => setActiveSheet('quickAdd')}
         aria-label="Quick add"
-        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
+        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)] transition-transform active:scale-90"
         style={{
           background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
           bottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
