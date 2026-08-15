@@ -11,7 +11,10 @@ export type CravingKey =
   | 'fried'
   | 'creamy'
   | 'fizzy'
-  | 'alcohol';
+  | 'alcohol'
+  | 'spicy'
+  | 'cheesy'
+  | 'coffee';
 
 export type CravingSwap = {
   name: string;
@@ -161,6 +164,54 @@ export const CRAVINGS: Craving[] = [
       { name: 'Kombucha (in a glass)', emoji: '🍾', kcal: 40, why: 'Fizzy, complex, sipping-friendly wind-down' },
       { name: 'Herbal / chamomile tea', emoji: '🍵', kcal: 5, why: 'If it’s really about relaxing, this does the wind-down job' },
       { name: 'The real one — fit it in', emoji: '🍻', kcal: 200, why: 'Have it. Log it, skip a snack elsewhere, enjoy it guilt-free' },
+    ],
+  },
+  {
+    key: 'spicy',
+    label: 'Spicy / bold flavour',
+    emoji: '🌶️',
+    tint: '#e11d48',
+    reason:
+      'A spice craving is usually about excitement and heat, not calories — you can pile on flavour for almost nothing.',
+    realThing: { name: 'Spicy fried snack / chips', kcal: 350 },
+    swaps: [
+      { name: 'Chilli-lime roasted chickpeas', emoji: '🫘', kcal: 120, why: 'Fiery crunch with protein and fibre' },
+      { name: 'Kimchi / hot pickle', emoji: '🥬', kcal: 30, why: 'Big sour-spicy hit, gut-friendly, near-zero calories' },
+      { name: 'Hot sauce on egg / yogurt dip', emoji: '🔥', kcal: 90, why: 'Add heat to protein you already have' },
+      { name: 'Spicy edamame', emoji: '🫛', kcal: 130, why: 'Chilli + 12g protein, slow to eat' },
+      { name: 'Cucumber + tajín / chaat masala', emoji: '🥒', kcal: 40, why: 'Cold, crunchy, tangy-spicy for basically nothing' },
+    ],
+  },
+  {
+    key: 'cheesy',
+    label: 'Cheesy / savoury',
+    emoji: '🧀',
+    tint: '#eab308',
+    reason:
+      'Cheese cravings are about salt, fat and umami. You can hit all three with high-protein cheeses instead of a whole block.',
+    realThing: { name: 'Cheesy pizza slice / nachos', kcal: 400 },
+    swaps: [
+      { name: 'Cottage cheese + pepper', emoji: '🧀', kcal: 120, why: 'Creamy, salty, ~14g protein for the calories of a nibble' },
+      { name: 'Light babybel / string cheese', emoji: '🧀', kcal: 60, why: 'Portioned so you stop at one' },
+      { name: 'Nutritional yeast on popcorn', emoji: '🍿', kcal: 110, why: 'Cheesy-umami flavour, no actual cheese load' },
+      { name: 'Grilled halloumi / paneer', emoji: '🧀', kcal: 200, why: 'Salty, squeaky, satisfying — grill a small slab' },
+      { name: 'Parmesan crisps', emoji: '🧀', kcal: 130, why: 'Crunchy, intensely cheesy, a little goes far' },
+    ],
+  },
+  {
+    key: 'coffee',
+    label: 'Coffee / creamy drink',
+    emoji: '☕',
+    tint: '#78350f',
+    reason:
+      'Often it’s the warm ritual and a little sweetness you want. A fancy café drink can hide 300+ calories — easy to rebuild lighter. Go easy on caffeine late (it’s a mild diuretic).',
+    realThing: { name: 'Flavoured latte / frappé', kcal: 300 },
+    swaps: [
+      { name: 'Protein iced coffee', emoji: '🥤', kcal: 120, why: 'Creamy, sweet, 20g protein — a dessert-y coffee that fills you' },
+      { name: 'Cappuccino, skimmed milk', emoji: '☕', kcal: 60, why: 'Frothy café feel, a fraction of a flavoured latte' },
+      { name: 'Coffee + cinnamon + splash milk', emoji: '☕', kcal: 30, why: 'Warm ritual, naturally sweet-smelling, tiny calories' },
+      { name: 'Decaf oat flat white (small)', emoji: '☕', kcal: 90, why: 'The creamy hit without a late caffeine spike' },
+      { name: 'Protein hot chocolate', emoji: '🍫', kcal: 130, why: 'If it’s really the cosy warm drink you want' },
     ],
   },
 ];

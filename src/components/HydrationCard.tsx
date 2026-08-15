@@ -132,6 +132,39 @@ export function HydrationCard({
         <p className="-mt-1 text-center text-[9px] text-[var(--muted)]">Tap a mineral to see your sources & best foods</p>
       ) : null}
 
+      {/* Potassium : sodium balance — the ratio that actually drives cramps and
+          blood pressure. Aim for at least as much potassium as sodium. */}
+      {intake && intake.sodiumMg + intake.potassiumMg > 0 ? (() => {
+        const na = intake.sodiumMg;
+        const k = intake.potassiumMg;
+        const total = na + k;
+        const naShare = Math.round((na / total) * 100);
+        const balanced = k >= na; // potassium at least matches sodium
+        return (
+          <div className="rounded-2xl bg-[var(--bg)] p-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Sodium : potassium balance</p>
+              <span className={`text-[10px] font-bold ${balanced ? 'text-green-600' : 'text-amber-600'}`}>
+                {balanced ? 'Balanced' : 'Low potassium'}
+              </span>
+            </div>
+            <div className="flex h-2 overflow-hidden rounded-full">
+              <div style={{ width: `${naShare}%`, background: '#f59e0b' }} />
+              <div style={{ width: `${100 - naShare}%`, background: '#22c55e' }} />
+            </div>
+            <div className="mt-1 flex items-center justify-between text-[9px] font-semibold">
+              <span className="text-amber-600">Na {Math.round(na)} mg</span>
+              <span className="text-green-600">K {Math.round(k)} mg</span>
+            </div>
+            {!balanced ? (
+              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--muted)]">
+                Sodium is outpacing potassium — lean on banana, spinach, beans or coconut water to even it out.
+              </p>
+            ) : null}
+          </div>
+        );
+      })() : null}
+
       {dilutionRisk ? (
         <div className="flex items-start gap-2 rounded-2xl bg-amber-500/10 px-3 py-2">
           <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-500" />
