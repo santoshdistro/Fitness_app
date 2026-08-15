@@ -67,7 +67,7 @@ export function TodayDashboard({
                 </div>
                 <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-[var(--bg)]">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full transition-[width] duration-500 ease-out"
                     style={{
                       width: `${Math.min(100, item.progress * 100)}%`,
                       background: item.done ? '#22c55e' : 'var(--accent)',

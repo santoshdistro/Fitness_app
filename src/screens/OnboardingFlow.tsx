@@ -188,7 +188,7 @@ export function OnboardingFlow({ onComplete }: Props) {
         )}
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--card-border)]">
           <div
-            className="h-full rounded-full transition-all"
+            className="h-full rounded-full transition-[width] duration-500 ease-out"
             style={{ width: `${((step + 1) / steps.length) * 100}%`, background: 'var(--accent)' }}
           />
         </div>

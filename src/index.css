@@ -305,20 +305,65 @@ body {
 }
 
 .anim-fade-rise {
-  animation: fadeRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeRise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .anim-fade-in {
-  animation: fadeIn 0.8s ease-out both;
+  animation: fadeIn 0.4s ease-out both;
 }
 
 .anim-drop-in {
-  animation: dropIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: dropIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .anim-sheet-up {
   animation: sheetUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform;
+}
+
+@keyframes sheetDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Sheet exit: slide the panel back down and dim the backdrop out, so sheets
+   don't pop out of existence. Backdrop fades faster than it opens. */
+.anim-sheet-down {
+  animation: sheetDown 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
+  will-change: transform;
+}
+
+.anim-backdrop-in {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+.anim-backdrop-out {
+  animation: fadeOut 0.2s ease-in both;
+}
+
+/* Press feedback on every button. Kept in @layer base so any element that sets
+   its own Tailwind transition-* / active:scale-* utility overrides this. */
+@layer base {
+  button:not([disabled]) {
+    transition: transform 0.14s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  button:not([disabled]):active {
+    transform: scale(0.97);
+  }
 }
 
 .anim-slide-next {
@@ -355,9 +400,24 @@ body {
   .anim-fade-in,
   .anim-drop-in,
   .anim-sheet-up,
+  .anim-sheet-down,
+  .anim-backdrop-out,
   .anim-slide-next,
   .anim-slide-prev,
   .shimmer {
     animation: none;
+  }
+
+  .anim-backdrop-in {
+    animation: fadeIn 0.2s ease-out both;
+  }
+
+  /* No press-scale or sliding nav highlight when motion is reduced. */
+  button:not([disabled]):active {
+    transform: none;
+  }
+
+  .nav-pill {
+    transition: none;
   }
 }

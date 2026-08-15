@@ -196,7 +196,7 @@ export function AppShell() {
         type="button"
         onClick={() => setActiveSheet('quickAdd')}
         aria-label="Quick add"
-        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)]"
+        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)] transition-transform active:scale-90"
         style={{
           background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
           bottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
@@ -215,10 +215,10 @@ export function AppShell() {
         >
           {/* Sliding glass highlight */}
           <div
-            className="pointer-events-none absolute inset-y-0 rounded-2xl transition-[left] duration-300 ease-out"
+            className="nav-pill pointer-events-none absolute inset-y-0 left-0 rounded-2xl transition-transform duration-200 ease-out"
             style={{
-              left: `${(TABS.findIndex(t => t.key === activeTab) * 100) / TABS.length}%`,
               width: `${100 / TABS.length}%`,
+              transform: `translateX(${TABS.findIndex(t => t.key === activeTab) * 100}%)`,
               background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
               border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
             }}
