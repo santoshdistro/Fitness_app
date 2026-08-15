@@ -21,10 +21,16 @@ export function MealEditSheet({
   mode: MealEditMode;
   saving: boolean;
   onClose: () => void;
-  onConfirm: (multiplier: number, category: MealCategory) => void;
+  onConfirm: (multiplier: number, category: MealCategory, amount: number | null) => void;
 }) {
   const [mult, setMult] = useState(1);
   const [category, setCategory] = useState<MealCategory>('breakfast');
+
+  // When the entry recorded how much was logged, let the user adjust by that
+  // amount (e.g. grams) directly instead of by an abstract multiplier.
+  const hasAmount = meal?.amount != null && !!meal?.unit;
+  const unitLbl = meal?.unit === 'serving' ? 'serving' : meal?.unit ?? '';
+  const curAmount = meal?.amount != null ? Math.round(meal.amount * mult * 100) / 100 : null;
 
   useEffect(() => {
     if (meal) {
@@ -48,7 +54,11 @@ export function MealEditSheet({
         <div className="flex flex-col gap-4">
           <div>
             <p className="text-sm font-semibold text-[var(--text)]">{meal.meal_name}</p>
-            <p className="text-[11px] text-[var(--muted)]">1× = the portion you originally logged</p>
+            <p className="text-[11px] text-[var(--muted)]">
+              {hasAmount
+                ? `Originally ${meal.amount} ${unitLbl} — adjust the amount below`
+                : '1× = the portion you originally logged'}
+            </p>
           </div>
 
           {/* Scaled calories */}
@@ -92,9 +102,33 @@ export function MealEditSheet({
             </div>
           </div>
 
+          {/* Amount editor (when the logged amount is known) */}
+          {hasAmount ? (
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Amount</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  value={curAmount ?? ''}
+                  onChange={e => {
+                    const v = Number(e.target.value) || 0;
+                    setMult(meal.amount ? v / meal.amount : 1);
+                  }}
+                  className="w-28 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-base font-semibold text-[var(--text)]"
+                />
+                <span className="text-sm font-semibold text-[var(--muted)]">{unitLbl}</span>
+              </div>
+            </div>
+          ) : null}
+
           {/* Quantity picker */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Quantity</label>
+            <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">
+              {hasAmount ? 'Or quick multiplier' : 'Quantity'}
+            </label>
             <div className="flex gap-1.5">
               {QUICK.map(q => (
                 <button
@@ -130,7 +164,7 @@ export function MealEditSheet({
           <button
             type="button"
             disabled={saving || mult <= 0}
-            onClick={() => onConfirm(mult, category)}
+            onClick={() => onConfirm(mult, category, curAmount)}
             className="rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
           >

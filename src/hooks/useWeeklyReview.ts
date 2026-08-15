@@ -18,8 +18,6 @@ export type WeeklyReview = {
   weightChangeKg: number | null;
   /** Mean of this week's weigh-ins (kg) — the settled figure for the week. */
   avgWeightKg: number | null;
-  /** Days elapsed in the current calendar week so far (Mon=1 … today). */
-  daysSoFar: number;
 };
 
 type Args = { calorieTarget?: number | null; proteinTarget?: number | null };
@@ -122,7 +120,6 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       calorieOnTargetDays,
       weightChangeKg,
       avgWeightKg,
-      daysSoFar: (new Date(`${today}T00:00:00`).getDay() + 6) % 7 + 1,
     });
     setLoading(false);
   }, [session?.user, calorieTarget, proteinTarget]);

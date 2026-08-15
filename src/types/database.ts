@@ -58,6 +58,9 @@ export type FoodLog = {
   trans_fat_g: number | null;
   poly_fat_g: number | null;
   mono_fat_g: number | null;
+  /** How much was logged and in what unit (g / ml / serving) — migration 0023. */
+  amount: number | null;
+  unit: string | null;
 };
 
 export type ProgressPhoto = {

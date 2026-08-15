@@ -358,7 +358,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
   }
 
   // Portion edit from the diary — updates the existing row in place.
-  async function applyMealChange(multiplier: number, cat: MealCategory) {
+  async function applyMealChange(multiplier: number, cat: MealCategory, amount: number | null) {
     if (!session?.user || !editingMeal) return;
     const { meal } = editingMeal;
     const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
@@ -377,6 +377,9 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
         poly_fat_g: s(meal.poly_fat_g),
         mono_fat_g: s(meal.mono_fat_g),
         meal_category: cat,
+        // Only touch amount when the entry already had one (so the column
+        // exists) — keeps pre-migration entries and DBs working.
+        ...(meal.amount != null && amount != null ? { amount } : {}),
       })
       .eq('id', meal.id);
     await refreshNutrition();
@@ -759,6 +762,12 @@ function AddMealTab(p: AddMealProps) {
                           {m.calories ?? 0} kcal
                         </p>
                       </div>
+                      {m.amount != null && m.unit ? (
+                        <p className="text-[10px] text-[var(--muted)]">
+                          {m.amount}{' '}
+                          {m.unit === 'serving' ? (m.amount === 1 ? 'serving' : 'servings') : m.unit}
+                        </p>
+                      ) : null}
                       <MacroSplitBar
                         protein={m.protein_g ?? 0}
                         carbs={m.carbs_g ?? 0}

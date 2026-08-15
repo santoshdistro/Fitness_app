@@ -43,7 +43,7 @@ export function WeeklyReviewCard({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="Days logged" value={`${review.daysLogged}/${review.daysSoFar}`} />
+        <Stat label="Days logged" value={`${review.daysLogged}/7`} />
         <Stat
           label="Avg kcal"
           value={review.avgCalories != null ? String(review.avgCalories) : '—'}

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Search, Sparkles } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { insertFoodLog } from '../../lib/foodLog';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
@@ -406,7 +406,7 @@ export function MealForm({ onSaved, initial }: Props) {
       detailBase && detailBase.baseCalories > 0 ? finalCalories / detailBase.baseCalories : null;
     const scale = (v: number) => (ratio != null ? Math.round(v * ratio * 10) / 10 : null);
 
-    const { error: saveError } = await supabase.from('food_logs').insert({
+    const { error: saveError } = await insertFoodLog({
       user_id: session.user.id,
       meal_name: mealName,
       meal_category: category,
@@ -421,6 +421,8 @@ export function MealForm({ onSaved, initial }: Props) {
       mono_fat_g: detailBase ? scale(detailBase.monoFat) : null,
       poly_fat_g: detailBase ? scale(detailBase.polyFat) : null,
       trans_fat_g: detailBase ? scale(detailBase.transFat) : null,
+      amount: amount ? Number(amount) : null,
+      unit,
     });
 
     setSaving(false);
