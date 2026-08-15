@@ -38,12 +38,12 @@ export function WeeklyReviewCard({
         </div>
         <div>
           <p className="text-sm font-semibold text-[var(--text)]">This week</p>
-          <p className="text-[11px] text-[var(--muted)]">Last 7 days</p>
+          <p className="text-[11px] text-[var(--muted)]">Since Monday</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="Days logged" value={`${review.daysLogged}/7`} />
+        <Stat label="Days logged" value={`${review.daysLogged}/${review.daysSoFar}`} />
         <Stat
           label="Avg kcal"
           value={review.avgCalories != null ? String(review.avgCalories) : '—'}

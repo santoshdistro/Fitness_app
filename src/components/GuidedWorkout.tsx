@@ -47,6 +47,9 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   const [phase, setPhase] = useState<'active' | 'resting' | 'done'>('active');
   const [restDuration, setRestDuration] = useState(90);
   const [restLeft, setRestLeft] = useState(0);
+  // Absolute end time for the rest countdown, so it survives the phone locking
+  // or the app being backgrounded (JS timers pause; wall-clock time does not).
+  const restEndRef = useRef(0);
   const [saving, setSaving] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -56,21 +59,33 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   // Demonstration photos for the current move (resolved by id or by name).
   const demoImages = current ? exerciseImagesFor(current.exerciseId ?? current.name).slice(0, 2) : [];
 
-  // Countdown while resting.
+  // Countdown while resting — derived from the wall-clock end time so locking
+  // the phone or switching apps doesn't pause it; on return it catches up.
   useEffect(() => {
     if (phase !== 'resting') return;
-    if (restLeft <= 0) {
-      setPhase('active');
-      try {
-        navigator.vibrate?.(200);
-      } catch {
-        /* ignore */
+    function tick() {
+      const left = Math.max(0, Math.ceil((restEndRef.current - Date.now()) / 1000));
+      setRestLeft(left);
+      if (left <= 0) {
+        setPhase('active');
+        try {
+          navigator.vibrate?.(200);
+        } catch {
+          /* ignore */
+        }
       }
-      return;
     }
-    const t = setTimeout(() => setRestLeft(s => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [phase, restLeft]);
+    tick();
+    const id = setInterval(tick, 250);
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [phase]);
 
   // Persist progress so a reload / navigating away doesn't lose logged sets.
   // (Not while on the completion screen — that's cleared when saved.)
@@ -81,6 +96,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   }, [logged, exIndex, setNum, phase, title, exercises]);
 
   function startRest() {
+    restEndRef.current = Date.now() + restDuration * 1000;
     setRestLeft(restDuration);
     setPhase('resting');
   }
@@ -120,6 +136,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
 
   function completeSet() {
     if (!current) return;
+    // Logging a set means you've chosen to continue — retire the resume banner.
+    if (didResume) setDidResume(false);
     const entry: ExerciseSet = cardio
       ? {
           exercise: current.name,

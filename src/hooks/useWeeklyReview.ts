@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays, endOfDateIso, startOfDateIso, todayDateString } from '../utils/date';
+import { endOfDateIso, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
 import type { DailyLog, FoodLog } from '../types/database';
 
 export type WeeklyReview = {
@@ -18,6 +18,8 @@ export type WeeklyReview = {
   weightChangeKg: number | null;
   /** Mean of this week's weigh-ins (kg) — the settled figure for the week. */
   avgWeightKg: number | null;
+  /** Days elapsed in the current calendar week so far (Mon=1 … today). */
+  daysSoFar: number;
 };
 
 type Args = { calorieTarget?: number | null; proteinTarget?: number | null };
@@ -37,7 +39,9 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
     }
     setLoading(true);
     const today = todayDateString();
-    const start = addDays(today, -6);
+    // The current calendar week so far (Monday → today), matching the app's
+    // Monday-start week used by the weekly overview — not a rolling 7 days.
+    const start = startOfWeek(today);
 
     const [foodRes, dailyRes] = await Promise.all([
       supabase
@@ -118,6 +122,7 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       calorieOnTargetDays,
       weightChangeKg,
       avgWeightKg,
+      daysSoFar: (new Date(`${today}T00:00:00`).getDay() + 6) % 7 + 1,
     });
     setLoading(false);
   }, [session?.user, calorieTarget, proteinTarget]);

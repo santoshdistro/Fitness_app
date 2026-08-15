@@ -193,7 +193,10 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
         <>
           <div className="relative" style={{ height: 150 }}>
             <div className="absolute left-0 top-0 text-[10px] text-[var(--muted)]">{Math.round(max)}"</div>
-            <div className="absolute bottom-4 left-0 text-[10px] text-[var(--muted)]">{Math.round(min)}"</div>
+            {/* Plot area — reserves 22px below for the date row so the lowest
+                line/points never sit on top of the dates. */}
+            <div className="absolute inset-x-0 top-0" style={{ bottom: 22 }}>
+            <div className="absolute bottom-0 left-0 text-[10px] text-[var(--muted)]">{Math.round(min)}"</div>
             <ChartMilestones marks={milestonesForBuckets(milestones, buckets)} />
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               {active != null ? (
@@ -235,7 +238,7 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
             )}
 
             {/* Tap columns to inspect a bucket */}
-            <div className="absolute inset-0 bottom-4 flex">
+            <div className="absolute inset-0 flex">
               {buckets.map((b, i) => (
                 <button
                   key={i}
@@ -245,6 +248,7 @@ export function MeasurementTrendChart({ group, onGroupChange }: Props) {
                   className="h-full flex-1"
                 />
               ))}
+            </div>
             </div>
 
             {/* x labels */}
