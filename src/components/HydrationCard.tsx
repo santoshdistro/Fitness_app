@@ -201,7 +201,7 @@ export function HydrationCard({
         style={{ background: applied ? '#16a34a' : 'linear-gradient(135deg, #0ea5e9, #0369a1)' }}
       >
         {applied ? (
-          <><Check size={14} /> Water goal set to {(targets.waterMl / 1000).toFixed(1)} L</>
+          <><Check size={14} className="anim-check-pop" /> Water goal set to {(targets.waterMl / 1000).toFixed(1)} L</>
         ) : (
           <>Use {(targets.waterMl / 1000).toFixed(1)} L as my water goal</>
         )}
@@ -282,7 +282,7 @@ export function HydrationCard({
                         className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white transition-transform active:scale-95 disabled:opacity-80"
                         style={{ background: addedFood === f.name ? '#16a34a' : g.tint }}
                       >
-                        {addedFood === f.name ? <Check size={12} /> : <Plus size={12} />}
+                        {addedFood === f.name ? <Check size={12} className="anim-check-pop" /> : <Plus size={12} />}
                         {f.mg}
                       </button>
                     ) : (

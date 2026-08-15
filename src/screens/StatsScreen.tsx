@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import type { MineralKey } from '../data/mineralGuide';
 import { estimateMineralsFromMeals } from '../data/foodMinerals';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
@@ -312,7 +313,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
               <RefreshCw size={14} className={refreshingWeight ? 'animate-spin' : ''} />
             </button>
             <p className="text-sm font-bold text-[var(--text)]">
-              {Math.round(totals.calories)}{' '}
+              <AnimatedNumber value={totals.calories} />{' '}
               <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
             </p>
           </div>

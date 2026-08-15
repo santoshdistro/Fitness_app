@@ -217,7 +217,7 @@ function CravingDetail({ craving, onBack }: { craving: Craving; onBack: () => vo
           }}
         >
           {loggedName === craving.realThing.name ? (
-            <><Check size={14} /> Logged — no stress</>
+            <><Check size={14} className="anim-check-pop" /> Logged — no stress</>
           ) : (
             <><Plus size={14} /> Log “{craving.realThing.name}” (~{craving.realThing.kcal} kcal)</>
           )}
@@ -267,7 +267,7 @@ function SwapRow({
           className="flex h-6 w-6 items-center justify-center rounded-full text-white"
           style={{ background: logged ? '#16a34a' : 'var(--accent)' }}
         >
-          {logged ? <Check size={13} /> : <Plus size={13} />}
+          {logged ? <Check size={13} className="anim-check-pop" /> : <Plus size={13} />}
         </button>
       </div>
     </div>
