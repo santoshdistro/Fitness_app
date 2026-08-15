@@ -92,8 +92,7 @@ export function HydrationCard({
           <button
             type="button"
             onClick={onLogElectrolytes}
-            className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-bold text-[var(--accent)] transition-transform active:scale-95"
           >
             <Zap size={12} /> Log
           </button>

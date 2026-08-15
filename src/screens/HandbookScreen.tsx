@@ -595,11 +595,12 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
           type="button"
           onClick={addToPlan}
           disabled={planned}
-          className="flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-80"
-          style={{ background: planned ? '#4b3fe0' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          className={`flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold transition-transform active:scale-[0.98] disabled:opacity-80 ${
+            planned ? 'text-green-600 bg-green-500/10' : 'text-[var(--accent)] bg-[var(--accent)]/10'
+          }`}
         >
           {planned ? (
-            <><Check size={15} /> Added to plan</>
+            <><Check size={15} className="anim-check-pop" /> Added to plan</>
           ) : (
             <><Plus size={15} /> Add to daily plan</>
           )}
