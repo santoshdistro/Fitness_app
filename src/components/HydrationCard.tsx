@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Check, ChevronRight, Droplets, Zap } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Droplets, Plus, Zap } from 'lucide-react';
 import type { HydrationTargets } from '../utils/calculations';
 import { MINERAL_GUIDES, type MineralKey } from '../data/mineralGuide';
 import { Sheet } from './Sheet';
@@ -26,6 +26,7 @@ export function HydrationCard({
   currentWaterGoalMl,
   onApplyWater,
   onLogElectrolytes,
+  onAddMineralFromFood,
 }: {
   targets: HydrationTargets;
   intake?: HydrationIntake;
@@ -33,9 +34,18 @@ export function HydrationCard({
   currentWaterGoalMl: number;
   onApplyWater: (ml: number) => void;
   onLogElectrolytes?: () => void;
+  onAddMineralFromFood?: (key: MineralKey, mg: number) => void | Promise<void>;
 }) {
   const applied = currentWaterGoalMl === targets.waterMl;
   const [openMineral, setOpenMineral] = useState<MineralKey | null>(null);
+  const [addedFood, setAddedFood] = useState<string | null>(null);
+
+  async function handleAddFood(key: MineralKey, name: string, mg: number) {
+    if (!onAddMineralFromFood) return;
+    setAddedFood(name);
+    await onAddMineralFromFood(key, mg);
+    window.setTimeout(() => setAddedFood(cur => (cur === name ? null : cur)), 1400);
+  }
 
   const cells: {
     label: string;
@@ -235,7 +245,7 @@ export function HydrationCard({
               )}
               {remaining > 0 ? (
                 <p className="mt-2 text-[11px] font-semibold" style={{ color: g.tint }}>
-                  {remaining} mg to go — try one of these:
+                  {remaining} mg to go{onAddMineralFromFood ? ' — tap a food below to log what you ate' : ''}:
                 </p>
               ) : (
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-green-600">
@@ -255,7 +265,21 @@ export function HydrationCard({
                       <p className="truncate text-[13px] font-semibold text-[var(--text)]">{f.name}</p>
                       <p className="text-[10px] text-[var(--muted)]">{f.per}</p>
                     </div>
-                    <span className="shrink-0 text-[13px] font-black" style={{ color: g.tint }}>+{f.mg} mg</span>
+                    {onAddMineralFromFood ? (
+                      <button
+                        type="button"
+                        onClick={() => handleAddFood(g.key, f.name, f.mg)}
+                        disabled={addedFood === f.name}
+                        aria-label={`Add ${f.name}`}
+                        className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white transition-transform active:scale-95 disabled:opacity-80"
+                        style={{ background: addedFood === f.name ? '#16a34a' : g.tint }}
+                      >
+                        {addedFood === f.name ? <Check size={12} /> : <Plus size={12} />}
+                        {f.mg}
+                      </button>
+                    ) : (
+                      <span className="shrink-0 text-[13px] font-black" style={{ color: g.tint }}>+{f.mg} mg</span>
+                    )}
                   </div>
                 ))}
               </div>

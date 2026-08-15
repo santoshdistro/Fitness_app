@@ -6,6 +6,9 @@ import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
+import type { MineralKey } from '../data/mineralGuide';
 import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
@@ -73,7 +76,26 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
   const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(365);
   const { measurements, deleteMeasurement } = useRecentMeasurements(200);
   const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
+  const { session } = useAuth();
   const [refreshingWeight, setRefreshingWeight] = useState(false);
+
+  // One-tap "I ate this" from a mineral's best-foods list — adds the food's mg
+  // to today's running electrolyte total (daily_logs), no per-food DB columns
+  // needed. Sodium here stacks on top of dietary sodium already counted.
+  async function addMineralFromFood(key: MineralKey, mg: number) {
+    if (!session?.user) return;
+    const column = `${key}_mg` as 'sodium_mg' | 'potassium_mg' | 'magnesium_mg';
+    const current = (todayLog?.[column] as number | null) ?? 0;
+    await supabase.from('daily_logs').upsert(
+      {
+        user_id: session.user.id,
+        log_date: todayDateString(),
+        [column]: Math.round(current + mg),
+      },
+      { onConflict: 'user_id,log_date' },
+    );
+    await refreshTodayLog();
+  }
   const { profile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
   const { data: adaptiveTdee } = useAdaptiveTdee();
@@ -232,6 +254,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
               currentWaterGoalMl={settings.waterGoalMl}
               onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
               onLogElectrolytes={onLogElectrolytes}
+              onAddMineralFromFood={addMineralFromFood}
             />
           </div>
         );
