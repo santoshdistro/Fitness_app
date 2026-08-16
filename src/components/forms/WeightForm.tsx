@@ -31,7 +31,7 @@ export function WeightForm({ onSaved }: Props) {
     populatedFor.current = logDate;
     setWeight(
       dayLog?.weight != null
-        ? String(Math.round(kgToUnit(dayLog.weight, settings.weightUnit) * 10) / 10)
+        ? String(Math.round(kgToUnit(dayLog.weight, settings.weightUnit) * 100) / 100)
         : '',
     );
   }, [dayLog, dayLogLoading, logDate, settings.weightUnit]);

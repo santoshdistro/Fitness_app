@@ -15,8 +15,10 @@ export function kgToUnit(kg: number, unit: WeightUnit): number {
 export function unitToKg(value: number, unit: WeightUnit): number {
   return unit === 'lb' ? value / LB_PER_KG : value;
 }
-/** Weight value as a display string (no unit suffix), rounded for the unit. */
-export function weightValue(kg: number | null | undefined, unit: WeightUnit, digits = 1): string {
+/** Weight value as a display string (no unit suffix). Up to 2 decimals so a
+ *  precise weigh-in like 10.55 isn't shown as 10.6; trailing zeros are dropped
+ *  (77.1 stays "77.1"). */
+export function weightValue(kg: number | null | undefined, unit: WeightUnit, digits = 2): string {
   if (kg == null) return '--';
   return String(round(kgToUnit(kg, unit), digits));
 }
