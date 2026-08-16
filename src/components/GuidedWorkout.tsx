@@ -47,8 +47,11 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   const [phase, setPhase] = useState<'active' | 'resting' | 'done'>('active');
   const [restDuration, setRestDuration] = useState(90);
   const [restLeft, setRestLeft] = useState(0);
-  // Absolute end time for the rest countdown, so it survives the phone locking
-  // or the app being backgrounded (JS timers pause; wall-clock time does not).
+  // Absolute start/end times for the rest countdown, so it survives the phone
+  // locking or the app being backgrounded (JS timers pause; wall-clock time does
+  // not). The start time also lets a mid-rest duration change keep the elapsed
+  // seconds and only adjust what's left.
+  const restStartRef = useRef(0);
   const restEndRef = useRef(0);
   const [saving, setSaving] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
@@ -96,9 +99,26 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   }, [logged, exIndex, setNum, phase, title, exercises]);
 
   function startRest() {
-    restEndRef.current = Date.now() + restDuration * 1000;
+    restStartRef.current = Date.now();
+    restEndRef.current = restStartRef.current + restDuration * 1000;
     setRestLeft(restDuration);
     setPhase('resting');
+  }
+
+  // Change the rest length mid-countdown: keep the seconds already elapsed and
+  // re-anchor the end time to (start + new length). So 90s with 20s gone → pick
+  // 45s → 25s left; 45s with 10s gone → pick 90s → 80s left. If the new length
+  // is already past, the rest is over.
+  function changeRestDuration(sec: number) {
+    setRestDuration(sec);
+    const newEnd = restStartRef.current + sec * 1000;
+    restEndRef.current = newEnd;
+    const left = Math.max(0, Math.ceil((newEnd - Date.now()) / 1000));
+    if (left <= 0) {
+      setPhase('active');
+    } else {
+      setRestLeft(left);
+    }
   }
 
   function restartSession() {
@@ -264,10 +284,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                 <button
                   key={sec}
                   type="button"
-                  onClick={() => {
-                    setRestDuration(sec);
-                    setRestLeft(sec);
-                  }}
+                  onClick={() => changeRestDuration(sec)}
                   className="rounded-full px-3 py-1.5 text-xs font-semibold"
                   style={
                     restDuration === sec
