@@ -19,6 +19,9 @@ export type FoodSuggestion = {
   trans_fat_g: number | null;
   poly_fat_g: number | null;
   mono_fat_g: number | null;
+  /** The amount + unit of the most recent time this food was logged. */
+  amount: number | null;
+  unit: string | null;
   count: number;
 };
 
@@ -76,6 +79,8 @@ export function useFoodSuggestions() {
           trans_fat_g: meal.trans_fat_g,
           poly_fat_g: meal.poly_fat_g,
           mono_fat_g: meal.mono_fat_g,
+          amount: meal.amount,
+          unit: meal.unit,
           count: 1,
         });
       }
@@ -119,13 +124,14 @@ export function searchMyFoods(all: FoodSuggestion[], query: string, limit = 8): 
   return scored.slice(0, limit).map(x => x.f);
 }
 
-// A previously-logged food as a per-serving search result, so it can be
-// re-added from the food search anywhere with its saved macros.
+// A previously-logged food as a search result, so it can be re-added anywhere
+// with its saved macros. The stored macros are the TOTAL for the amount that
+// was logged, so we divide back to a per-unit base and default the re-add to
+// that same amount — otherwise re-adding and re-portioning would double-scale
+// (log 50 g → 84 kcal, re-add, set 50 g → 42 kcal, and so on).
 export function suggestionToSearchResult(s: FoodSuggestion, i: number): FoodSearchResult {
-  return {
-    fdcId: -200000 - i,
-    description: s.mealName,
-    brandOwner: 'Your foods',
+  const fdcId = -200000 - i;
+  const t = {
     calories: s.calories ?? 0,
     protein: s.protein_g ?? 0,
     carbs: s.carbs_g ?? 0,
@@ -137,8 +143,55 @@ export function suggestionToSearchResult(s: FoodSuggestion, i: number): FoodSear
     transFat: s.trans_fat_g ?? 0,
     polyFat: s.poly_fat_g ?? 0,
     monoFat: s.mono_fat_g ?? 0,
+  };
+  const amount = s.amount && s.amount > 0 ? s.amount : null;
+
+  // Grams/ml: express the base per-100 and default the amount to what was
+  // logged, so the macros land exactly and scaling works from there.
+  if (amount != null && (s.unit === 'g' || s.unit === 'ml')) {
+    const per100 = (v: number) => (v / amount) * 100;
+    return {
+      fdcId,
+      description: s.mealName,
+      brandOwner: 'Your foods',
+      calories: per100(t.calories),
+      protein: per100(t.protein),
+      carbs: per100(t.carbs),
+      fat: per100(t.fat),
+      fiber: per100(t.fiber),
+      sodium: per100(t.sodium),
+      sugar: per100(t.sugar),
+      satFat: per100(t.satFat),
+      transFat: per100(t.transFat),
+      polyFat: per100(t.polyFat),
+      monoFat: per100(t.monoFat),
+      isPerServing: false,
+      defaultAmount: amount,
+    };
+  }
+
+  // Serving-based (or amount unknown for old entries): express per-serving and
+  // default to the number of servings last logged.
+  const servings = amount ?? 1;
+  const perServing = (v: number) => v / servings;
+  return {
+    fdcId,
+    description: s.mealName,
+    brandOwner: 'Your foods',
+    calories: perServing(t.calories),
+    protein: perServing(t.protein),
+    carbs: perServing(t.carbs),
+    fat: perServing(t.fat),
+    fiber: perServing(t.fiber),
+    sodium: perServing(t.sodium),
+    sugar: perServing(t.sugar),
+    satFat: perServing(t.satFat),
+    transFat: perServing(t.transFat),
+    polyFat: perServing(t.polyFat),
+    monoFat: perServing(t.monoFat),
     isPerServing: true,
     servingSize: 1,
     servingSizeUnit: 'serving',
+    defaultAmount: servings,
   };
 }

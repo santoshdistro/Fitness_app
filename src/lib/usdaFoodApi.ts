@@ -60,6 +60,9 @@ export type FoodSearchResult = {
   isPerServing: boolean;
   servingSize?: number;
   servingSizeUnit?: string;
+  /** Preferred initial amount when adding (e.g. the amount last logged), in the
+   *  food's own unit — grams when per-100g, servings when per-serving. */
+  defaultAmount?: number;
 };
 
 function extractNutrient(foodNutrients: UsdaFoodNutrient[] | undefined, id: number): number {

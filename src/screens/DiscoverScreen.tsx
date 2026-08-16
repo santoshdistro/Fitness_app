@@ -231,7 +231,9 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     // a portion count; everything else scales by grams (per-100g basis).
     const unit: 'g' | 'serving' = r.isPerServing && r.servingSizeUnit === 'serving' ? 'serving' : 'g';
     const base = r.isPerServing && r.servingSize ? r.servingSize : 100;
-    const grams = base; // default amount = one serving / 100g
+    // Default the amount to what was last logged (defaultAmount) when known,
+    // else one serving / 100g.
+    const grams = r.defaultAmount ?? base;
     // Grams in one serving — real weight when the food carries one, else a 100g
     // default so the toggle is always available (the basis is editable per row).
     const gramsPerServing =
