@@ -661,7 +661,7 @@ export function MealForm({ onSaved, initial }: Props) {
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass} htmlFor="calories-input">
-              Calories
+              Calories (kcal)
             </label>
             <input
               id="calories-input"
