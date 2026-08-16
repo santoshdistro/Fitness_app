@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Activity, Camera, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
@@ -113,6 +113,43 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
   const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
 
+  // The calorie target & guide use a *frozen* weight so they stay stable through
+  // day-to-day weigh-ins and screen refreshes; the ↻ button pulls the latest
+  // weight in on demand (recalibrate). Persisted so it survives remounts.
+  const uid = session?.user?.id ?? 'anon';
+  const frozenKey = `calorieWeight:${uid}`;
+  const [frozenWeight, setFrozenWeightRaw] = useState<number | null>(() => {
+    try {
+      const v = localStorage.getItem(frozenKey);
+      return v ? Number(v) : null;
+    } catch {
+      return null;
+    }
+  });
+  const setFrozenWeight = useCallback(
+    (w: number | null) => {
+      setFrozenWeightRaw(w);
+      try {
+        if (w != null) localStorage.setItem(frozenKey, String(w));
+        else localStorage.removeItem(frozenKey);
+      } catch {
+        /* ignore */
+      }
+    },
+    [frozenKey],
+  );
+  const [recalibPending, setRecalibPending] = useState(false);
+  useEffect(() => {
+    if (frozenWeight == null && latestWeight != null) setFrozenWeight(latestWeight);
+  }, [frozenWeight, latestWeight, setFrozenWeight]);
+  useEffect(() => {
+    if (recalibPending && latestWeight != null) {
+      setFrozenWeight(latestWeight);
+      setRecalibPending(false);
+    }
+  }, [recalibPending, latestWeight, setFrozenWeight]);
+  const calorieWeight = frozenWeight ?? latestWeight;
+
   // History lists default to the current month; the month pager steps back
   // through earlier months (older data stays in the DB and the trend charts).
   const [statsMonth, setStatsMonth] = useState(() => new Date());
@@ -122,13 +159,13 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
   const sparkValues = weightValues.slice(-24);
 
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
-  const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
+  const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && calorieWeight);
   const tdee = canComputeTarget
     ? Math.round(
         computeTDEE(
           computeBMR({
             gender: profile!.gender!,
-            weightKg: latestWeight!,
+            weightKg: calorieWeight!,
             heightCm: profile!.height!,
             ageYears: ageFromBirthDate(profile!.birth_date!),
           }),
@@ -141,7 +178,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
     (tdee != null ? computeDailyCalorieTarget({ tdee, deficitKcal }) : REFERENCE_CALORIE_TARGET);
 
   const suggestedMacros = canComputeTarget
-    ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
+    ? computeSuggestedMacros({ weightKg: calorieWeight!, calorieTarget, deficitKcal })
     : null;
 
   return (
@@ -304,10 +341,11 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
               onClick={async () => {
                 setRefreshingWeight(true);
                 await Promise.all([refreshWeightLogs(), refreshTodayLog()]);
+                setRecalibPending(true); // apply the freshly-pulled weight to the target
                 setRefreshingWeight(false);
               }}
-              aria-label="Refresh with latest weight"
-              title="Pull my latest weigh-in"
+              aria-label="Recalculate with latest weight"
+              title="Recalculate with my latest weigh-in"
               className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--bg)]"
             >
               <RefreshCw size={14} className={refreshingWeight ? 'animate-spin' : ''} />
@@ -377,7 +415,7 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
             </p>
             {latestWeight != null && profile?.height && profile?.birth_date && profile?.gender ? (
               <div className="mt-2 grid grid-cols-2 gap-x-3 border-t border-[var(--card-border)] pt-1.5 text-[10px] text-[var(--muted)]">
-                <span>* Weight {weightValue(latestWeight, wUnit)}{wUnit}</span>
+                <span>* Weight {weightValue(calorieWeight ?? latestWeight, wUnit)}{wUnit}</span>
                 <span>Height {Math.round(profile.height)} cm</span>
                 <span>Age {ageFromBirthDate(profile.birth_date)} yr · {profile.gender}</span>
                 <span>{ACTIVITY_SHORT[profile.activity_level ?? 'light'] ?? 'Lightly active'}</span>
