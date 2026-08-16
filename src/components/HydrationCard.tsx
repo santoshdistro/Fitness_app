@@ -29,6 +29,7 @@ export function HydrationCard({
   onApplyWater,
   onLogElectrolytes,
   onAddMineralFromFood,
+  fibreSources,
 }: {
   targets: HydrationTargets;
   intake?: HydrationIntake;
@@ -37,6 +38,8 @@ export function HydrationCard({
   onApplyWater: (ml: number) => void;
   onLogElectrolytes?: () => void;
   onAddMineralFromFood?: (key: MineralKey, mg: number) => void | Promise<void>;
+  /** Today's fibre broken down by the meals that provided it (grams). */
+  fibreSources?: { label: string; g: number }[];
 }) {
   const applied = currentWaterGoalMl === targets.waterMl;
   const [openMineral, setOpenMineral] = useState<MineralKey | null>(null);
@@ -323,6 +326,17 @@ export function HydrationCard({
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--card-border)]">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: FIBRE_GUIDE.tint }} />
               </div>
+              {fibreSources && fibreSources.length > 0 ? (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <p className="text-[10px] font-semibold text-[var(--muted)]">Where it came from</p>
+                  {fibreSources.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px]">
+                      <span className="truncate text-[var(--text)]">{s.label}</span>
+                      <span className="shrink-0 font-semibold text-[var(--muted)]">{s.g} g</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <p className="mt-2 text-[11px] text-[var(--muted)]">
                 Fibre is counted from the food you log in your diary. {remaining > 0 ? `About ${remaining} g to go today — reach for one of these:` : 'Target reached — nice.'}
               </p>

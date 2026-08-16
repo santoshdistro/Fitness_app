@@ -303,12 +303,18 @@ export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) 
             ...foodSource('calcium'),
           ].sort((a, b) => b.mg - a.mg),
         };
+        // Fibre comes straight from logged food — list the meals that provided it.
+        const fibreSources = meals
+          .filter(m => (m.fiber_g ?? 0) > 0)
+          .map(m => ({ label: m.meal_name ?? 'Meal', g: Math.round((m.fiber_g ?? 0) * 10) / 10 }))
+          .sort((a, b) => b.g - a.g);
         return (
           <div className="mt-4">
             <HydrationCard
               targets={targets}
               intake={intake}
               sources={sources}
+              fibreSources={fibreSources}
               currentWaterGoalMl={settings.waterGoalMl}
               onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
               onLogElectrolytes={onLogElectrolytes}
