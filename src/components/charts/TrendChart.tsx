@@ -36,6 +36,17 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
   const x = (i: number) => (n === 1 ? 50 : (i / (n - 1)) * 100);
   const y = (v: number) => 38 - ((v - min) / range) * 34 + 2; // 2..38
 
+  // Bars sit in evenly-spaced bands (each centred in its own slot) so the first
+  // and last aren't half-clipped at the chart edges — a point-based x would put
+  // their centres on x=0 and x=100.
+  const bandW = 100 / n;
+  const xBar = (i: number) => (i + 0.5) * bandW;
+
+  // On a busy line (e.g. months of near-daily weigh-ins) a dot per point turns
+  // into an unreadable clump, so only mark every point when there are few;
+  // otherwise keep the line clean and mark just the latest and any tapped point.
+  const showAllMarkers = n <= 24;
+
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(p.value)}`).join(' ');
   const areaPath = `${linePath} L ${x(n - 1)} 40 L ${x(0)} 40 Z`;
   const overlayPath = overlay
@@ -69,12 +80,12 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
 
           {type === 'bar' ? (
             points.map((p, i) => {
-              const bw = Math.max(0.8, 100 / n - 1.5);
+              const bw = Math.max(0.8, bandW - 1.5);
               const bh = ((p.value - min) / range) * 34;
               return (
                 <rect
                   key={i}
-                  x={x(i) - bw / 2}
+                  x={xBar(i) - bw / 2}
                   y={38 - bh}
                   width={bw}
                   height={Math.max(0.6, bh)}
@@ -125,7 +136,9 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
 
         {/* Point markers (line only) */}
         {type === 'line'
-          ? points.map((p, i) => (
+          ? points.map((p, i) => {
+              if (!showAllMarkers && i !== n - 1 && active !== i) return null;
+              return (
               <span
                 key={i}
                 className="pointer-events-none absolute rounded-full"
@@ -139,7 +152,8 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
                   border: `2px solid ${color}`,
                 }}
               />
-            ))
+              );
+            })
           : null}
 
         {/* Transparent hit columns for tap-to-inspect */}
