@@ -17,7 +17,15 @@ You are given a snapshot of everything they've logged — goal, calorie/protein 
 - validate what they've logged and whether it actually supports their goal (fat loss, muscle gain, or maintenance),
 - point out concretely what is helping their progress and what is holding it back,
 - answer their questions using their real numbers.
-Be concise, warm, and honest — short paragraphs or bullet points, no filler. Never invent data you weren't given; if something isn't logged, say so and suggest they log it. You are not a doctor; keep advice general and safe.`;
+Be concise, warm, and honest — short paragraphs or bullet points, no filler. Never invent data you weren't given; if something isn't logged, say so and suggest they log it. You are not a doctor; keep advice general and safe.
+
+When — and only when — your answer lands on ONE concrete, repeatable behaviour they could commit to, append a fenced block at the very end so the app can offer it as a one-tap focus:
+
+\`\`\`goal
+{"title": "Consistent daily eating", "detail": "Eat breakfast and lunch every day to blunt evening hunger.", "cadence": "Every day"}
+\`\`\`
+
+Rules for that block: at most one per reply, and never in a reply that is only answering a factual question. title is 2-5 words, detail is one sentence naming the behaviour and why, cadence is short ("Every day", "3x a week", "Before each session"). Don't mention the block or the word "goal" in your prose — the app renders it as a card. If nothing concrete emerges, leave it out entirely.`;
 
 export default async function handler(req: ApiReq, res: ApiRes): Promise<void> {
   const body = preflight<Body>(req, res);

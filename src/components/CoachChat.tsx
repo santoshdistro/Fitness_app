@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Sparkles, Trash2, X } from 'lucide-react';
+import { Check, Send, Sparkles, Target, Trash2, X } from 'lucide-react';
 import { useCoachChat } from '../hooks/useCoachChat';
+import { splitGoalSuggestion, useCoachGoals, type GoalSuggestion } from '../hooks/useCoachGoals';
 import { useProfile } from '../hooks/useProfile';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { useTrends } from '../hooks/useTrends';
@@ -17,6 +18,74 @@ const QUICK_PROMPTS = [
   { label: 'What should I improve?', text: 'What is the single most impactful thing I should change right now?' },
 ];
 
+// A focus the coach proposed, offered as one tap. Advice that stays as prose is
+// advice you have to re-read later; this turns it into something the app holds.
+function GoalCard({ goal }: { goal: GoalSuggestion }) {
+  const { add, has } = useCoachGoals();
+  const already = has(goal.title);
+
+  return (
+    <div className="ml-1 max-w-[85%] rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 p-3.5">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
+        <Target size={12} />
+        Suggested focus
+      </p>
+      <p className="mt-1.5 text-sm font-bold text-[var(--text)]">{goal.title}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">{goal.detail}</p>
+      <p className="mt-1.5 text-[11px] font-semibold text-[var(--muted)]">{goal.cadence}</p>
+      {already ? (
+        <p className="mt-2.5 flex items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)]/10 py-2.5 text-xs font-bold text-[var(--accent)]">
+          <Check size={14} /> Added to your focuses
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={() => add(goal)}
+          className="tap-44 mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold text-white bg-[image:var(--accent-gradient)]"
+        >
+          <Check size={14} /> Set this focus
+        </button>
+      )}
+    </div>
+  );
+}
+
+// The focuses you've accepted, so they outlive the conversation that produced
+// them. Kept compact — this is a reminder strip, not a to-do app.
+function ActiveFocuses() {
+  const { goals, remove } = useCoachGoals();
+  if (goals.length === 0) return null;
+
+  return (
+    <div className="mb-3 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+        <Target size={12} />
+        Your focuses
+      </p>
+      <div className="flex flex-col gap-2">
+        {goals.map(g => (
+          <div key={g.id} className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-[var(--text)]">{g.title}</p>
+              <p className="text-[11px] leading-snug text-[var(--muted)]">
+                {g.cadence} · {g.detail}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => remove(g.id)}
+              aria-label={`Remove focus: ${g.title}`}
+              className="tap-44 shrink-0 rounded-full p-1 text-[var(--muted)]"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function goalLabel(goal: string | null | undefined): string {
   return GOAL_OPTIONS.find(g => g.value === goal)?.label ?? 'General fitness';
 }
@@ -29,9 +98,20 @@ function useCoachContext(): string {
   const { trends } = useTrends();
   const { workouts } = useRecentWorkouts(12);
   const { records } = useStrengthRecords();
+  const { goals } = useCoachGoals();
 
   return useMemo(() => {
     const lines: string[] = [];
+
+    // Focuses already committed to, so the coach builds on them instead of
+    // proposing the same thing again.
+    if (goals.length > 0) {
+      lines.push(
+        `Focuses they have already committed to (do not propose these again):\n- ${goals
+          .map(g => `${g.title} (${g.cadence}): ${g.detail}`)
+          .join('\n- ')}`,
+      );
+    }
 
     // Goal & targets
     lines.push(`Goal: ${goalLabel(profile?.goal_type)}`);
@@ -89,7 +169,7 @@ function useCoachContext(): string {
     }
 
     return lines.join('\n');
-  }, [profile, calorieTarget, proteinTarget, trends, workouts, records]);
+  }, [profile, calorieTarget, proteinTarget, trends, workouts, records, goals]);
 }
 
 export function CoachChat({ onClose }: { onClose: () => void }) {
@@ -154,6 +234,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
 
       {/* Messages */}
       <div ref={scrollRef} className="hide-scrollbar flex-1 overflow-y-auto px-4 py-4">
+        <ActiveFocuses />
         {messages.length === 0 ? (
           <div className="flex flex-col gap-4 pt-4">
             <div className="text-center">
@@ -185,23 +266,29 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
-              >
-                <div
-                  className="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
-                  style={
-                    m.role === 'user'
-                      ? { background: 'var(--accent-gradient)', color: '#fff' }
-                      : { background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }
-                  }
-                >
-                  {m.content}
+            {messages.map((m, i) => {
+              // Assistant replies may carry a proposed focus; it renders as a
+              // card rather than as raw text in the bubble.
+              const { text, goal } =
+                m.role === 'assistant' ? splitGoalSuggestion(m.content) : { text: m.content, goal: null };
+              return (
+                <div key={i} className="flex flex-col gap-2">
+                  <div className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                    <div
+                      className="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
+                      style={
+                        m.role === 'user'
+                          ? { background: 'var(--accent-gradient)', color: '#fff' }
+                          : { background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }
+                      }
+                    >
+                      {text}
+                    </div>
+                  </div>
+                  {goal ? <GoalCard goal={goal} /> : null}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {sending ? (
               <div className="flex justify-start">
                 <div
