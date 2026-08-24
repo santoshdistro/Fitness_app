@@ -271,7 +271,7 @@ export function DietPlanner() {
           type="button"
           onClick={() => setBuilderOpen(true)}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'var(--accent-gradient)' }}
         >
           <Sparkles size={15} /> Build with AI
         </button>
@@ -317,7 +317,7 @@ export function DietPlanner() {
             type="button"
             onClick={() => setSplitOpen(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-[11px] font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
             <Sparkles size={13} /> Build with AI
           </button>
@@ -490,7 +490,7 @@ export function DietPlanner() {
             type="button"
             onClick={() => logDayToDiary(viewDate)}
             className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #22c55e, #15803d)' }}
+            style={{ background: 'var(--success-gradient)' }}
           >
             <BookMarked size={16} /> Log this day’s meals to diary
           </button>
@@ -555,7 +555,7 @@ export function DietPlanner() {
             onClick={syncReminders}
             disabled={remindering}
             className="mt-1 flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
             <Bell size={14} /> {remindering ? 'Setting…' : 'Remind me at these meal times'}
           </button>
@@ -765,7 +765,7 @@ function RecipeSheet({
             onClick={onLog}
             disabled={alreadyLogged}
             className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-70"
-            style={{ background: alreadyLogged ? '#16a34a' : 'linear-gradient(135deg, #22c55e, #15803d)' }}
+            style={{ background: alreadyLogged ? '#16a34a' : 'var(--success-gradient)' }}
           >
             {alreadyLogged ? <><Check size={16} /> Already logged</> : <><Plus size={16} /> I ate this — log to diary</>}
           </button>

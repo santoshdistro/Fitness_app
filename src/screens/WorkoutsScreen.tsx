@@ -157,7 +157,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           type="button"
           onClick={onLogWorkout}
           className="rounded-full px-4 py-2 text-xs font-semibold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'var(--accent-gradient)' }}
         >
           + Log workout
         </button>
@@ -178,7 +178,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
             type="button"
             onClick={() => openGuided({ title: resumable.title, exercises: resumable.exercises })}
             className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
             Continue
           </button>
@@ -289,7 +289,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           className="anim-fade-rise mt-4 overflow-hidden p-5"
           style={{
             borderRadius: 'var(--radius-card)',
-            background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+            background: 'var(--accent-gradient)',
             boxShadow: '0 12px 28px -10px rgba(108,99,255,0.6)',
           }}
         >
@@ -500,7 +500,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                     ),
                   })
                 }
-                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white bg-[image:var(--accent-gradient)]"
               >
                 ▶ Start
               </button>
@@ -694,7 +694,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 });
                 setSelectedGoalProgram(null);
               }}
-              className="rounded-2xl py-3 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+              className="rounded-2xl py-3 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
             >
               ▶ Start guided session
             </button>
@@ -774,7 +774,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 setTab('plan');
               }}
               className="flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+              style={{ background: 'var(--accent-gradient)' }}
             >
               <CalendarPlus size={16} /> Add to {new Date(`${assignDate}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
             </button>
@@ -918,7 +918,7 @@ function CuratedPlanForm({
         type="button"
         onClick={() => onBuild(goal, level, days, physique)}
         className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
-        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        style={{ background: 'var(--accent-gradient)' }}
       >
         <Wand2 size={15} /> Build my program
       </button>

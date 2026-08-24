@@ -424,7 +424,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={finish}
           disabled={saving}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[image:var(--accent-gradient)]"
         >
           {saving ? 'Saving…' : 'Start tracking'}
         </button>
@@ -433,7 +433,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={next}
           disabled={!canNext}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-40 bg-[image:var(--accent-gradient)]"
         >
           {current === 'welcome' ? "Let's go" : 'Continue'}
         </button>

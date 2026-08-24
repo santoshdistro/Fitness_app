@@ -49,7 +49,7 @@ export function AdaptiveTdeeCard({
       className="overflow-hidden p-5 text-white"
       style={{
         borderRadius: 'var(--radius-card)',
-        background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+        background: 'var(--accent-gradient)',
         boxShadow: '0 12px 28px -12px rgba(75,63,224,0.6)',
       }}
     >

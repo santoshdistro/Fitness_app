@@ -219,7 +219,7 @@ function ExportSection() {
         onClick={() => run('json', () => exportJson(userId!))}
         disabled={!!busy || !userId}
         className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-50"
-        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        style={{ background: 'var(--accent-gradient)' }}
       >
         <Download size={16} />
         {busy === 'json' ? 'Preparing…' : 'Download full backup (JSON)'}

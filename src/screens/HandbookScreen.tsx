@@ -555,7 +555,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
           onClick={logToDiary}
           disabled={logState !== 'idle'}
           className="flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-80"
-          style={{ background: logState === 'saved' ? '#16a34a' : 'linear-gradient(135deg, #22c55e, #15803d)' }}
+          style={{ background: logState === 'saved' ? '#16a34a' : 'var(--success-gradient)' }}
         >
           {logState === 'saved' ? (
             <><Check size={15} /> Added to diary</>

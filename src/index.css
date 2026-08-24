@@ -11,6 +11,11 @@
   --muted: #63697d;
   --accent: #6c63ff;
   --accent-dark: #4b3fe0;
+  /* The brand gradient had been spelled out inline in 56 places across 33
+     components. Deriving it from the accent tokens makes a rebrand a one-line
+     change, and keeps every primary surface in step automatically. */
+  --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  --success-gradient: linear-gradient(135deg, #22c55e, #15803d);
   --radius-card: 24px;
 }
 

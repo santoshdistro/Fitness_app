@@ -264,7 +264,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               type="button"
               onClick={finish}
               disabled={saving}
-              className="mt-6 w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+              className="mt-6 w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[image:var(--accent-gradient)]"
             >
               {saving ? 'Saving…' : 'Finish & save'}
             </button>
@@ -439,7 +439,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             <button
               type="button"
               onClick={completeSet}
-              className="mt-4 flex w-full items-center justify-center gap-1 rounded-2xl py-4 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+              className="mt-4 flex w-full items-center justify-center gap-1 rounded-2xl py-4 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
             >
               {cardio ? (lastExercise ? 'Log & finish' : 'Log & next exercise') : 'Complete set'}
               <ChevronRight size={18} />
@@ -592,7 +592,7 @@ function CardioTimer({
             setRunning(r => !r);
           }}
           className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
-          style={{ background: running ? '#ef4444' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: running ? '#ef4444' : 'var(--accent-gradient)' }}
         >
           {running ? <><Pause size={14} /> Pause</> : <><Play size={14} fill="currentColor" /> {done ? 'Restart' : 'Start'}</>}
         </button>

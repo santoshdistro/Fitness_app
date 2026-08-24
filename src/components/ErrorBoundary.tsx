@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
           type="button"
           onClick={this.handleReload}
           className="rounded-2xl px-6 py-3 text-sm font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'var(--accent-gradient)' }}
         >
           Reload the app
         </button>

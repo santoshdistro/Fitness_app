@@ -211,7 +211,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
           type="button"
           onClick={() => setBuilderOpen(true)}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'var(--accent-gradient)' }}
         >
           <Sparkles size={15} /> Build with AI
         </button>
@@ -376,7 +376,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
               type="button"
               onClick={startGuidedToday}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+              style={{ background: 'var(--accent-gradient)' }}
             >
               <Play size={15} fill="currentColor" /> Start guided session
             </button>

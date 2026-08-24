@@ -16,7 +16,7 @@ export function CoachCard({ status, insight, message, onRetry }: Props) {
       style={{
         animationDelay: '0.24s',
         borderRadius: 'var(--radius-card)',
-        background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+        background: 'var(--accent-gradient)',
         boxShadow: '0 10px 22px -12px rgba(108,99,255,0.6)',
       }}
     >

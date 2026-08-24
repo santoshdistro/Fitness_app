@@ -56,7 +56,7 @@ export function WorkoutOverviewCard() {
         <div className="flex items-center gap-2">
           <span
             className="flex h-7 w-7 items-center justify-center rounded-full text-white"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
             <Activity size={14} />
           </span>

@@ -178,7 +178,7 @@ export function BarcodeScanForm({ onSaved }: Props) {
         <button
           type="button"
           onClick={() => enterManually(stage.code)}
-          className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[image:var(--accent-gradient)]"
         >
           Enter details manually
         </button>
@@ -223,7 +223,7 @@ export function BarcodeScanForm({ onSaved }: Props) {
           <button
             type="button"
             onClick={() => setStage({ step: 'scanning' })}
-            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[image:var(--accent-gradient)]"
           >
             Scan again
           </button>
@@ -273,7 +273,7 @@ function ManualEntry({
           type="submit"
           disabled={value.replace(/\D/g, '').length < 6}
           className="shrink-0 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          style={{ background: 'var(--accent-gradient)' }}
         >
           Look up
         </button>

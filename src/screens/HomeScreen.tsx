@@ -461,7 +461,7 @@ function JourneyEditor({
         disabled={!weight || Number(weight) <= 0}
         onClick={() => onStart(unitToKg(Number(weight), u), date)}
         className="rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50"
-        style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        style={{ background: 'var(--accent-gradient)' }}
       >
         {startDate ? 'Restart from here' : 'Start my journey'}
       </button>

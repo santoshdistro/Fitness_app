@@ -29,8 +29,8 @@ export function TodayDashboard({
           className="flex h-10 w-10 flex-col items-center justify-center rounded-full text-white"
           style={{
             background: allDone
-              ? 'linear-gradient(135deg, #22c55e, #15803d)'
-              : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+              ? 'var(--success-gradient)'
+              : 'var(--accent-gradient)',
           }}
         >
           <span className="text-sm font-black leading-none">{doneCount}</span>

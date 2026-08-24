@@ -185,7 +185,7 @@ export function DayScheduleCard({
                   onClick={refineWithAi}
                   disabled={busy}
                   className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+                  style={{ background: 'var(--accent-gradient)' }}
                 >
                   {busy ? (
                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -209,7 +209,7 @@ export function DayScheduleCard({
                 type="button"
                 onClick={() => setRefineOpen(true)}
                 className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+                style={{ background: 'var(--accent-gradient)' }}
               >
                 <Sparkles size={12} /> Refine with AI
               </button>

@@ -166,7 +166,7 @@ export function MealEditSheet({
             disabled={saving || mult <= 0}
             onClick={() => onConfirm(mult, category, curAmount)}
             className="rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+            style={{ background: 'var(--accent-gradient)' }}
           >
             {saving ? 'Saving…' : mode === 'today' ? 'Add to today' : 'Save changes'}
           </button>
