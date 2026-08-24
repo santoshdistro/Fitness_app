@@ -1,9 +1,51 @@
-import { useTrends, type Series } from '../hooks/useTrends';
+import { useTrends, type Series, type TrendRange } from '../hooks/useTrends';
 import { useSettings } from '../hooks/useSettings';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { kgToUnit } from '../utils/units';
 import { TrendChart } from './charts/TrendChart';
 import { WellnessCard } from './WellnessCard';
+
+const RANGE_OPTIONS = [
+  { key: '7', label: '1W' },
+  { key: '30', label: '1M' },
+  { key: '90', label: '3M' },
+  { key: 'all', label: 'All' },
+] as const;
+
+type RangeKey = (typeof RANGE_OPTIONS)[number]['key'];
+
+function rangeToDays(key: RangeKey): TrendRange {
+  if (key === 'all') return null;
+  return Number(key) as TrendRange;
+}
+
+// Which days in the last fortnight have food logged. A compact adherence read —
+// consistency is the thing that actually moves the other charts.
+function AdherenceStrip({ days }: { days: { date: string; logged: boolean }[] }) {
+  const hit = days.filter(d => d.logged).length;
+  return (
+    <div className="glass-card flex flex-col gap-2 p-5">
+      <div className="flex items-baseline justify-between">
+        <p className="text-sm font-semibold text-[var(--text)]">Logging</p>
+        <p className="text-[11px] text-[var(--muted)]">
+          {hit} of {days.length} days
+        </p>
+      </div>
+      <div className="flex gap-1">
+        {days.map(d => (
+          <div
+            key={d.date}
+            title={`${d.date}: ${d.logged ? 'logged' : 'nothing logged'}`}
+            className="h-6 flex-1 rounded"
+            style={{ background: d.logged ? 'var(--accent)' : 'var(--card-border)' }}
+          />
+        ))}
+      </div>
+      <p className="text-[10px] text-[var(--muted)]">Last {days.length} days — filled means food logged.</p>
+    </div>
+  );
+}
 
 function Section({
   title,
@@ -63,13 +105,51 @@ function StatTile({
 }
 
 export function TrendsPanel() {
-  const { trends, loading } = useTrends();
+  const [rangeKey, setRangeKey] = usePersistentState<RangeKey>('ui:trendRange', '30');
+  const { trends, loading } = useTrends(rangeToDays(rangeKey));
   const { settings } = useSettings();
   const targets = useCalorieTargets();
   const wUnit = settings.weightUnit;
 
-  if (loading) return <p className="text-xs text-[var(--muted)]">Loading…</p>;
+  const rangePicker = (
+    <div className="glass-card flex gap-1 p-1">
+      {RANGE_OPTIONS.map(o => {
+        const active = rangeKey === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => setRangeKey(o.key)}
+            aria-pressed={active}
+            className="tap-44 flex-1 rounded-xl py-2 text-xs font-bold"
+            style={
+              active
+                ? { background: 'var(--accent)', color: '#fff' }
+                : { color: 'var(--muted)' }
+            }
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (loading)
+    return (
+      <div className="flex flex-col gap-4">
+        {rangePicker}
+        <p className="text-xs text-[var(--muted)]">Loading…</p>
+      </div>
+    );
   if (!trends) return null;
+
+  // Once the window is long enough that a bar per day would be unreadable, the
+  // intake charts switch to weekly averages — say so rather than letting the
+  // bars quietly change meaning. (The tiles stay a per-day average either way.)
+  const bucketNote =
+    trends.intakeBucket === 'week' ? 'Each bar is one week, averaged over the days you logged.' : null;
+  const spanLabel = trends.spanDays >= 365 ? 'all time' : `last ${trends.spanDays} days`;
 
   const weightPoints = trends.weight.map(p => ({ ...p, value: Math.round(kgToUnit(p.value, wUnit) * 10) / 10 }));
   const weightOverlay = trends.weightMovingAvg.map(v => Math.round(kgToUnit(v, wUnit) * 10) / 10);
@@ -88,6 +168,7 @@ export function TrendsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
+      {rangePicker}
       <div className="glass-card grid grid-cols-2 gap-2 p-3">
         <StatTile
           label="Weight"
@@ -116,7 +197,7 @@ export function TrendsPanel() {
           label="Training"
           value={String(trends.totalWorkouts)}
           unit="sessions"
-          sub={trends.totalWorkouts ? 'last 90 days' : 'log a workout'}
+          sub={trends.totalWorkouts ? spanLabel : 'log a workout'}
         />
       </div>
 
@@ -143,16 +224,21 @@ export function TrendsPanel() {
         </Section>
       ) : null}
 
+      <AdherenceStrip days={trends.loggedDays} />
+
       <Section title="Calories" subtitle={trends.avgCalories != null ? `avg ${trends.avgCalories}/day` : undefined}>
         <TrendChart points={trends.calories} type="bar" unit="" color="#6c63ff" goal={targets.calorieTarget} />
+        {bucketNote ? <p className="text-[10px] text-[var(--muted)]">{bucketNote}</p> : null}
       </Section>
 
       <Section title="Protein" subtitle={trends.avgProtein != null ? `avg ${trends.avgProtein}g/day` : undefined}>
         <TrendChart points={trends.protein} type="bar" unit="g" color="#22c55e" goal={targets.proteinTarget} />
+        {bucketNote ? <p className="text-[10px] text-[var(--muted)]">{bucketNote}</p> : null}
       </Section>
 
       <Section title="Steps" subtitle={trends.avgSteps != null ? `avg ${trends.avgSteps.toLocaleString()}/day` : undefined}>
         <TrendChart points={trends.steps} type="bar" color="#f97316" goal={settings.stepGoal} />
+        {bucketNote ? <p className="text-[10px] text-[var(--muted)]">{bucketNote}</p> : null}
       </Section>
 
       {trends.workoutsPerWeek.length > 0 ? (

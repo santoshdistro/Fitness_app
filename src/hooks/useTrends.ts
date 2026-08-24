@@ -6,10 +6,13 @@ import type { CardioLog, DailyLog, FoodLog, Measurement, WorkoutLog } from '../t
 
 export type Series = { label: string; value: number; date: string }[];
 
+/** How much history Trends shows, in days. null means everything ever logged. */
+export type TrendRange = number | null;
+
 export type Trends = {
   weight: Series;
   weightMovingAvg: number[];
-  calories: Series; // last 30 days, per day
+  calories: Series; // per day, or per week once the range is long
   protein: Series;
   steps: Series;
   caffeine: Series;
@@ -25,13 +28,26 @@ export type Trends = {
   avgProtein: number | null;
   avgSteps: number | null;
   avgCaffeine: number | null;
+  /** Whether intake charts are bucketed by day or by week for this range. */
+  intakeBucket: 'day' | 'week';
+  /** Did anything get eaten on each of the last 14 days (most recent last). */
+  loggedDays: { date: string; logged: boolean }[];
+  /** Days actually covered, for labelling ("last 90 days" etc.). */
+  spanDays: number;
 };
 
-const DAYS = 90;
-const WINDOW = 7; // continuous days shown for daily-intake charts
+// Past this many days a bar per day stops being readable on a phone, so the
+// intake charts switch to weekly averages instead.
+const DAILY_BAR_LIMIT = 31;
+const ADHERENCE_DAYS = 14;
 
 function shortLabel(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function daysBetween(from: string, to: string): number {
+  const ms = new Date(`${to}T00:00:00`).getTime() - new Date(`${from}T00:00:00`).getTime();
+  return Math.round(ms / 86400000) + 1;
 }
 
 function movingAverage(values: number[], window: number): number[] {
@@ -42,7 +58,7 @@ function movingAverage(values: number[], window: number): number[] {
   });
 }
 
-export function useTrends() {
+export function useTrends(range: TrendRange = 30) {
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [trends, setTrends] = useState<Trends | null>(null);
@@ -57,40 +73,44 @@ export function useTrends() {
     }
     setLoading(true);
     const today = todayDateString();
-    const start = addDays(today, -(DAYS - 1));
-    const start30 = addDays(today, -29);
+    // null range means "everything", so the queries drop their lower bound
+    // rather than silently capping at a fixed window.
+    const start = range == null ? null : addDays(today, -(range - 1));
+
+    const since = <T extends { gte: (col: string, v: string) => T }>(q: T, col: string, value: string | null) =>
+      value == null ? q : q.gte(col, value);
 
     Promise.all([
-      supabase
-        .from('daily_logs')
-        .select('log_date, weight, steps, caffeine_mg')
-        .eq('user_id', userId)
-        .gte('log_date', start)
+      since(
+        supabase.from('daily_logs').select('log_date, weight, steps, caffeine_mg').eq('user_id', userId),
+        'log_date',
+        start,
+      )
         .lte('log_date', today)
         .order('log_date', { ascending: true }),
-      supabase
-        .from('food_logs')
-        .select('meal_timestamp, calories, protein_g')
-        .eq('user_id', userId)
-        .gte('meal_timestamp', startOfDateIso(start30)),
-      supabase
-        .from('workout_logs')
-        .select('session_timestamp, exercise_data')
-        .eq('user_id', userId)
-        .gte('session_timestamp', startOfDateIso(start))
-        .order('session_timestamp', { ascending: true }),
-      supabase
-        .from('cardio_logs')
-        .select('session_timestamp, distance_km')
-        .eq('user_id', userId)
-        .gte('session_timestamp', startOfDateIso(start))
-        .order('session_timestamp', { ascending: true }),
-      supabase
-        .from('measurements')
-        .select('entry_timestamp, waist, calculated_body_fat')
-        .eq('user_id', userId)
-        .gte('entry_timestamp', startOfDateIso(start))
-        .order('entry_timestamp', { ascending: true }),
+      since(
+        supabase.from('food_logs').select('meal_timestamp, calories, protein_g').eq('user_id', userId),
+        'meal_timestamp',
+        start && startOfDateIso(start),
+      ),
+      since(
+        supabase.from('workout_logs').select('session_timestamp, exercise_data').eq('user_id', userId),
+        'session_timestamp',
+        start && startOfDateIso(start),
+      ).order('session_timestamp', { ascending: true }),
+      since(
+        supabase.from('cardio_logs').select('session_timestamp, distance_km').eq('user_id', userId),
+        'session_timestamp',
+        start && startOfDateIso(start),
+      ).order('session_timestamp', { ascending: true }),
+      since(
+        supabase
+          .from('measurements')
+          .select('entry_timestamp, waist, calculated_body_fat')
+          .eq('user_id', userId),
+        'entry_timestamp',
+        start && startOfDateIso(start),
+      ).order('entry_timestamp', { ascending: true }),
     ]).then(([dailyRes, foodRes, workoutRes, cardioRes, measureRes]) => {
       if (cancelled) return;
       const dailies =
@@ -121,17 +141,55 @@ export function useTrends() {
         proteinMap.set(day, (proteinMap.get(day) ?? 0) + (m.protein_g ?? 0));
       }
 
-      // Continuous last-N-days series ending today.
-      const continuous = (map: Map<string, number>, days: number): Series =>
-        Array.from({ length: days }, (_, k) => {
-          const date = addDays(today, -(days - 1 - k));
+      // On "all", the window starts at the earliest thing actually logged, so an
+      // empty account doesn't render years of blank days.
+      const earliest = [
+        ...dailies.map(d => d.log_date),
+        ...Array.from(kcalMap.keys()),
+        ...workouts.map(w => w.session_timestamp.slice(0, 10)),
+      ].sort()[0];
+      const windowStart = start ?? earliest ?? today;
+      const spanDays = Math.max(1, daysBetween(windowStart, today));
+      const intakeBucket: 'day' | 'week' = spanDays > DAILY_BAR_LIMIT ? 'week' : 'day';
+
+      // One bar per day across the window (missing days read as 0).
+      const daily = (map: Map<string, number>): Series =>
+        Array.from({ length: spanDays }, (_, k) => {
+          const date = addDays(today, -(spanDays - 1 - k));
           return { label: shortLabel(date), value: Math.round(map.get(date) ?? 0), date };
         });
+
+      // One bar per Monday-anchored week, averaged over the days in that week
+      // that actually have data — a week with three logged days shouldn't look
+      // like a low week just because four days are blank.
+      const weekly = (map: Map<string, number>): Series => {
+        const sums = new Map<string, { sum: number; count: number }>();
+        for (let k = 0; k < spanDays; k++) {
+          const date = addDays(today, -(spanDays - 1 - k));
+          const v = map.get(date);
+          if (v == null) continue;
+          const wk = startOfWeek(date);
+          const cur = sums.get(wk) ?? { sum: 0, count: 0 };
+          cur.sum += v;
+          cur.count += 1;
+          sums.set(wk, cur);
+        }
+        return Array.from(sums.entries())
+          .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+          .map(([wk, { sum, count }]) => ({
+            label: shortLabel(wk),
+            value: Math.round(sum / count),
+            date: wk,
+          }));
+      };
+
+      const series = (map: Map<string, number>) => (intakeBucket === 'week' ? weekly(map) : daily(map));
+
       // Average over the days that actually have data (ignore the filled zeros).
-      const avgLogged = (map: Map<string, number>, days: number): number | null => {
+      const avgLogged = (map: Map<string, number>): number | null => {
         let sum = 0;
         let count = 0;
-        for (let i = 0; i < days; i++) {
+        for (let i = 0; i < spanDays; i++) {
           const v = map.get(addDays(today, -i));
           if (v != null) {
             sum += v;
@@ -141,11 +199,18 @@ export function useTrends() {
         return count ? Math.round(sum / count) : null;
       };
 
-      const steps = continuous(stepsMap, WINDOW);
-      const caffeine = continuous(caffeineMap, WINDOW);
-      const calories = continuous(kcalMap, WINDOW);
-      const protein = continuous(proteinMap, WINDOW);
+      const steps = series(stepsMap);
+      const caffeine = series(caffeineMap);
+      const calories = series(kcalMap);
+      const protein = series(proteinMap);
       const hasCaffeine = caffeineMap.size > 0;
+
+      // Fixed 14-day adherence strip — independent of the selected range, so it
+      // always answers "have I been logging lately?".
+      const loggedDays = Array.from({ length: ADHERENCE_DAYS }, (_, k) => {
+        const date = addDays(today, -(ADHERENCE_DAYS - 1 - k));
+        return { date, logged: (kcalMap.get(date) ?? 0) > 0 };
+      });
 
       // Training volume per session.
       const volume: Series = workouts.map(w => {
@@ -205,17 +270,20 @@ export function useTrends() {
         bodyFat,
         workoutsPerWeek,
         totalWorkouts,
-        avgCalories: avgLogged(kcalMap, WINDOW),
-        avgProtein: avgLogged(proteinMap, WINDOW),
-        avgSteps: avgLogged(stepsMap, WINDOW),
-        avgCaffeine: avgLogged(caffeineMap, WINDOW),
+        avgCalories: avgLogged(kcalMap),
+        avgProtein: avgLogged(proteinMap),
+        avgSteps: avgLogged(stepsMap),
+        avgCaffeine: avgLogged(caffeineMap),
+        intakeBucket,
+        loggedDays,
+        spanDays,
       });
       setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, range]);
 
   return { trends, loading };
 }
