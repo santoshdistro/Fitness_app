@@ -98,6 +98,8 @@ export function AppShell() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
     setVisited(prev => (prev.has(activeTab) ? prev : new Set(prev).add(activeTab)));
+    // Drives the per-section ambient hue (see --section in index.css).
+    document.documentElement.dataset.section = activeTab ?? 'home';
   }, [activeTab]);
 
   function closeSheet() {
@@ -135,7 +137,9 @@ export function AppShell() {
 
   return (
     <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
-      <div ref={scrollRef} className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
+      {/* Ambient hue for the current section — sits behind everything. */}
+      <div className="section-wash" aria-hidden="true" />
+      <div ref={scrollRef} className="hide-scrollbar relative z-10 flex-1 overflow-y-auto overflow-x-hidden">
         {/* Pull-to-refresh indicator */}
         {pull > 0 || refreshing ? (
           <div
@@ -240,12 +244,13 @@ export function AppShell() {
         >
           {/* Sliding glass highlight */}
           <div
-            className="pointer-events-none absolute inset-y-0 rounded-2xl transition-[left] duration-300 ease-out"
+            className="pointer-events-none absolute inset-y-0 rounded-2xl"
             style={{
               left: `${(TABS.findIndex(t => t.key === activeTab) * 100) / TABS.length}%`,
               width: `${100 / TABS.length}%`,
-              background: 'color-mix(in srgb, var(--accent) 14%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)',
+              background: 'color-mix(in srgb, var(--section) 14%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--section) 22%, transparent)',
+              transition: 'left 300ms ease-out, background 450ms ease, border-color 450ms ease',
             }}
           />
           {TABS.map(({ key, label, icon: Icon }) => {
@@ -255,7 +260,10 @@ export function AppShell() {
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className="relative z-10 flex flex-1 flex-col items-center gap-1 py-1"
-                style={{ color: isActive ? 'var(--accent)' : 'var(--muted)' }}
+                style={{
+                  color: isActive ? 'var(--section)' : 'var(--muted)',
+                  transition: 'color 450ms ease',
+                }}
               >
                 <Icon size={20} strokeWidth={2.5} />
                 <span className="text-[10px] font-bold tracking-wider">{label}</span>

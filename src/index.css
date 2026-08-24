@@ -445,6 +445,77 @@ body {
   }
 }
 
+/* ---------- Per-section colour ----------
+   Each tab carries an ambient hue so the app reads as five rooms in one house
+   rather than five different apps. The tint is deliberately confined to ambient
+   surfaces — the wash behind the top of a screen and the nav highlight. Primary
+   actions keep the brand gradient everywhere, so the accent goes on meaning
+   "this is the thing to press" instead of "this is the Stats tab".
+   The hues are the ones the app already associates with each area: emerald is
+   the nutrition hero, sky is the cardio series, violet is training volume.
+
+   The wash tint is written as an explicit rgba rather than color-mix on
+   --section: the build emits a no-color-mix fallback that strips the
+   percentage, which would paint the wash at full saturation — a far worse
+   failure than a slightly duller tint. */
+:root {
+  --section: var(--accent);
+  --section-wash: rgba(108, 99, 255, 0.15);
+}
+:root[data-section='stats'] {
+  --section: #0ea5e9;
+  --section-wash: rgba(14, 165, 233, 0.15);
+}
+:root[data-section='discover'] {
+  --section: #f59e0b;
+  --section-wash: rgba(245, 158, 11, 0.15);
+}
+:root[data-section='handbook'] {
+  --section: #10b981;
+  --section-wash: rgba(16, 185, 129, 0.15);
+}
+:root[data-section='workouts'] {
+  --section: #8b5cf6;
+  --section-wash: rgba(139, 92, 246, 0.15);
+}
+
+:root[data-theme='dark'] {
+  --section-wash: rgba(125, 117, 255, 0.24);
+}
+:root[data-theme='dark'][data-section='stats'] {
+  --section-wash: rgba(14, 165, 233, 0.24);
+}
+:root[data-theme='dark'][data-section='discover'] {
+  --section-wash: rgba(245, 158, 11, 0.22);
+}
+:root[data-theme='dark'][data-section='handbook'] {
+  --section-wash: rgba(16, 185, 129, 0.24);
+}
+:root[data-theme='dark'][data-section='workouts'] {
+  --section-wash: rgba(139, 92, 246, 0.26);
+}
+
+.section-wash {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 300px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 100% at 50% 0%, var(--section-wash), transparent 72%);
+  transition: background 450ms ease;
+}
+
+/* Glass mode already paints its own vivid backdrop; a second wash muddies it. */
+:root[data-surface='glass'] .section-wash {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-wash {
+    transition: none;
+  }
+}
+
 /* Keyboard focus ring. :focus-visible means pointer/touch taps never show it,
    so it adds no noise on the phone while keyboard and switch-control users get
    a clear indicator. The outline follows each control's own border-radius. */
