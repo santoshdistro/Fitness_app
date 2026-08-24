@@ -27,8 +27,24 @@ function firstNumber(text: string): string {
   return m ? m[0] : '';
 }
 
+/** Epley estimate — the same formula the strength records and calculators use. */
+function epley(weight: number, reps: number): number {
+  if (weight <= 0 || reps <= 0) return 0;
+  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+}
+
 export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExercise }: Props) {
   const { session } = useAuth();
+  // Start each move from what you actually lifted last time, so repeating a
+  // session is one tap and beating it is one edit. Falls back to the programmed
+  // rep target when there's no history yet.
+  const prefill = (ex: GuidedExercise | undefined) => {
+    const last = ex ? lastByExercise?.get(ex.name) : undefined;
+    return {
+      reps: last ? String(last.reps) : firstNumber(ex?.reps ?? ''),
+      weight: last ? String(last.weight) : '',
+    };
+  };
   // Resume an in-progress session for this exact workout, if one was saved.
   const resumed = (() => {
     const s = loadGuided();
@@ -36,8 +52,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   })();
   const [exIndex, setExIndex] = useState(resumed?.exIndex ?? 0);
   const [setNum, setSetNum] = useState(resumed?.setNum ?? 1);
-  const [reps, setReps] = useState(firstNumber(exercises[resumed?.exIndex ?? 0]?.reps ?? ''));
-  const [weight, setWeight] = useState('');
+  const [reps, setReps] = useState(() => prefill(exercises[resumed?.exIndex ?? 0]).reps);
+  const [weight, setWeight] = useState(() => prefill(exercises[resumed?.exIndex ?? 0]).weight);
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
   const [speed, setSpeed] = useState('');
@@ -133,8 +149,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     setLogged([]);
     setExIndex(0);
     setSetNum(1);
-    setReps(firstNumber(exercises[0]?.reps ?? ''));
-    setWeight('');
+    setReps(prefill(exercises[0]).reps);
+    setWeight(prefill(exercises[0]).weight);
     setMinutes('');
     setDistance('');
     setSpeed('');
@@ -146,10 +162,11 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
   function goToNextExercise(rest: boolean) {
     if (exIndex < exercises.length - 1) {
       const next = exercises[exIndex + 1];
+      const seed = prefill(next);
       setExIndex(i => i + 1);
       setSetNum(1);
-      setReps(firstNumber(next.reps));
-      setWeight('');
+      setReps(seed.reps);
+      setWeight(seed.weight);
       setMinutes('');
       setDistance('');
       setSpeed('');
@@ -308,6 +325,13 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <p className="text-[11px] font-semibold text-[var(--accent)]">
                       Last time: {lastByExercise.get(current.name)!.weight} kg ×{' '}
                       {lastByExercise.get(current.name)!.reps}
+                      {(() => {
+                        const l = lastByExercise.get(current.name)!;
+                        const rm = epley(l.weight, l.reps);
+                        return rm > 0 ? (
+                          <span className="font-medium text-[var(--muted)]"> · ~{rm} kg 1RM</span>
+                        ) : null;
+                      })()}
                     </p>
                   ) : null}
                 </div>
@@ -397,6 +421,31 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                 )}
               </div>
             </div>
+
+            {/* Sets already banked for this move today — the guided flow shows one
+                set at a time, so without this you lose track of what you just did. */}
+            {(() => {
+              const done = logged.filter(e => e.exercise === current.name && !e.durationMin);
+              if (done.length === 0) return null;
+              return (
+                <div className="glass-card mt-3 p-3">
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+                    This session
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    {done.map((e, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[11px]">
+                        <span className="w-10 shrink-0 font-semibold text-[var(--muted)]">Set {i + 1}</span>
+                        <span className="font-bold text-[var(--text)]">
+                          {e.weight} kg × {e.reps}
+                        </span>
+                        <Check size={12} className="ml-auto text-emerald-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Timer for cardio — interval or stopwatch, fills the minutes */}
             {cardio ? (
