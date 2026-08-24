@@ -136,12 +136,12 @@ function Journey({ elapsedHours }: { elapsedHours: number }) {
                 style={{ background: done ? 'var(--accent)' : 'var(--card-border)' }}
               />
               <span
-                className="text-center text-[9px] font-bold leading-tight"
+                className="text-center text-[10px] font-bold leading-tight"
                 style={{ color: i === current ? 'var(--accent)' : 'var(--muted)' }}
               >
                 {s.label}
               </span>
-              <span className="text-[9px] text-[var(--muted)]">{s.fromHour}h</span>
+              <span className="text-[10px] text-[var(--muted)]">{s.fromHour}h</span>
             </div>
           );
         })}
