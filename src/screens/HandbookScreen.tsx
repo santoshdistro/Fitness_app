@@ -416,6 +416,8 @@ function RecipeImage({ recipe, className }: { recipe: Recipe; className?: string
     <img
       src={recipe.image}
       alt={recipe.name}
+      loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className={`object-cover ${className ?? ''}`}
     />

@@ -261,7 +261,7 @@ export function ProgressPhotosPanel() {
             {comparePair.map(p => (
               <div key={p.id}>
                 {p.url ? (
-                  <img src={p.url} alt={`Progress ${p.taken_on}`} className="w-full rounded-xl object-cover" />
+                  <img src={p.url} alt={`Progress ${p.taken_on}`} loading="lazy" decoding="async" className="w-full rounded-xl object-cover" />
                 ) : null}
                 <p className="mt-1 text-center text-[11px] font-semibold text-[var(--text)]">
                   {formatDate(p.taken_on)}
@@ -302,7 +302,7 @@ export function ProgressPhotosPanel() {
                   style={{ aspectRatio: '3 / 4', background: 'var(--bg)' }}
                 >
                   {p.url ? (
-                    <img src={p.url} alt={`Progress ${p.taken_on}`} className="h-full w-full object-cover" />
+                    <img src={p.url} alt={`Progress ${p.taken_on}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : null}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-4">
                     <p className="text-[10px] font-bold text-white">{formatDate(p.taken_on)}</p>

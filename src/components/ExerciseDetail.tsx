@@ -36,6 +36,8 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               key={path}
               src={exerciseDbImageUrl(path)}
               alt={name}
+              loading="lazy"
+              decoding="async"
               onError={() => setFailed(true)}
               className="h-40 w-56 shrink-0 rounded-2xl object-cover"
             />

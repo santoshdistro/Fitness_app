@@ -19,7 +19,7 @@ export function PhotoCard({ src, alt, className = '', children }: Props) {
           : undefined
       }
     >
-      {!failed && <img src={src} alt={alt} onError={() => setFailed(true)} />}
+      {!failed && <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />}
       {children}
     </div>
   );

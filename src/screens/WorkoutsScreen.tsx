@@ -941,6 +941,8 @@ function ExerciseThumbnail({ exercise }: { exercise: ProgramExercise }) {
     <img
       src={exerciseImageUrl(exercise.exerciseId)}
       alt={exercise.name}
+      loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className="h-10 w-10 shrink-0 rounded-xl object-cover"
     />

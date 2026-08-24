@@ -439,3 +439,11 @@ body {
     transform: none;
   }
 }
+
+/* Keyboard focus ring. :focus-visible means pointer/touch taps never show it,
+   so it adds no noise on the phone while keyboard and switch-control users get
+   a clear indicator. The outline follows each control's own border-radius. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

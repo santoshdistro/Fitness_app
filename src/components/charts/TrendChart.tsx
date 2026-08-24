@@ -42,10 +42,13 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
   const bandW = 100 / n;
   const xBar = (i: number) => (i + 0.5) * bandW;
 
-  // On a busy line (e.g. months of near-daily weigh-ins) a dot per point turns
-  // into an unreadable clump, so only mark every point when there are few;
-  // otherwise keep the line clean and mark just the latest and any tapped point.
-  const showAllMarkers = n <= 24;
+  // Markers shrink as the line gets busier, so a growing history degrades
+  // smoothly instead of snapping from "every point dotted" to "none" the day one
+  // more weigh-in lands. Below ~6px of breathing room they'd collide into a
+  // smear, so intermediate dots drop out and only the latest (and any tapped
+  // point) stay marked. 340 approximates the on-screen chart width in px.
+  const gapPx = (n > 1 ? 100 / (n - 1) : 100) * 3.4;
+  const dotSize = gapPx >= 26 ? 6 : gapPx >= 16 ? 5 : gapPx >= 10 ? 4 : gapPx >= 6 ? 3 : 0;
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(p.value)}`).join(' ');
   const areaPath = `${linePath} L ${x(n - 1)} 40 L ${x(0)} 40 Z`;
@@ -137,7 +140,9 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
         {/* Point markers (line only) */}
         {type === 'line'
           ? points.map((p, i) => {
-              if (!showAllMarkers && i !== n - 1 && active !== i) return null;
+              const emphasised = active === i || i === n - 1;
+              if (dotSize === 0 && !emphasised) return null;
+              const size = emphasised ? 9 : dotSize;
               return (
               <span
                 key={i}
@@ -145,11 +150,13 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
                 style={{
                   left: `${x(i)}%`,
                   top: `${(y(p.value) / 40) * 100}%`,
-                  width: active === i || i === n - 1 ? 9 : 5,
-                  height: active === i || i === n - 1 ? 9 : 5,
+                  width: size,
+                  height: size,
                   transform: 'translate(-50%, -50%)',
-                  background: active === i || i === n - 1 ? color : 'var(--card)',
-                  border: `2px solid ${color}`,
+                  // Small dots fill solid — a hollow ring that size reads as a
+                  // smudge — while roomier ones keep the ringed look.
+                  background: emphasised || size <= 4 ? color : 'var(--card)',
+                  border: `${size <= 4 ? 1 : 2}px solid ${color}`,
                 }}
               />
               );

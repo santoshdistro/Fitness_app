@@ -312,6 +312,8 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                   <img
                     src={exerciseImageUrl(current.exerciseId)}
                     alt={current.name}
+                    loading="lazy"
+                    decoding="async"
                     onError={() => setImgFailed(true)}
                     className="h-16 w-16 shrink-0 rounded-2xl object-cover"
                   />
@@ -636,6 +638,8 @@ function DemoPhotos({ images, name }: { images: string[]; name: string }) {
                 key={path}
                 src={exerciseDbImageUrl(path)}
                 alt={`${name} demonstration`}
+                loading="lazy"
+                decoding="async"
                 onError={() => setFailed(prev => new Set(prev).add(i))}
                 className="h-36 w-full rounded-xl object-cover"
               />
