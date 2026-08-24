@@ -105,6 +105,13 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     setPhase('resting');
   }
 
+  // Nudge the running rest by a relative amount. The new length also becomes the
+  // default for the sets that follow, so "I need a bit longer today" sticks
+  // instead of having to be re-tapped every set.
+  function adjustRest(delta: number) {
+    changeRestDuration(Math.max(5, restDuration + delta));
+  }
+
   // Change the rest length mid-countdown: keep the seconds already elapsed and
   // re-anchor the end time to (start + new length). So 90s with 20s gone → pick
   // 45s → 25s left; 45s with 10s gone → pick 90s → 80s left. If the new length
@@ -269,41 +276,6 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               {saving ? 'Saving…' : 'Finish & save'}
             </button>
           </div>
-        ) : phase === 'resting' ? (
-          <div className="anim-fade-rise text-center">
-            <Timer size={28} className="mx-auto text-[var(--accent)]" />
-            <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">
-              Rest
-            </p>
-            <p className="text-6xl font-black tabular-nums text-[var(--text)]">{restLeft}s</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Up next: {current.name} · set {setNum}
-            </p>
-            <div className="mt-4 flex justify-center gap-2">
-              {REST_OPTIONS.map(sec => (
-                <button
-                  key={sec}
-                  type="button"
-                  onClick={() => changeRestDuration(sec)}
-                  className="rounded-full px-3 py-1.5 text-xs font-semibold"
-                  style={
-                    restDuration === sec
-                      ? { background: 'var(--accent)', color: '#fff' }
-                      : { background: 'var(--card)', color: 'var(--muted)' }
-                  }
-                >
-                  {sec}s
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setPhase('active')}
-              className="mt-6 w-full rounded-2xl border border-[var(--card-border)] py-3.5 text-sm font-semibold text-[var(--text)]"
-            >
-              Skip rest
-            </button>
-          </div>
         ) : (
           <div className="anim-fade-rise">
             <div className="glass-card overflow-hidden p-5">
@@ -457,6 +429,67 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
         )}
        </div>
       </div>
+
+      {/* Rest docks at the bottom instead of taking over the screen, so the sets
+          you just logged and the move coming up stay visible while you wait. */}
+      {phase === 'resting' ? (
+        <div
+          className="anim-sheet-up border-t border-[var(--card-border)] bg-[var(--card)] px-6 pt-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
+              <Timer size={13} className="shrink-0 text-[var(--accent)]" />
+              <span className="truncate">
+                Resting · up next {current.name} · set {setNum}
+              </span>
+            </p>
+            <p className="shrink-0 text-3xl font-black tabular-nums text-[var(--text)]">{restLeft}s</p>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => adjustRest(-15)}
+              className="tap-44 flex-1 rounded-2xl border border-[var(--card-border)] py-3 text-xs font-bold text-[var(--text)]"
+            >
+              −15s
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhase('active')}
+              className="tap-44 flex-[1.4] rounded-2xl py-3 text-xs font-bold text-white bg-[image:var(--accent-gradient)]"
+            >
+              Skip rest
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustRest(15)}
+              className="tap-44 flex-1 rounded-2xl border border-[var(--card-border)] py-3 text-xs font-bold text-[var(--text)]"
+            >
+              +15s
+            </button>
+          </div>
+
+          <div className="mt-2 flex justify-center gap-2">
+            {REST_OPTIONS.map(sec => (
+              <button
+                key={sec}
+                type="button"
+                onClick={() => changeRestDuration(sec)}
+                className="tap-44 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                style={
+                  restDuration === sec
+                    ? { background: 'var(--accent)', color: '#fff' }
+                    : { background: 'var(--bg)', color: 'var(--muted)' }
+                }
+              >
+                {sec}s
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

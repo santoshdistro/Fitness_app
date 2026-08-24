@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { useFasting } from '../hooks/useFasting';
+import { FASTING_STAGES, stageIndexAt } from '../data/fastingStages';
 
 const PRESETS = [
   { hours: 16, label: '16:8' },
@@ -52,9 +53,12 @@ export function FastingPanel() {
             <div className="h-full rounded-full bg-white" style={{ width: `${percent}%` }} />
           </div>
           <p className="mt-2 text-[11px] text-white/85">
-            {reached ? 'Target reached — well done! 🎉' : `${Math.round(percent)}% there`}
+            {reached
+              ? 'Target reached — well done! 🎉'
+              : `${fmt(targetMs - elapsedMs)} to your ${active.targetHours}h goal · ${Math.round(percent)}%`}
           </p>
         </div>
+        <Journey elapsedHours={elapsedMs / 3600000} />
         <button
           type="button"
           onClick={end}
@@ -107,6 +111,55 @@ export function FastingPanel() {
         </button>
       </div>
       <History history={history} />
+    </div>
+  );
+}
+
+// The stages a fast passes through, with the current one marked and the next
+// one previewed — it turns a bare countdown into something worth watching.
+function Journey({ elapsedHours }: { elapsedHours: number }) {
+  const current = stageIndexAt(elapsedHours);
+  const stage = FASTING_STAGES[current];
+  const next = FASTING_STAGES[current + 1];
+
+  return (
+    <div className="glass-card flex flex-col gap-3 p-5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">The journey</p>
+
+      <div className="flex gap-1">
+        {FASTING_STAGES.map((s, i) => {
+          const done = i <= current;
+          return (
+            <div key={s.fromHour} className="flex flex-1 flex-col items-center gap-1.5">
+              <div
+                className="h-1 w-full rounded-full"
+                style={{ background: done ? 'var(--accent)' : 'var(--card-border)' }}
+              />
+              <span
+                className="text-center text-[9px] font-bold leading-tight"
+                style={{ color: i === current ? 'var(--accent)' : 'var(--muted)' }}
+              >
+                {s.label}
+              </span>
+              <span className="text-[9px] text-[var(--muted)]">{s.fromHour}h</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-[var(--card-border)] pt-3">
+        <p className="text-xs leading-relaxed text-[var(--text)]">{stage.detail}</p>
+        {next ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
+            <span className="font-bold uppercase tracking-wide">Next</span> · {next.label} at {next.fromHour}h.{' '}
+            {next.detail}
+          </p>
+        ) : null}
+      </div>
+
+      <p className="text-[10px] leading-relaxed text-[var(--muted)]">
+        Rough guides only — real timings vary with your last meal, activity and sleep.
+      </p>
     </div>
   );
 }
