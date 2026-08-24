@@ -137,8 +137,6 @@ export function AppShell() {
 
   return (
     <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
-      {/* Ambient hue for the current section — sits behind everything. */}
-      <div className="section-wash" aria-hidden="true" />
       {/* Faint film grain over the whole app, so flat fills read as material. */}
       <div className="grain" aria-hidden="true" />
       <div ref={scrollRef} className="hide-scrollbar relative z-10 flex-1 overflow-y-auto overflow-x-hidden">
