@@ -23,12 +23,21 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 export function WeeklyReviewCard({
   review,
   weightUnit,
+  calorieTarget,
 }: {
   review: WeeklyReview;
   weightUnit: WeightUnit;
+  calorieTarget?: number | null;
 }) {
   const avgWeightStr =
     review.avgWeightKg == null ? '—' : `${weightValue(review.avgWeightKg, weightUnit)} ${weightUnit}`;
+
+  // A running weekly budget: one heavy day matters less than the week as a
+  // whole, and this is the view that shows whether there is room left.
+  const weekBudget = calorieTarget ? calorieTarget * 7 : null;
+  const budgetPct = weekBudget ? Math.min(100, (review.weekCalories / weekBudget) * 100) : 0;
+  // Where you'd be if you had eaten exactly to target for the days so far.
+  const pacePct = weekBudget ? Math.min(100, (review.daysElapsed / 7) * 100) : 0;
 
   return (
     <div className="glass-card flex flex-col gap-3 p-5">
@@ -41,6 +50,36 @@ export function WeeklyReviewCard({
           <p className="text-[11px] text-[var(--muted)]">Since Monday</p>
         </div>
       </div>
+
+      {weekBudget ? (
+        <div className="rounded-2xl bg-[var(--bg)] p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Week so far
+            </p>
+            <p className="text-[11px] font-semibold text-[var(--text)]">
+              {review.weekCalories.toLocaleString()}
+              <span className="font-medium text-[var(--muted)]"> of {weekBudget.toLocaleString()} kcal</span>
+            </p>
+          </div>
+          <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--card-border)]">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${budgetPct}%`, background: 'var(--accent)' }}
+            />
+            {/* Where an exactly-on-target week would sit today. */}
+            <div
+              className="absolute top-0 h-full w-0.5 bg-[var(--text)] opacity-40"
+              style={{ left: `${pacePct}%` }}
+            />
+          </div>
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
+            {review.weekCalories <= weekBudget
+              ? `${(weekBudget - review.weekCalories).toLocaleString()} kcal left · marker = on-target pace`
+              : `${(review.weekCalories - weekBudget).toLocaleString()} kcal over budget`}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Days logged" value={`${review.daysLogged}/7`} />

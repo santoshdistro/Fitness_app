@@ -18,6 +18,10 @@ export type WeeklyReview = {
   weightChangeKg: number | null;
   /** Mean of this week's weigh-ins (kg) — the settled figure for the week. */
   avgWeightKg: number | null;
+  /** Calories eaten so far this week (Monday → today). */
+  weekCalories: number;
+  /** Days elapsed in the current week, including today. */
+  daysElapsed: number;
 };
 
 type Args = { calorieTarget?: number | null; proteinTarget?: number | null };
@@ -72,6 +76,16 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
 
     const days = [...perDay.values()];
     const daysLogged = days.length;
+    const weekCalories = Math.round(days.reduce((s, d) => s + d.calories, 0));
+    // How far into the week we are, so a budget can be framed against the days
+    // actually spent rather than the whole seven.
+    const daysElapsed = Math.min(
+      7,
+      Math.round(
+        (new Date(`${todayDateString()}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) /
+          86400000,
+      ) + 1,
+    );
     const avgCalories =
       daysLogged > 0 ? Math.round(days.reduce((s, d) => s + d.calories, 0) / daysLogged) : null;
     const avgProtein =
@@ -118,6 +132,8 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       avgActiveKcal,
       proteinHitDays,
       calorieOnTargetDays,
+      weekCalories,
+      daysElapsed,
       weightChangeKg,
       avgWeightKg,
     });

@@ -364,7 +364,11 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       {/* 7. This week */}
       {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
         <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.18s' }}>
-          <WeeklyReviewCard review={weeklyReview} weightUnit={settings.weightUnit} />
+          <WeeklyReviewCard
+            review={weeklyReview}
+            weightUnit={settings.weightUnit}
+            calorieTarget={calorieTarget}
+          />
         </div>
       ) : null}
 

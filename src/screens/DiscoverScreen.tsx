@@ -744,13 +744,30 @@ function AddMealTab(p: AddMealProps) {
             .filter(g => g.list.length > 0)
             .map(g => (
               <div key={g.cat} className="mb-3 last:mb-0">
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1 flex items-baseline justify-between gap-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
                     {MEAL_LABELS[g.cat]}
                   </p>
-                  <p className="text-[10px] font-semibold text-[var(--muted)]">
-                    {Math.round(g.list.reduce((s, m) => s + (m.calories ?? 0), 0))} kcal
-                  </p>
+                  {(() => {
+                    // Per-meal macro subtotals, not just calories — otherwise you
+                    // have to add the rows up yourself to see where the protein
+                    // in a day actually came from.
+                    const t = g.list.reduce(
+                      (a, m) => ({
+                        kcal: a.kcal + (m.calories ?? 0),
+                        p: a.p + (m.protein_g ?? 0),
+                        c: a.c + (m.carbs_g ?? 0),
+                        f: a.f + (m.fat_g ?? 0),
+                      }),
+                      { kcal: 0, p: 0, c: 0, f: 0 },
+                    );
+                    return (
+                      <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
+                        <span className="text-[var(--text)]">{Math.round(t.kcal)} kcal</span> ·{' '}
+                        {Math.round(t.p)}P {Math.round(t.c)}C {Math.round(t.f)}F
+                      </p>
+                    );
+                  })()}
                 </div>
                 {g.list.map(m => (
                   <div
