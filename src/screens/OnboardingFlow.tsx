@@ -180,7 +180,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       {/* Header: back + progress */}
       <div className="flex items-center gap-3 pt-2">
         {step > 0 ? (
-          <button type="button" onClick={back} aria-label="Back" className="glass flex h-9 w-9 items-center justify-center rounded-full">
+          <button type="button" onClick={back} aria-label="Back" className="tap-44 glass flex h-9 w-9 items-center justify-center rounded-full">
             <ArrowLeft size={16} className="text-[var(--text)]" />
           </button>
         ) : (

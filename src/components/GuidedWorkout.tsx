@@ -215,7 +215,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="glass flex h-9 w-9 items-center justify-center rounded-full"
+          className="tap-44 glass flex h-9 w-9 items-center justify-center rounded-full"
         >
           <X size={16} className="text-[var(--text)]" />
         </button>
@@ -600,7 +600,7 @@ function CardioTimer({
           type="button"
           onClick={reset}
           aria-label="Reset timer"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)]"
+          className="tap-44 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)]"
         >
           <RotateCcw size={15} />
         </button>

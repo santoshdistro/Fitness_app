@@ -269,7 +269,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onRefresh}
             aria-label={syncShortcut ? 'Sync Health & refresh' : 'Refresh'}
-            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+            className="tap-44 glass flex h-10 w-10 items-center justify-center rounded-full"
           >
             <RefreshCw
               size={15}
@@ -279,7 +279,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onOpenSettings}
             aria-label="Settings"
-            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+            className="tap-44 glass flex h-10 w-10 items-center justify-center rounded-full"
           >
             <Settings size={16} className="text-[var(--muted)]" />
           </button>

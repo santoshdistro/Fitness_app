@@ -145,7 +145,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)]"
+            className="tap-44 flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)]"
           >
             <X size={20} />
           </button>

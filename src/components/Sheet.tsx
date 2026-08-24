@@ -89,7 +89,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="glass flex h-8 w-8 items-center justify-center rounded-full"
+            className="tap-44 glass flex h-8 w-8 items-center justify-center rounded-full"
             style={{ color: 'var(--muted)' }}
           >
             &times;

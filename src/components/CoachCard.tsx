@@ -39,7 +39,7 @@ export function CoachCard({ status, insight, message, onRetry }: Props) {
                   type="button"
                   onClick={onRetry}
                   aria-label="Retry coaching"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+                  className="tap-44 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
                 >
                   <RefreshCw size={13} />
                 </button>
