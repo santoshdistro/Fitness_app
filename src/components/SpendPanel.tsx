@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAiSpend, type FeatureSpend } from '../hooks/useAiSpend';
 import { formatUsd } from '../utils/aiPricing';
+import { SkeletonLines } from './Skeleton';
 
 const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   coach: 'Coach insights',
@@ -80,7 +81,7 @@ export function SpendPanel() {
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Breakdown</p>
         <div className="flex flex-col gap-2">
           {loading ? (
-            <p className="text-xs text-[var(--muted)]">Loading…</p>
+            <SkeletonLines lines={4} label="Loading spend breakdown" />
           ) : byFeature.length === 0 ? (
             <p className="text-xs text-[var(--muted)]">
               No AI features used yet this month. Use the coach, scans or plan generator and your

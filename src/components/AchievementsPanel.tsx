@@ -1,4 +1,5 @@
 import { useAchievements } from '../hooks/useAchievements';
+import { SkeletonRows } from './Skeleton';
 
 export function AchievementsPanel() {
   const { achievements, earnedCount, total, loading } = useAchievements();
@@ -18,7 +19,7 @@ export function AchievementsPanel() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonRows rows={4} label="Loading achievements" />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {achievements.map(ac => (
