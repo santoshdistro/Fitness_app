@@ -8,6 +8,7 @@ import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
 import { ExerciseDetail } from './ExerciseDetail';
 import { Sheet } from './Sheet';
+import { SkeletonLines } from './Skeleton';
 
 export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [period, setPeriod] = useState<MusclePeriod>('week');
@@ -147,7 +148,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
 
       {/* Ranked list */}
       {loading ? (
-        <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonLines lines={4} label="Loading muscle ranking" />
       ) : ranked.length === 0 ? (
         <p className="text-center text-xs text-[var(--muted)]">
           Log a workout and the muscles you trained light up here.
@@ -181,7 +182,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         Workouts done · {periodRangeLabel()}
       </p>
       {loading ? (
-        <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonLines lines={3} label="Loading workouts" />
       ) : data.exercises.length === 0 ? (
         <p className="text-xs text-[var(--muted)]">
           No workouts logged in this window. Log a session and every exercise ranks here — hardest

@@ -284,6 +284,13 @@ summary row, and it is the reason the type scale is built the way it is.
 - **Don't** spell a brand gradient inline. In Tailwind arbitrary values the
   `image:` type hint is required — `bg-[image:var(--accent-gradient)]` — because
   without it Tailwind emits `background-color` and the fill silently disappears.
+- **Don't** write `color-mix()` on a token in hand-authored CSS. The build emits
+  a no-`color-mix` fallback that strips the percentage, so a 4% tray becomes a
+  solid near-black slab and a 15% wash becomes full saturation. Define the
+  translucent value as a literal `rgba` token per theme instead (`--tray`,
+  `--accent-shadow`, `--section-wash`). Inline `style={{}}` in JSX is exempt:
+  the browser evaluates it directly, and an unsupported value simply doesn't
+  apply, which fails safe.
 - **Don't** put two gradient buttons on one screen.
 - **Don't** add a second shadow tier or nest shadows inside cards.
 - **Don't** separate rows with visible rules where space or a tonal fill will do.

@@ -4,6 +4,7 @@ import { Camera, Check, GitCompare, Pencil, RefreshCw, Trash2, X } from 'lucide-
 import { useProgressPhotos, type ProgressPhotoWithUrl } from '../hooks/useProgressPhotos';
 import { todayDateString } from '../utils/date';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
+import { SkeletonGrid } from './Skeleton';
 
 function formatDate(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
@@ -277,7 +278,7 @@ export function ProgressPhotosPanel() {
 
       {/* Timeline grid */}
       {loading ? (
-        <p className="text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonGrid items={6} />
       ) : photos.length === 0 ? (
         <div className="glass-card p-6 text-center">
           <p className="text-sm font-semibold text-[var(--text)]">No photos yet</p>

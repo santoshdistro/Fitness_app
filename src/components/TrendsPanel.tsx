@@ -5,6 +5,7 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import { kgToUnit } from '../utils/units';
 import { TrendChart } from './charts/TrendChart';
 import { WellnessCard } from './WellnessCard';
+import { SkeletonChart, SkeletonTiles } from './Skeleton';
 
 const RANGE_OPTIONS = [
   { key: '7', label: '1W' },
@@ -139,7 +140,9 @@ export function TrendsPanel() {
     return (
       <div className="flex flex-col gap-4">
         {rangePicker}
-        <p className="text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonTiles />
+        <SkeletonChart />
+        <SkeletonChart />
       </div>
     );
   if (!trends) return null;
@@ -169,6 +172,9 @@ export function TrendsPanel() {
   return (
     <div className="flex flex-col gap-4">
       {rangePicker}
+      {/* The hero tiles get the nested tray treatment — the one place in the
+          app where the extra material read is worth the visual weight. */}
+      <div className="bezel">
       <div className="glass-card grid grid-cols-2 gap-2 p-3">
         <StatTile
           label="Weight"
@@ -199,6 +205,7 @@ export function TrendsPanel() {
           unit="sessions"
           sub={trends.totalWorkouts ? spanLabel : 'log a workout'}
         />
+      </div>
       </div>
 
       <Section
