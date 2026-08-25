@@ -88,5 +88,16 @@ export function useTrainingSplit() {
     [userId],
   );
 
-  return { split, setDay };
+  // Replace the whole week at once. Setting seven days through setDay would be
+  // seven separate writes; this is one, and it can't half-apply.
+  const setAll = useCallback(
+    (next: string[]) => {
+      if (next.length !== 7) return;
+      setSplit(next);
+      if (userId) localStorage.setItem(key(userId), JSON.stringify(next));
+    },
+    [userId],
+  );
+
+  return { split, setDay, setAll };
 }

@@ -22,7 +22,7 @@ import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/phys
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
-import { programDates, workoutFor } from '../data/vTaperProgram';
+import { programDates, workoutFor, PROGRAM_SPLIT_LABELS } from '../data/vTaperProgram';
 
 const STRIP_DAYS = 14;
 
@@ -74,7 +74,7 @@ type Props = {
 export function WorkoutPlanner({ onStartGuided }: Props) {
   const { session } = useAuth();
   const { profile } = useProfile();
-  const { split, setDay } = useTrainingSplit();
+  const { split, setDay, setAll } = useTrainingSplit();
   const { plan, hasPlan, exercisesFor, addExercise, removeExercise, applyRange, clearDate, clearAll } =
     useWorkoutPlan();
 
@@ -131,6 +131,9 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
     }
     if (!entries.length) return;
     applyRange(entries, 'V-taper 5-day split — Mon to Fri, weekends rest, through to 24 November.');
+    // Relabel the weekly calendar to match, so the strip reads Pull / Legs /
+    // Shoulders / Rest rather than whatever split was there before.
+    setAll(PROGRAM_SPLIT_LABELS);
     jumpTo(entries[0].date);
   }
 
@@ -223,11 +226,12 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         onClick={loadProgramme}
         className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 py-3 text-xs font-bold text-[var(--accent)]"
       >
-        <Dumbbell size={15} /> Load 12-week V-taper split
+        <Dumbbell size={15} /> Load 90-day V-taper split
       </button>
       <p className="-mt-1 text-[10px] text-[var(--muted)]">
-        The written 5-day split on every weekday to 24 Nov, weekends left as rest. Form cues come
-        with each move, so exercises without a demo photo still have instructions.
+        The booklet 5-day split on every weekday to 24 Nov, weekends rest. Also relabels the weekly
+        calendar above. Form cues come with each move, so exercises with no demo photo still have
+        instructions.
       </p>
 
       <div className="flex gap-2">

@@ -163,7 +163,7 @@ export function DietPlanner() {
     setStripStart(date);
   }
 
-  // Seed the written 12-week programme onto real dates. Past dates are skipped
+  // Seed the written 90-day blueprint onto real dates. Past dates are skipped
   // so loading it midway doesn't backfill days that have already happened.
   function loadProgramme() {
     const entries = programDates()
@@ -173,7 +173,7 @@ export function DietPlanner() {
     if (!entries.length) return;
     applyDates(
       entries,
-      'V-taper programme: four phases to 24 Nov. Monday fasting in the vegetarian phases, chicken in the non-veg windows, Tuesdays and Diwali kept veg. Every meal stays editable.',
+      'V-taper 90-day blueprint: four phases to 24 Nov on a four-week rotating menu. Mondays fast, Tuesdays and Diwali stay vegetarian. Every meal stays editable.',
     );
     jumpTo(entries[0].date);
   }
@@ -331,12 +331,12 @@ export function DietPlanner() {
           onClick={loadProgramme}
           className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 py-2.5 text-[11px] font-bold text-[var(--accent)]"
         >
-          <Utensils size={13} /> Load 12-week V-taper programme
+          <Utensils size={13} /> Load 90-day V-taper programme
         </button>
         <p className="text-[10px] text-[var(--muted)]">
-          Fills every day to {PROGRAM_END_LABEL} from the written programme — Monday fasting in the
-          vegetarian phases, chicken in the non-veg windows, Diwali and Tuesdays kept veg. Overwrites
-          existing meals on those dates; each one stays editable afterwards.
+          Fills every day to {PROGRAM_END_LABEL} from the booklet — the four-week rotating menu, Monday
+          fasting, chicken in the hybrid phases, Tuesdays and Diwali kept veg. Overwrites existing
+          meals on those dates; each one stays editable afterwards.
         </p>
 
         <div className="mt-1 flex gap-2">
