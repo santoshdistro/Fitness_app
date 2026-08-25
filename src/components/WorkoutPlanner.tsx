@@ -22,6 +22,7 @@ import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/phys
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
+import { programDates, workoutFor } from '../data/vTaperProgram';
 
 const STRIP_DAYS = 14;
 
@@ -115,6 +116,24 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
     setStripStart(date);
   }
 
+  // Seed the written 5-day split across the whole programme. Rest days are left
+  // untouched rather than written as empty, and past dates are skipped.
+  function loadProgramme() {
+    const entries: RangeEntry[] = [];
+    for (const date of programDates()) {
+      if (date < today) continue;
+      const day = workoutFor(date);
+      if (!day) continue;
+      entries.push({
+        date,
+        exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
+      });
+    }
+    if (!entries.length) return;
+    applyRange(entries, 'V-taper 5-day split — Mon to Fri, weekends rest, through to 24 November.');
+    jumpTo(entries[0].date);
+  }
+
   // Deterministic prefill: fill 14 days from the strip start using each day's
   // split focus → template exercises, with volume scaled to the chosen level.
   function autofillFromSplit(level: GymLevel, physique: PhysiqueGoal) {
@@ -199,6 +218,18 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
       </div>
 
       {/* Fill actions */}
+      <button
+        type="button"
+        onClick={loadProgramme}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 py-3 text-xs font-bold text-[var(--accent)]"
+      >
+        <Dumbbell size={15} /> Load 12-week V-taper split
+      </button>
+      <p className="-mt-1 text-[10px] text-[var(--muted)]">
+        The written 5-day split on every weekday to 24 Nov, weekends left as rest. Form cues come
+        with each move, so exercises without a demo photo still have instructions.
+      </p>
+
       <div className="flex gap-2">
         <button
           type="button"

@@ -131,6 +131,21 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Write specific dates in one go. Unlike applyWeeklyPlan this takes explicit
+  // per-date meals, so a long programme whose eating rules change by phase and
+  // by weekday can be laid down in a single write rather than one per day.
+  const applyDates = useCallback(
+    (entries: { date: string; items: DietPlanItem[] }[], summary?: string) => {
+      if (!entries.length) return;
+      const byDate = { ...plan.byDate };
+      for (const entry of entries) {
+        byDate[entry.date] = entry.items.map(it => ({ ...it, id: newId() }));
+      }
+      persist({ summary: summary ?? plan.summary, byDate });
+    },
+    [plan, persist],
+  );
+
   // Copy one day's meals across the whole span — handy when you eat the same
   // thing most days and don't want variety.
   const repeatDay = useCallback(
@@ -160,5 +175,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, repeatDay, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, applyDates, repeatDay, clearDate, clearAll };
 }

@@ -17,9 +17,15 @@ import { getCachedRecipe, setCachedRecipe } from '../lib/recipeCache';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
+import { mealsFor, programDates, PROGRAM_END } from '../data/vTaperProgram';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
 
 const STRIP_DAYS = 14;
+
+const PROGRAM_END_LABEL = new Date(`${PROGRAM_END}T00:00:00`).toLocaleDateString(undefined, {
+  day: 'numeric',
+  month: 'long',
+});
 
 function fmt(date: string, opts: Intl.DateTimeFormatOptions): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, opts);
@@ -100,7 +106,7 @@ export function DietPlanner() {
   const { session } = useAuth();
   const { profile } = useProfile();
   const targets = useCalorieTargets();
-  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, repeatDay, clearDate, clearAll } =
+  const { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, applyDates, repeatDay, clearDate, clearAll } =
     useDietPlan();
   const { split, setDay } = useDietSplit();
   const { inputs: scheduleInputs, update: updateSchedule } = useDaySchedule();
@@ -155,6 +161,21 @@ export function DietPlanner() {
   function jumpTo(date: string) {
     setViewDate(date);
     setStripStart(date);
+  }
+
+  // Seed the written 12-week programme onto real dates. Past dates are skipped
+  // so loading it midway doesn't backfill days that have already happened.
+  function loadProgramme() {
+    const entries = programDates()
+      .filter(date => date >= today)
+      .map(date => ({ date, items: mealsFor(date) }))
+      .filter(e => e.items.length > 0);
+    if (!entries.length) return;
+    applyDates(
+      entries,
+      'V-taper programme: four phases to 24 Nov. Monday fasting in the vegetarian phases, chicken in the non-veg windows, Tuesdays and Diwali kept veg. Every meal stays editable.',
+    );
+    jumpTo(entries[0].date);
   }
 
   // Non-AI build: assemble the fortnight instantly from curated day-templates
@@ -305,6 +326,19 @@ export function DietPlanner() {
             </div>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={loadProgramme}
+          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 py-2.5 text-[11px] font-bold text-[var(--accent)]"
+        >
+          <Utensils size={13} /> Load 12-week V-taper programme
+        </button>
+        <p className="text-[10px] text-[var(--muted)]">
+          Fills every day to {PROGRAM_END_LABEL} from the written programme — Monday fasting in the
+          vegetarian phases, chicken in the non-veg windows, Diwali and Tuesdays kept veg. Overwrites
+          existing meals on those dates; each one stays editable afterwards.
+        </p>
+
         <div className="mt-1 flex gap-2">
           <button
             type="button"

@@ -3,6 +3,8 @@
 // fallback in ExerciseDetail so every move has at least steps, even without a
 // demo photo.
 
+import { programFormCue } from './vTaperProgram';
+
 export type TextGuide = { summary: string; steps: string[] };
 
 const RULES: { test: RegExp; guide: TextGuide }[] = [
@@ -83,6 +85,15 @@ const RULES: { test: RegExp; guide: TextGuide }[] = [
 export function textGuide(name: string): TextGuide | null {
   for (const rule of RULES) {
     if (rule.test.test(name)) return rule.guide;
+  }
+  // Fall back to the written programme's own form cue, so a move planned from
+  // the V-taper split still explains itself even with no photo and no rule.
+  const cue = programFormCue(name);
+  if (cue) {
+    return {
+      summary: 'From your 12-week programme.',
+      steps: cue.split(/(?<=\.)\s+/).filter(Boolean),
+    };
   }
   return null;
 }
