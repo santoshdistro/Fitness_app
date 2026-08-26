@@ -66,6 +66,39 @@ function singular(word: string): string {
 // Words that carry no matching signal — dropped before comparing names.
 const STOP = new Set(['the', 'a', 'with', 'and', 'to', 'of', 'on', 'in', 'for']);
 
+// Qualifiers that change how a move actually looks. Within a group the values
+// are mutually exclusive, so a photo of one is a photo of the wrong thing: a
+// close-grip pulldown asked for and a wide-grip photo returned is worse than no
+// photo at all, because the image silently contradicts the instruction.
+// Each group holds mutually exclusive alternatives; each alternative lists its
+// synonyms, so "close" and "narrow" agree with each other but both disagree
+// with "wide".
+const CONFLICTING_QUALIFIERS: string[][][] = [
+  [['close', 'narrow'], ['wide']],
+  [['neutral', 'hammer'], ['reverse', 'underhand', 'supinated'], ['overhand', 'pronated']],
+  [['incline'], ['decline'], ['flat']],
+  [['seated'], ['standing'], ['lying'], ['kneeling']],
+  [['single', 'one'], ['two', 'both', 'double']],
+  [['front'], ['rear', 'back']],
+  [['barbell'], ['dumbbell'], ['cable'], ['machine'], ['kettlebell'], ['band'], ['smith']],
+];
+
+/** Which alternative (by index) this word set picks in each group, if any. */
+function qualifiersOf(words: Set<string>): (number | undefined)[] {
+  return CONFLICTING_QUALIFIERS.map(group => {
+    const idx = group.findIndex(synonyms => synonyms.some(w => words.has(w)));
+    return idx === -1 ? undefined : idx;
+  });
+}
+
+// True when both names name a qualifier from the same group but disagree.
+// Silence on one side is fine — a generic entry can illustrate a specific one.
+function qualifiersConflict(a: Set<string>, b: Set<string>): boolean {
+  const qa = qualifiersOf(a);
+  const qb = qualifiersOf(b);
+  return qa.some((q, i) => q != null && qb[i] != null && q !== qb[i]);
+}
+
 // Best-effort match from a free-text exercise name to a how-to DB id. Exact
 // first, then the best word-overlap: every typed word appearing in a DB entry
 // wins even if that entry has extra qualifiers (e.g. "Barbell Bench Press"
@@ -95,6 +128,7 @@ export function resolveExerciseId(name: string): string | undefined {
     const jaccard = inter / union;
     const allQueryMatched = inter === qSet.size;
     if (!allQueryMatched && jaccard < 0.5) continue; // too weak — skip
+    if (qualifiersConflict(qSet, kSet)) continue; // right move, wrong variant
     const score = (allQueryMatched ? 1 : 0) + jaccard;
     // Prefer a higher score; tie-break toward the closest-length entry.
     if (score > bestScore || (score === bestScore && kWords.length < bestLen)) {
