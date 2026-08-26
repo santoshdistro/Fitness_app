@@ -139,7 +139,10 @@ export function AppShell() {
     <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
       {/* Faint film grain over the whole app, so flat fills read as material. */}
       <div className="grain" aria-hidden="true" />
-      <div ref={scrollRef} className="hide-scrollbar relative z-10 flex-1 overflow-y-auto overflow-x-hidden">
+      {/* No z-index here on purpose: any positive value makes this a stacking
+          context, which would trap full-screen overlays mounted inside a screen
+          (the guided workout) beneath the nav and FAB. */}
+      <div ref={scrollRef} className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
         {/* Pull-to-refresh indicator */}
         {pull > 0 || refreshing ? (
           <div
