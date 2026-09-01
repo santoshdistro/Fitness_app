@@ -29,10 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setInitializing(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session))
+      // A rejection here used to leave `initializing` true forever — the app
+      // sat on its loading screen with no way out, which is what a cold start
+      // with no connection looks like. Fall through to the auth screen instead:
+      // it can say what's wrong, and signing in retries the network.
+      .catch(() => setSession(null))
+      .finally(() => setInitializing(false));
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {

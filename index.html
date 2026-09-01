@@ -14,10 +14,165 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/app-icon-192.png" />
     <link rel="apple-touch-icon" href="/app-icon-180.png" />
+    <!-- Warms the connection for the splash photo below and the Home hero, which
+         share a URL and therefore a cache entry. -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 
     <title>Fitness</title>
+
+    <!--
+      Splash screen. Everything it needs is inline, so it paints on the very
+      first frame — before the bundle downloads, before React mounts, before the
+      auth check. Those three together are the couple of seconds the app used to
+      spend on a blank screen and then a 24px spinner.
+
+      The ground is #0f1119 to match `background_color` in the manifest, which is
+      what iOS and Android paint for a standalone launch. Matching it means the
+      OS launch screen and this hand over with no flash between them. It stays
+      dark whatever theme the app is set to: the theme attribute is applied by a
+      module script, which runs after this has already painted.
+    -->
+    <style>
+      /* The field is the app's own aurora backdrop — the four brand radials that
+         sit behind the liquid-glass surface — darkened. It carries the screen on
+         its own, so a cold first run with no photo yet still looks composed
+         rather than empty. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-color: #0f1119;
+        background-image:
+          radial-gradient(52% 38% at 12% 8%, rgba(125, 117, 255, 0.45), transparent 66%),
+          radial-gradient(48% 34% at 90% 14%, rgba(14, 165, 233, 0.3), transparent 66%),
+          radial-gradient(50% 40% at 84% 88%, rgba(45, 212, 191, 0.22), transparent 68%),
+          radial-gradient(56% 44% at 14% 94%, rgba(168, 85, 247, 0.36), transparent 70%);
+      }
+
+      /* Gym photography, layered OVER the field and faded in only once it has
+         actually decoded — the rule the in-app imagery already follows. If it
+         never arrives, nothing above depends on it. */
+      #splash .splash-photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      #splash .splash-photo.is-in {
+        opacity: 0.7;
+      }
+
+      /* Two jobs: a periwinkle duotone that pulls any photo into the brand
+         whatever its own colour is, and a vignette that darkens the edges so the
+         mark holds contrast wherever the crop happens to land. */
+      #splash .splash-wash {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(150deg, rgba(108, 99, 255, 0.3), rgba(24, 20, 66, 0.42)),
+          radial-gradient(102% 72% at 50% 46%, transparent 24%, rgba(9, 10, 18, 0.86) 100%);
+      }
+
+      #splash .splash-mark {
+        position: relative;
+        width: clamp(128px, 34vw, 176px);
+        height: auto;
+        /* Optical centering — dead-centre reads low on a tall phone screen. */
+        margin-bottom: 6vh;
+        filter: drop-shadow(0 16px 38px rgba(12, 10, 40, 0.7));
+      }
+
+      /* Slow-load state. Pure CSS on a delay, so it needs no timer and no
+         script: a normal start removes the whole splash seconds before this
+         fires, and nobody ever sees it. If the bundle or the session check
+         stalls, it explains the wait instead of leaving a logo sitting there. */
+      #splash .splash-hint {
+        position: absolute;
+        left: 50%;
+        bottom: max(11vh, calc(env(safe-area-inset-bottom) + 48px));
+        transform: translateX(-50%);
+        margin: 0;
+        width: min(78vw, 320px);
+        text-align: center;
+        font-family: -apple-system, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.74);
+        opacity: 0;
+        animation: splash-hint 600ms cubic-bezier(0.22, 1, 0.36, 1) 6s both;
+      }
+      @keyframes splash-hint {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* The one authored moment: the splash lifts away and the app arrives
+         through it, rather than a cut or a plain dissolve. */
+      #splash.is-done {
+        opacity: 0;
+        transform: scale(1.06);
+        filter: blur(6px);
+        pointer-events: none;
+        transition:
+          opacity 460ms cubic-bezier(0.22, 1, 0.36, 1),
+          transform 460ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 460ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #splash .splash-photo {
+          transition: none;
+        }
+        #splash.is-done {
+          transform: none;
+          filter: none;
+          transition: opacity 200ms linear;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <img
+        class="splash-photo"
+        src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=70"
+        alt=""
+        fetchpriority="low"
+        decoding="async"
+        onload="this.classList.add('is-in')"
+      />
+      <div class="splash-wash"></div>
+      <svg class="splash-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#a49dff" />
+            <stop offset="1" stop-color="#6c63ff" />
+          </linearGradient>
+        </defs>
+        <!-- Same path as scripts/build-icons.mjs — keep the two in step. -->
+        <path
+          d="M 24 29 L 50 71 L 76 29 L 60 29 L 50 60 L 40 29 Z"
+          fill="url(#splash-g)"
+          stroke="url(#splash-g)"
+          stroke-width="6"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      </svg>
+      <p class="splash-hint">Taking longer than usual — check your connection.</p>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

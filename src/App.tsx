@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { WifiOff, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthScreen } from './screens/AuthScreen';
@@ -33,13 +34,21 @@ function SessionExpiredToast() {
 function AppContent() {
   const { session, initializing } = useAuth();
 
-  if (initializing) {
-    return (
-      <div className="app-bg flex min-h-dvh items-center justify-center">
-        <span className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--card-border)] border-t-[var(--accent)]" />
-      </div>
-    );
-  }
+  // The splash in index.html has covered the screen since the first paint — the
+  // bundle download, React mounting, and this auth check all happen behind it.
+  // Lift it once there is something real underneath, so the app arrives in one
+  // move instead of blank screen → spinner → app.
+  useEffect(() => {
+    if (initializing) return;
+    const splash = document.getElementById('splash');
+    if (!splash) return;
+    splash.classList.add('is-done');
+    const done = setTimeout(() => splash.remove(), 520);
+    return () => clearTimeout(done);
+  }, [initializing]);
+
+  // Nothing to draw yet, and the splash is still on top of it.
+  if (initializing) return null;
 
   return session ? <AppShell /> : <AuthScreen />;
 }
