@@ -20,7 +20,21 @@ const EXERCISE_ID_ALIASES: Record<string, string> = {
   'arnold press': 'Arnold_Dumbbell_Press',
   'back extensions': 'Hyperextensions_Back_Extensions',
   'back squat': 'Barbell_Squat',
+  // Without this, "barbell row" ties with Upright_Barbell_Row / Barbell_Rear_Delt_Row
+  // — different movements. A bare "row" means the bent-over one.
+  'barbell row': 'Bent_Over_Barbell_Row',
+  'bent over row': 'Bent_Over_Barbell_Row',
+  // A bare "bench press" means the barbell one; left to the matcher it lands on
+  // the dumbbell entry. Same for the incline, which otherwise drops to flat.
+  'bench press': 'Barbell_Bench_Press_-_Medium_Grip',
+  'incline bench press': 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+  'incline dumbbell bench press': 'Incline_Dumbbell_Press',
   'bicycle crunch': 'Air_Bike',
+  // "Dumbbell Raise" is a real database entry, so it outscores the side raise on
+  // word overlap — but a lateral raise is not a front raise.
+  'dumbbell lateral raise': 'Side_Lateral_Raise',
+  'calf raise': 'Standing_Dumbbell_Calf_Raise',
+  'calf raises': 'Standing_Dumbbell_Calf_Raise',
   'cable crunch': 'Cable_Crunch',
   'cable crossover': 'Cable_Crossover',
   'cable curl': 'Cable_Preacher_Curl',
@@ -46,6 +60,17 @@ const EXERCISE_ID_ALIASES: Record<string, string> = {
   'neck extension': 'Lying_Face_Down_Plate_Neck_Resistance',
   'neck side flexion': 'Isometric_Neck_Exercise_-_Sides',
   'weighted neck harness': 'Lying_Face_Up_Plate_Neck_Resistance',
+  // Programme names whose movement is in the database under different kit. The
+  // photo shows the same path with a dumbbell/cable swap, which reads fine; the
+  // written cue names the actual equipment.
+  'dumbbell box step up': 'Barbell_Step_Ups',
+  'lean away dumbbell lateral raise': 'Side_Lateral_Raise',
+  'single arm cable lateral raise': 'Side_Lateral_Raise',
+  'overhead cable tricep extension': 'Standing_Dumbbell_Triceps_Extension',
+  'reverse pec deck fly': 'Cable_Rear_Delt_Fly',
+  // Deliberately absent: "close-grip lat pulldown". The only pulldown in the
+  // database is wide-grip, i.e. the opposite grip — no photo beats a photo that
+  // contradicts the instruction. The written form cue covers it.
 };
 
 // how-to DB key keyed by its normalized display name, for name → id lookups.
@@ -73,20 +98,37 @@ const STOP = new Set(['the', 'a', 'with', 'and', 'to', 'of', 'on', 'in', 'for'])
 // Each group holds mutually exclusive alternatives; each alternative lists its
 // synonyms, so "close" and "narrow" agree with each other but both disagree
 // with "wide".
-const CONFLICTING_QUALIFIERS: string[][][] = [
-  [['close', 'narrow'], ['wide']],
-  [['neutral', 'hammer'], ['reverse', 'underhand', 'supinated'], ['overhand', 'pronated']],
-  [['incline'], ['decline'], ['flat']],
-  [['seated'], ['standing'], ['lying'], ['kneeling']],
-  [['single', 'one'], ['two', 'both', 'double']],
-  [['front'], ['rear', 'back']],
-  [['barbell'], ['dumbbell'], ['cable'], ['machine'], ['kettlebell'], ['band'], ['smith']],
+// `penalise` marks the groups where silently picking a variant misleads: an
+// unasked-for decline or wide grip shows the wrong movement. Equipment is
+// deliberately excluded — a bare "Squat" legitimately illustrates with a
+// barbell squat, and penalising that pushed it to a bodyweight photo instead.
+const CONFLICTING_QUALIFIERS: { alts: string[][]; penalise: boolean }[] = [
+  { alts: [['close', 'narrow'], ['wide']], penalise: true },
+  {
+    alts: [['neutral', 'hammer'], ['reverse', 'underhand', 'supinated'], ['overhand', 'pronated']],
+    penalise: true,
+  },
+  { alts: [['incline'], ['decline'], ['flat']], penalise: true },
+  { alts: [['upright'], ['bent']], penalise: true },
+  { alts: [['seated'], ['standing'], ['lying'], ['kneeling']], penalise: false },
+  { alts: [['single', 'one'], ['two', 'both', 'double']], penalise: false },
+  { alts: [['front'], ['rear', 'back']], penalise: false },
+  {
+    alts: [['barbell'], ['dumbbell'], ['cable'], ['machine'], ['kettlebell'], ['band'], ['smith']],
+    penalise: false,
+  },
 ];
+
+// How much to dock a candidate for each variant it introduces that wasn't
+// asked for. Big enough to beat the shorter-name tie-break — without it
+// "Barbell bench press" picks "Decline Barbell Bench Press" over the plain
+// "Barbell Bench Press - Medium Grip" purely because the name is shorter.
+const UNASKED_QUALIFIER_PENALTY = 0.25;
 
 /** Which alternative (by index) this word set picks in each group, if any. */
 function qualifiersOf(words: Set<string>): (number | undefined)[] {
   return CONFLICTING_QUALIFIERS.map(group => {
-    const idx = group.findIndex(synonyms => synonyms.some(w => words.has(w)));
+    const idx = group.alts.findIndex(synonyms => synonyms.some(w => words.has(w)));
     return idx === -1 ? undefined : idx;
   });
 }
@@ -97,6 +139,16 @@ function qualifiersConflict(a: Set<string>, b: Set<string>): boolean {
   const qa = qualifiersOf(a);
   const qb = qualifiersOf(b);
   return qa.some((q, i) => q != null && qb[i] != null && q !== qb[i]);
+}
+
+/** How many variants the candidate pins down that the query left open. */
+function unaskedQualifiers(query: Set<string>, candidate: Set<string>): number {
+  const qq = qualifiersOf(query);
+  const qc = qualifiersOf(candidate);
+  return qc.reduce<number>(
+    (n, q, i) => (CONFLICTING_QUALIFIERS[i].penalise && q != null && qq[i] == null ? n + 1 : n),
+    0,
+  );
 }
 
 // Best-effort match from a free-text exercise name to a how-to DB id. Exact
@@ -129,7 +181,10 @@ export function resolveExerciseId(name: string): string | undefined {
     const allQueryMatched = inter === qSet.size;
     if (!allQueryMatched && jaccard < 0.5) continue; // too weak — skip
     if (qualifiersConflict(qSet, kSet)) continue; // right move, wrong variant
-    const score = (allQueryMatched ? 1 : 0) + jaccard;
+    const score =
+      (allQueryMatched ? 1 : 0) +
+      jaccard -
+      UNASKED_QUALIFIER_PENALTY * unaskedQualifiers(qSet, kSet);
     // Prefer a higher score; tie-break toward the closest-length entry.
     if (score > bestScore || (score === bestScore && kWords.length < bestLen)) {
       best = id;
