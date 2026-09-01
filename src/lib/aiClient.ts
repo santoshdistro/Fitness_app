@@ -112,9 +112,13 @@ async function postJson<T>(url: string, payload: unknown): Promise<{ result: T; 
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('This is taking longer than usual — check your connection and try again.');
+      throw new Error('This is taking longer than usual — check your connection and try again.', {
+        cause: err,
+      });
     }
-    throw new Error("Couldn't reach the server — check your connection and try again.");
+    throw new Error("Couldn't reach the server — check your connection and try again.", {
+      cause: err,
+    });
   } finally {
     clearTimeout(timeout);
   }

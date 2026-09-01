@@ -59,7 +59,7 @@ export function parseServing(input: string | number | null | undefined): ParsedS
   let size = parseFloat(m[1]);
   if (!size || size <= 0) return null;
   const raw = (m[2] ?? 'g').toLowerCase();
-  let unit: 'g' | 'ml' = /ml|milli|^l|liter|litre/.test(raw) ? 'ml' : 'g';
+  const unit: 'g' | 'ml' = /ml|milli|^l|liter|litre/.test(raw) ? 'ml' : 'g';
   if (/^l|liter|litre/.test(raw)) size *= 1000; // litres → ml
   if (raw === 'kg') size *= 1000; // kg → g
   return { size: Math.round(size * 100) / 100, unit };

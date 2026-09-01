@@ -25,7 +25,10 @@ const WorkoutForm = lazy(() => import('../components/forms/WorkoutForm').then(m 
 import { GoalsForm } from '../components/forms/GoalsForm';
 import { QuickAddCaloriesForm } from '../components/forms/QuickAddCaloriesForm';
 import { FoodScanForm } from '../components/forms/FoodScanForm';
-import { BarcodeScanForm } from '../components/forms/BarcodeScanForm';
+// Lazy — the ZXing decoder behind the scanner is ~480KB, half the entire
+// initial bundle, for a sheet most sessions never open. It now loads on the
+// first barcode scan, alongside the camera permission prompt.
+const BarcodeScanForm = lazy(() => import('../components/forms/BarcodeScanForm').then(m => ({ default: m.BarcodeScanForm })));
 import { BodyScanForm } from '../components/forms/BodyScanForm';
 import { WorkoutPlanForm } from '../components/forms/WorkoutPlanForm';
 import { SettingsForm } from '../components/forms/SettingsForm';
@@ -226,7 +229,12 @@ export function AppShell() {
 
       <button
         type="button"
-        onClick={() => setActiveSheet('quickAdd')}
+        onClick={() => {
+          // Warm the scanner chunk while the menu is being read, so tapping
+          // "Scan barcode" opens on a camera rather than on a spinner.
+          void import('../components/forms/BarcodeScanForm');
+          setActiveSheet('quickAdd');
+        }}
         aria-label="Quick add"
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)] transition-transform active:scale-90"
         style={{
@@ -368,7 +376,7 @@ export function AppShell() {
       </Sheet>
 
       <Sheet open={activeSheet === 'barcodeScan'} onClose={closeSheet} title="Scan barcode">
-        <BarcodeScanForm onSaved={onSaved} />
+        <Suspense fallback={<ScreenLoader />}><BarcodeScanForm onSaved={onSaved} /></Suspense>
       </Sheet>
 
       <Sheet open={activeSheet === 'foodScan'} onClose={closeSheet} title="Scan food photo">

@@ -32,6 +32,12 @@ export type ProgramPhase = {
 export const PROGRAM_START = '2026-08-25';
 export const PROGRAM_END = '2026-11-24';
 
+/** The last day, written out ("24 November") for use in copy and prompts. */
+export const PROGRAM_END_LABEL = new Date(`${PROGRAM_END}T00:00:00`).toLocaleDateString(undefined, {
+  day: 'numeric',
+  month: 'long',
+});
+
 export const PROGRAM_PHASES: ProgramPhase[] = [
   {
     key: 'p1',

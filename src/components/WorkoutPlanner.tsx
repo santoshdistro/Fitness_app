@@ -22,7 +22,12 @@ import { PHYSIQUE_GOALS, physiqueByValue, type PhysiqueGoal } from '../data/phys
 import { addDays, todayDateString } from '../utils/date';
 import { Sheet } from './Sheet';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
-import { programDates, workoutFor, PROGRAM_SPLIT_LABELS } from '../data/vTaperProgram';
+import {
+  programDates,
+  workoutFor,
+  PROGRAM_SPLIT_LABELS,
+  PROGRAM_END_LABEL,
+} from '../data/vTaperProgram';
 
 const STRIP_DAYS = 14;
 
@@ -129,7 +134,21 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         exercises: day.exercises.map(e => ({ name: e.name, sets: e.sets, reps: e.reps })),
       });
     }
-    if (!entries.length) return;
+    // Past the programme's last day there is nothing left to seed. Say so —
+    // silently doing nothing reads as a broken button.
+    if (!entries.length) {
+      alert(`The programme ran to ${PROGRAM_END_LABEL}, so there are no days left to fill.`);
+      return;
+    }
+    // This replaces every planned session from today to 24 Nov and relabels the
+    // weekly strip, with no undo — so it asks first, as "Clear every planned
+    // day?" below does.
+    if (
+      !confirm(
+        `Replace your planned workouts on ${entries.length} days through to ${PROGRAM_END_LABEL}, and relabel the weekly calendar?`,
+      )
+    )
+      return;
     applyRange(entries, 'V-taper 5-day split — Mon to Fri, weekends rest, through to 24 November.');
     // Relabel the weekly calendar to match, so the strip reads Pull / Legs /
     // Shoulders / Rest rather than whatever split was there before.

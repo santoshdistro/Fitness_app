@@ -17,15 +17,10 @@ import { getCachedRecipe, setCachedRecipe } from '../lib/recipeCache';
 import { addDays, todayDateString } from '../utils/date';
 import { DIET_PLANS, type DietPlan } from '../data/dietPlans';
 import { Sheet } from './Sheet';
-import { mealsFor, programDates, PROGRAM_END } from '../data/vTaperProgram';
+import { mealsFor, programDates, PROGRAM_END_LABEL } from '../data/vTaperProgram';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './forms/formStyles';
 
 const STRIP_DAYS = 14;
-
-const PROGRAM_END_LABEL = new Date(`${PROGRAM_END}T00:00:00`).toLocaleDateString(undefined, {
-  day: 'numeric',
-  month: 'long',
-});
 
 function fmt(date: string, opts: Intl.DateTimeFormatOptions): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, opts);
@@ -170,7 +165,16 @@ export function DietPlanner() {
       .filter(date => date >= today)
       .map(date => ({ date, items: mealsFor(date) }))
       .filter(e => e.items.length > 0);
-    if (!entries.length) return;
+    // Past the programme's last day there is nothing left to seed. Say so —
+    // silently doing nothing reads as a broken button.
+    if (!entries.length) {
+      alert(`The programme ran to ${PROGRAM_END_LABEL}, so there are no days left to fill.`);
+      return;
+    }
+    // This replaces every planned meal from today to 24 Nov and can't be undone,
+    // so it asks first — same as "Clear every planned day?" below.
+    if (!confirm(`Replace your planned meals on ${entries.length} days, through to ${PROGRAM_END_LABEL}?`))
+      return;
     applyDates(
       entries,
       'V-taper 90-day blueprint: four phases to 24 Nov on a four-week rotating menu. Mondays fast, Tuesdays and Diwali stay vegetarian. Every meal stays editable.',
