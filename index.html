@@ -37,6 +37,14 @@
          sit behind the liquid-glass surface — darkened. It carries the screen on
          its own, so a cold first run with no photo yet still looks composed
          rather than empty. */
+      /* body's colour shows in the strip iOS leaves below the web view, and it
+         normally matches the nav. While the splash is up the nav isn't there
+         yet — a white band under a dark photo reads as broken — so it matches
+         the splash instead, and reverts when the splash is removed. */
+      body:has(#splash) {
+        background: #0f1119;
+      }
+
       #splash {
         position: fixed;
         inset: 0;
