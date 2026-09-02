@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
     <meta name="theme-color" content="#f7f7fb" />
 
-    <!-- iOS "Add to Home Screen" behavior -->
+    <!-- iOS "Add to Home Screen" behavior.
+
+         status-bar-style is deliberately NOT black-translucent. That is the
+         legacy full-screen mechanism: iOS moves the web view up under the
+         status bar without resizing it, so on a 844pt screen the viewport
+         stayed 797pt and the missing 47pt fell off the BOTTOM as a strip no
+         CSS could reach — measured on device, innerHeight 797 vs screen 844.
+         With `default`, viewport-fit=cover sizes the view to the whole screen
+         and the safe-area insets do the work instead: the shell pads the top
+         by env(safe-area-inset-top), the nav pads the bottom for the home
+         indicator. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
