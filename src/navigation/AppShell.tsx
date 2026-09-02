@@ -139,11 +139,12 @@ export function AppShell() {
   }
 
   return (
-    // h-full, not h-dvh: in an iOS home-screen app 100dvh can resolve to the
-    // SMALL viewport, leaving the shell short by the home-indicator inset and
-    // the page background showing as a strip under the nav. html, body and
-    // #root are all height:100%, so 100% chains to the real viewport instead.
-    <div className="app-bg flex h-full flex-col pt-[env(safe-area-inset-top)]">
+    // fixed inset-0 rather than a height: on iOS both 100dvh and 100% left the
+    // shell short of the bottom, so the page background showed through as a
+    // strip under the nav. A fixed element with inset-0 is sized to the layout
+    // viewport by the browser — there is no length to compute and get wrong —
+    // so the nav, as the last flex child, always lands on the bottom edge.
+    <div className="app-bg fixed inset-0 flex flex-col pt-[env(safe-area-inset-top)]">
       {/* Faint film grain over the whole app, so flat fills read as material. */}
       <div className="grain" aria-hidden="true" />
       {/* No z-index here on purpose: any positive value makes this a stacking
