@@ -139,7 +139,11 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-bg flex h-dvh flex-col pt-[env(safe-area-inset-top)]">
+    // h-full, not h-dvh: in an iOS home-screen app 100dvh can resolve to the
+    // SMALL viewport, leaving the shell short by the home-indicator inset and
+    // the page background showing as a strip under the nav. html, body and
+    // #root are all height:100%, so 100% chains to the real viewport instead.
+    <div className="app-bg flex h-full flex-col pt-[env(safe-area-inset-top)]">
       {/* Faint film grain over the whole app, so flat fills read as material. */}
       <div className="grain" aria-hidden="true" />
       {/* No z-index here on purpose: any positive value makes this a stacking

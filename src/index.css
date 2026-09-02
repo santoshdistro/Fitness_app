@@ -22,6 +22,12 @@
   --tray: rgba(20, 20, 43, 0.04);
   --accent-shadow: rgba(108, 99, 255, 0.7);
   --radius-card: 24px;
+  /* The colour iOS paints BEHIND the web view — the strip below the home
+     indicator when an older home-screen install ignores viewport-fit=cover.
+     The nav sits against that edge, so it is the nav's colour, not --bg, or the
+     strip reads as a gap underneath the menu. Kept solid on purpose: --card
+     goes translucent in liquid-glass mode and there is nothing behind it here. */
+  --page-edge: #ffffff;
 }
 
 :root[data-theme='dark'] {
@@ -35,6 +41,7 @@
   --accent-dark: #4b3fe0;
   --tray: rgba(255, 255, 255, 0.05);
   --accent-shadow: rgba(125, 117, 255, 0.65);
+  --page-edge: #1a1a24;
 }
 
 /* ---------- Liquid glass surface ---------- */
@@ -192,7 +199,9 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Not --bg: this shows only where the shell can't reach — the strip iOS
+     leaves below the home indicator — and there it must match the nav. */
+  background: var(--page-edge);
   color: var(--text);
   font-family: -apple-system, 'SF Pro Display', Inter, 'Segoe UI', Roboto, sans-serif;
 }
