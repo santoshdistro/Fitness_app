@@ -226,7 +226,7 @@ export function AppShell() {
         style={{
           background: 'var(--card)',
           border: '1px solid var(--card-border)',
-          bottom: 'calc(env(safe-area-inset-bottom) + 9.75rem)',
+          bottom: 'calc(var(--safe-bottom) + 9.75rem)',
         }}
       >
         <Sparkles size={24} strokeWidth={2.5} />
@@ -244,7 +244,7 @@ export function AppShell() {
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)] transition-transform active:scale-90"
         style={{
           background: 'var(--accent-gradient)',
-          bottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
+          bottom: 'calc(var(--safe-bottom) + 5rem)',
         }}
       >
         <Plus size={24} strokeWidth={2.5} />
@@ -256,7 +256,7 @@ export function AppShell() {
           bar — 38px of nothing under a 45px row. The indicator itself only
           occupies the bottom ~13px, so the inset is trimmed by 12px and the top
           padding by 4px: still clear of the indicator, 20px less dead space. */}
-      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 pt-2 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-0.75rem))]">
+      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 pt-2 pb-[max(0.5rem,calc(var(--safe-bottom)-0.75rem))]">
         <div
           className="relative flex"
           onTouchStart={handleNavTouch}

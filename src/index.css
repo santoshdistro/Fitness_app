@@ -28,6 +28,15 @@
      strip reads as a gap underneath the menu. Kept solid on purpose: --card
      goes translucent in liquid-glass mode and there is nothing behind it here. */
   --page-edge: #ffffff;
+  /* Clearance for the home indicator. Normally the real inset — but see
+     trackSafeBottom in main.tsx: when iOS gives a viewport shorter than the
+     screen, the indicator sits outside it and env() is describing a screen we
+     were not given, so reserving space for it is pure dead bar. */
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+:root.viewport-short {
+  --safe-bottom: 0px;
 }
 
 :root[data-theme='dark'] {
