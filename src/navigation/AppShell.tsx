@@ -252,7 +252,11 @@ export function AppShell() {
 
       {coachOpen ? <CoachChat onClose={() => setCoachOpen(false)} /> : null}
 
-      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* The full home-indicator inset below the labels left more empty bar than
+          bar — 38px of nothing under a 45px row. The indicator itself only
+          occupies the bottom ~13px, so the inset is trimmed by 12px and the top
+          padding by 4px: still clear of the indicator, 20px less dead space. */}
+      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 pt-2 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-0.75rem))]">
         <div
           className="relative flex"
           onTouchStart={handleNavTouch}
