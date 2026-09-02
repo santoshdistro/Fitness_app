@@ -43,29 +43,43 @@
   --safe-bottom: 0px;
 }
 
-/* Dark is its own world: true black with a neon-lime accent, not a dimmed
-   version of the light theme. Black rather than near-black because the whole
-   look rests on the neon reading as emitted light, which needs somewhere dark
-   to emit into — and it costs nothing on an OLED phone. Light mode is
-   deliberately untouched. */
+/* Dark is its own world, not a dimmed light theme, and every value here is
+   sampled from the two references rather than guessed. Light mode is untouched.
+
+   Two things carry the look. The ground is charcoal with surfaces stepping UP
+   from it (bg → card → input), which is where the depth comes from — pure black
+   with pure-black cards reads flat. And there is exactly ONE accent: both
+   references run lime and nothing else, and that restraint is most of why they
+   look expensive.
+
+   The lime sits between the two: the electric #abf200 glares at the size these
+   fills run, the kit's #c5fc6d goes chalky, #cbee4f is the reference's own. */
 :root[data-theme='dark'] {
-  --bg: #000000;
-  /* Cards lift off pure black by a hair, with the same green cast as the text,
-     so surfaces feel part of one world rather than neutral grey on black. */
-  --card: #101310;
-  --card-border: #242923;
-  --input-bg: #171b16;
-  /* The palette's pale green, not white: 19.5:1 on black, and the slight cast
-     ties the type to the accent instead of floating neutral above it. */
-  --text: #f2fbd1;
-  --muted: #828a90;
-  --accent: #abf200;
-  --accent-dark: #6ba300;
-  /* Black on neon is 14.4:1; white would be 1.4:1 and illegible. */
+  --bg: #0a0a0a;
+  --card: #141416;
+  --card-border: #232327;
+  --input-bg: #1b1b1e;
+  /* Neutral off-white, not the palette's pale green: this app runs a lot of
+     small text and a colour cast on all of it costs more than it adds. */
+  --text: #efeff1;
+  --muted: #939ba8;
+  --accent: #cbee4f;
+  --accent-dark: #a3cc2a;
+  /* Near-black on lime is 14.8:1; white would be 1.4:1 and illegible. */
   --on-accent: #0a0c05;
-  --tray: rgba(171, 242, 0, 0.07);
-  --accent-shadow: rgba(171, 242, 0, 0.5);
-  --page-edge: #000000;
+  --tray: rgba(203, 238, 79, 0.07);
+  --accent-shadow: rgba(203, 238, 79, 0.42);
+  --page-edge: #141416;
+}
+
+/* The kit's other three, kept for chart series only — telling two lines apart
+   is a job the lime cannot do alone. Deliberately NOT used as button or card
+   fills: that is the difference between the reference's discipline and a
+   four-colour app. */
+:root[data-theme='dark'] {
+  --hue-yellow: #ede171;
+  --hue-coral: #ea7676;
+  --hue-teal: #77ebd8;
 }
 
 /* ---------- Liquid glass surface ---------- */
@@ -607,6 +621,19 @@ body {
 }
 :root[data-section='workouts'] {
   --section: #8b5cf6;
+}
+
+/* Both references run ONE accent and nothing else — the discipline is most of
+   why they read as expensive. So the per-tab hues, which are the light theme's
+   sky/amber/emerald/violet, collapse to the lime in dark: the tint still marks
+   the section, without a second colour system arriving alongside the first.
+   The --hue-* tokens stay for chart series, where telling two lines apart is
+   the whole job. */
+:root[data-theme='dark'][data-section='stats'],
+:root[data-theme='dark'][data-section='discover'],
+:root[data-theme='dark'][data-section='handbook'],
+:root[data-theme='dark'][data-section='workouts'] {
+  --section: var(--accent);
 }
 
 /* Keyboard focus ring. :focus-visible means pointer/touch taps never show it,

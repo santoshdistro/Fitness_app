@@ -68,7 +68,7 @@
         background: #0f1119;
       }
       :root[data-theme='dark'] body:has(#splash) {
-        background: #000000;
+        background: #0a0a0a;
       }
 
       /* The splash accent follows the theme the app will actually open in, so
@@ -80,10 +80,10 @@
         --splash-tint: rgba(108, 99, 255, 0.3);
       }
       :root[data-theme='dark'] #splash {
-        --splash-a: #d4ff66;
-        --splash-b: #abf200;
-        --splash-glow: rgba(171, 242, 0, 0.38);
-        --splash-tint: rgba(120, 170, 0, 0.26);
+        --splash-a: #e2f79a;
+        --splash-b: #cbee4f;
+        --splash-glow: rgba(203, 238, 79, 0.34);
+        --splash-tint: rgba(150, 190, 90, 0.22);
       }
 
       #splash {
@@ -105,12 +105,12 @@
       /* The neon world has no violet in it, so the field goes lime-on-black
          rather than carrying the light theme's aurora into a dark-mode launch. */
       :root[data-theme='dark'] #splash {
-        background-color: #000000;
+        background-color: #0a0a0a;
         background-image:
-          radial-gradient(54% 38% at 14% 8%, rgba(171, 242, 0, 0.16), transparent 62%),
-          radial-gradient(46% 32% at 88% 16%, rgba(171, 242, 0, 0.07), transparent 64%),
-          radial-gradient(52% 42% at 84% 90%, rgba(130, 138, 144, 0.12), transparent 66%),
-          radial-gradient(58% 44% at 12% 94%, rgba(171, 242, 0, 0.1), transparent 68%);
+          radial-gradient(54% 38% at 14% 8%, rgba(203, 238, 79, 0.15), transparent 62%),
+          radial-gradient(46% 32% at 88% 16%, rgba(119, 235, 216, 0.09), transparent 64%),
+          radial-gradient(52% 42% at 84% 90%, rgba(147, 155, 168, 0.1), transparent 66%),
+          radial-gradient(58% 44% at 12% 94%, rgba(203, 238, 79, 0.09), transparent 68%);
       }
 
       /* Gym photography, layered OVER the field and faded in only once it has
