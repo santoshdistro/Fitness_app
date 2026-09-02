@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { BACKDROP_PRESETS, downscaleImage } from '../../data/backdrops';
 import { exportJson, exportTableCsv, type ExportTable } from '../../lib/exportData';
 import { RemindersForm } from './RemindersForm';
+import { ViewportReport } from '../ViewportReport';
 import { inputClass, labelClass, submitButtonClass } from './formStyles';
 
 type Props = {
@@ -28,6 +29,7 @@ export function SettingsForm({ onSaved }: Props) {
 
   return (
     <div>
+      <ViewportReport />
       <div className="mb-4">
         <p className={labelClass}>Appearance</p>
         <div className="flex gap-2">
