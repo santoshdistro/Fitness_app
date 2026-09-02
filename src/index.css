@@ -201,20 +201,31 @@ body {
   background-color: var(--bg);
 }
 
-.glass-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-card);
-  box-shadow:
-    0 1px 2px rgba(20, 20, 43, 0.04),
-    0 12px 24px -8px rgba(20, 20, 43, 0.08);
-}
+/* These two live in @layer components on purpose. Tailwind puts its utilities
+   in @layer utilities, and an UNLAYERED rule beats every layered one whatever
+   the specificity — so while these sat outside a layer they silently ignored
+   any utility that touched the same property. `rounded-none` on the bottom nav
+   and `rounded-full` on the round icon buttons both lost, leaving the nav a
+   floating 24px-rounded card instead of a bar flush to the bottom edge.
+   Inside a layer, utilities win, which is what the markup already assumes.
+   The surface variants below stay unlayered: they must keep beating utilities
+   so liquid-glass mode still applies. */
+@layer components {
+  .glass-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 2px rgba(20, 20, 43, 0.04),
+      0 12px 24px -8px rgba(20, 20, 43, 0.08);
+  }
 
-.glass {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 1px 2px rgba(20, 20, 43, 0.05);
-  transition: transform 0.15s ease;
+  .glass {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 1px 2px rgba(20, 20, 43, 0.05);
+    transition: transform 0.15s ease;
+  }
 }
 
 .glass:active {

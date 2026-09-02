@@ -6,6 +6,9 @@ import { AppShell } from './navigation/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 
+/** How long the splash stays up at minimum, timed from when the page started loading. */
+const SPLASH_MIN_MS = 2000;
+
 function OfflineBanner() {
   const online = useOnlineStatus();
   if (online) return null;
@@ -42,9 +45,17 @@ function AppContent() {
     if (initializing) return;
     const splash = document.getElementById('splash');
     if (!splash) return;
-    splash.classList.add('is-done');
-    const done = setTimeout(() => splash.remove(), 520);
-    return () => clearTimeout(done);
+    // Hold it for a beat even when the app is ready sooner. A splash that
+    // flickers past in 300ms reads as a glitch; letting it sit makes the open
+    // feel deliberate. Measured from navigation start, not from here, so a slow
+    // start still hands over the moment it can.
+    const elapsed = performance.now();
+    const wait = Math.max(0, SPLASH_MIN_MS - elapsed);
+    const lift = setTimeout(() => {
+      splash.classList.add('is-done');
+      setTimeout(() => splash.remove(), 520);
+    }, wait);
+    return () => clearTimeout(lift);
   }, [initializing]);
 
   // Nothing to draw yet, and the splash is still on top of it.
