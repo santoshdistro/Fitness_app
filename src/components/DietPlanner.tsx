@@ -592,7 +592,7 @@ export function DietPlanner() {
             type="button"
             onClick={syncReminders}
             disabled={remindering}
-            className="mt-1 flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-60"
+            className="mt-1 flex items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-[var(--on-accent)] disabled:opacity-60"
             style={{ background: 'var(--accent-gradient)' }}
           >
             <Bell size={14} /> {remindering ? 'Setting…' : 'Remind me at these meal times'}

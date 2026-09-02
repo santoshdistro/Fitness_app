@@ -81,7 +81,7 @@ export function MilestonesCard() {
             type="button"
             onClick={save}
             disabled={!label.trim()}
-            className="rounded-xl py-2 text-xs font-bold text-white disabled:opacity-50"
+            className="rounded-xl py-2 text-xs font-bold text-[var(--on-accent)] disabled:opacity-50"
             style={{ background: 'var(--accent)' }}
           >
             Save milestone

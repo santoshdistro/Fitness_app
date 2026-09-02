@@ -156,7 +156,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
         <button
           type="button"
           onClick={onLogWorkout}
-          className="rounded-full px-4 py-2 text-xs font-semibold text-white"
+          className="rounded-full px-4 py-2 text-xs font-semibold text-[var(--on-accent)]"
           style={{ background: 'var(--accent-gradient)' }}
         >
           + Log workout
@@ -500,7 +500,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                     ),
                   })
                 }
-                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white bg-[image:var(--accent-gradient)]"
+                className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
               >
                 ▶ Start
               </button>
@@ -694,7 +694,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 });
                 setSelectedGoalProgram(null);
               }}
-              className="rounded-2xl py-3 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
+              className="rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
             >
               ▶ Start guided session
             </button>

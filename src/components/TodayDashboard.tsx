@@ -26,7 +26,7 @@ export function TodayDashboard({
           </p>
         </div>
         <div
-          className="flex h-10 w-10 flex-col items-center justify-center rounded-full text-white"
+          className="flex h-10 w-10 flex-col items-center justify-center rounded-full text-[var(--on-accent)]"
           style={{
             background: allDone
               ? 'var(--success-gradient)'

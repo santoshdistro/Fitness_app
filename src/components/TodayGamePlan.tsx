@@ -23,7 +23,7 @@ export function TodayGamePlan({ items }: { items: GamePlanItem[] }) {
           </p>
         </div>
         <div
-          className="flex h-11 w-11 flex-col items-center justify-center rounded-full text-white"
+          className="flex h-11 w-11 flex-col items-center justify-center rounded-full text-[var(--on-accent)]"
           style={{
             background: allDone
               ? 'var(--success-gradient)'

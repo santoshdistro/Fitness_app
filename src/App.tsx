@@ -25,7 +25,7 @@ function SessionExpiredToast() {
   // Only worth showing once we're actually back on the auth screen.
   if (!sessionExpired || session) return null;
   return (
-    <div className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center gap-2 bg-[var(--accent)] px-4 py-2 text-center text-[11px] font-semibold text-white">
+    <div className="fixed inset-x-0 top-0 z-[70] flex items-center justify-center gap-2 bg-[var(--accent)] px-4 py-2 text-center text-[11px] font-semibold text-[var(--on-accent)]">
       Your session expired — please sign in again.
       <button type="button" onClick={dismissExpired} aria-label="Dismiss" className="ml-1">
         <X size={13} />

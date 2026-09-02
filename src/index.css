@@ -11,6 +11,10 @@
   --muted: #63697d;
   --accent: #6c63ff;
   --accent-dark: #4b3fe0;
+  /* Text and icons sitting ON the accent. White works over periwinkle, but the
+     neon dark theme's accent is a light colour — white on it is 1.4:1 — so this
+     is a token rather than a hardcoded text-white on every primary button. */
+  --on-accent: #ffffff;
   /* The brand gradient had been spelled out inline in 56 places across 33
      components. Deriving it from the accent tokens makes a rebrand a one-line
      change, and keeps every primary surface in step automatically. */
@@ -39,18 +43,29 @@
   --safe-bottom: 0px;
 }
 
+/* Dark is its own world: true black with a neon-lime accent, not a dimmed
+   version of the light theme. Black rather than near-black because the whole
+   look rests on the neon reading as emitted light, which needs somewhere dark
+   to emit into — and it costs nothing on an OLED phone. Light mode is
+   deliberately untouched. */
 :root[data-theme='dark'] {
-  --bg: #101018;
-  --card: #1a1a24;
-  --card-border: #262633;
-  --input-bg: #22222e;
-  --text: #f2f2f7;
-  --muted: #8b8fa3;
-  --accent: #7d75ff;
-  --accent-dark: #4b3fe0;
-  --tray: rgba(255, 255, 255, 0.05);
-  --accent-shadow: rgba(125, 117, 255, 0.65);
-  --page-edge: #1a1a24;
+  --bg: #000000;
+  /* Cards lift off pure black by a hair, with the same green cast as the text,
+     so surfaces feel part of one world rather than neutral grey on black. */
+  --card: #101310;
+  --card-border: #242923;
+  --input-bg: #171b16;
+  /* The palette's pale green, not white: 19.5:1 on black, and the slight cast
+     ties the type to the accent instead of floating neutral above it. */
+  --text: #f2fbd1;
+  --muted: #828a90;
+  --accent: #abf200;
+  --accent-dark: #6ba300;
+  /* Black on neon is 14.4:1; white would be 1.4:1 and illegible. */
+  --on-accent: #0a0c05;
+  --tray: rgba(171, 242, 0, 0.07);
+  --accent-shadow: rgba(171, 242, 0, 0.5);
+  --page-edge: #000000;
 }
 
 /* ---------- Liquid glass surface ---------- */

@@ -85,7 +85,7 @@ export function HealthSyncPanel() {
           type="button"
           onClick={regenerate}
           disabled={working}
-          className="w-full rounded-2xl py-3 text-sm font-bold text-white"
+          className="w-full rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
           style={{ background: 'var(--accent-gradient)' }}
         >
           {working ? 'Generating…' : 'Generate my sync token'}

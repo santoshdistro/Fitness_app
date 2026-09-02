@@ -41,7 +41,7 @@ function GoalCard({ goal }: { goal: GoalSuggestion }) {
         <button
           type="button"
           onClick={() => add(goal)}
-          className="tap-44 mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold text-white bg-[image:var(--accent-gradient)]"
+          className="tap-44 mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
         >
           <Check size={14} /> Set this focus
         </button>
@@ -199,7 +199,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center gap-2">
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--on-accent)]"
             style={{ background: 'var(--accent-gradient)' }}
           >
             <Sparkles size={16} />
@@ -239,7 +239,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-4 pt-4">
             <div className="text-center">
               <span
-                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-white"
+                className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-[var(--on-accent)]"
                 style={{ background: 'var(--accent-gradient)' }}
               >
                 <Sparkles size={26} />
@@ -335,7 +335,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
             type="submit"
             disabled={!input.trim() || sending}
             aria-label="Send"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-40"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--on-accent)] disabled:opacity-40"
             style={{ background: 'var(--accent-gradient)' }}
           >
             <Send size={18} />

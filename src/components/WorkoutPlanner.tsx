@@ -429,7 +429,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
             <button
               type="button"
               onClick={startGuidedToday}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-bold text-white"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-bold text-[var(--on-accent)]"
               style={{ background: 'var(--accent-gradient)' }}
             >
               <Play size={15} fill="currentColor" /> Start guided session

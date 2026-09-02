@@ -562,7 +562,7 @@ function AddMealTab(p: AddMealProps) {
             onClick={p.handleAiEstimate}
             disabled={p.searching || p.estimating || !p.query.trim()}
             aria-label="Estimate with AI"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[image:var(--accent-gradient)]"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
           >
             {p.estimating ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -696,7 +696,7 @@ function AddMealTab(p: AddMealProps) {
             type="button"
             onClick={p.logMeal}
             disabled={p.saving}
-            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:opacity-50 bg-[image:var(--accent-gradient)]"
+            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-50 bg-[image:var(--accent-gradient)]"
           >
             {p.saving ? 'Logging…' : `Log ${p.items.length} item${p.items.length > 1 ? 's' : ''} to diary`}
           </button>

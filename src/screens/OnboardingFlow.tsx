@@ -197,7 +197,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       <div className="flex flex-1 flex-col justify-center py-6">
         {current === 'welcome' && (
           <div className="anim-fade-rise text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)] text-white">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)] text-[var(--on-accent)]">
               <Dumbbell size={30} />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-[var(--text)]">Let's set up your plan</h1>
@@ -424,7 +424,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={finish}
           disabled={saving}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[image:var(--accent-gradient)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50 bg-[image:var(--accent-gradient)]"
         >
           {saving ? 'Saving…' : 'Start tracking'}
         </button>
@@ -433,7 +433,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={next}
           disabled={!canNext}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-40 bg-[image:var(--accent-gradient)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
         >
           {current === 'welcome' ? "Let's go" : 'Continue'}
         </button>

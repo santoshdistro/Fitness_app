@@ -266,7 +266,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
           <button
             type="button"
             onClick={restartSession}
-            className="shrink-0 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-white"
+            className="shrink-0 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-[var(--on-accent)]"
           >
             Restart
           </button>
@@ -288,7 +288,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
               type="button"
               onClick={finish}
               disabled={saving}
-              className="mt-6 w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[image:var(--accent-gradient)]"
+              className="mt-6 w-full rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50 bg-[image:var(--accent-gradient)]"
             >
               {saving ? 'Saving…' : 'Finish & save'}
             </button>
@@ -460,7 +460,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             <button
               type="button"
               onClick={completeSet}
-              className="mt-4 flex w-full items-center justify-center gap-1 rounded-2xl py-4 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
+              className="mt-4 flex w-full items-center justify-center gap-1 rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
             >
               {cardio ? (lastExercise ? 'Log & finish' : 'Log & next exercise') : 'Complete set'}
               <ChevronRight size={18} />
@@ -507,7 +507,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             <button
               type="button"
               onClick={() => setPhase('active')}
-              className="tap-44 flex-[1.4] rounded-2xl py-3 text-xs font-bold text-white bg-[image:var(--accent-gradient)]"
+              className="tap-44 flex-[1.4] rounded-2xl py-3 text-xs font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
             >
               Skip rest
             </button>
@@ -736,7 +736,7 @@ function DemoPhotos({ images, name }: { images: string[]; name: string }) {
             {guide.steps.map((step, i) => (
               <li key={i} className="flex gap-2">
                 <span
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
                   style={{ background: 'var(--accent)' }}
                 >
                   {i + 1}

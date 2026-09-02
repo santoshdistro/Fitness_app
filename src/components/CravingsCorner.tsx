@@ -264,7 +264,7 @@ function SwapRow({
           type="button"
           onClick={onLog}
           aria-label={`Log ${swap.name}`}
-          className="flex h-6 w-6 items-center justify-center rounded-full text-white"
+          className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--on-accent)]"
           style={{ background: logged ? '#16a34a' : 'var(--accent)' }}
         >
           {logged ? <Check size={13} className="anim-check-pop" /> : <Plus size={13} />}

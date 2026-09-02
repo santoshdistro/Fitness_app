@@ -30,6 +30,18 @@
 
     <title>Fitness</title>
 
+    <!-- Blocking on purpose, and tiny: it stamps the saved theme before the
+         first paint. main.tsx does this too, but as a module it is deferred,
+         so without this the splash could not know which accent to use. -->
+    <script>
+      try {
+        var t = JSON.parse(localStorage.getItem('app_settings') || '{}').theme;
+        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
+
     <!--
       Splash screen. Everything it needs is inline, so it paints on the very
       first frame — before the bundle downloads, before React mounts, before the
@@ -38,9 +50,10 @@
 
       The ground is #0f1119 to match `background_color` in the manifest, which is
       what iOS and Android paint for a standalone launch. Matching it means the
-      OS launch screen and this hand over with no flash between them. It stays
-      dark whatever theme the app is set to: the theme attribute is applied by a
-      module script, which runs after this has already painted.
+      OS launch screen and this hand over with no flash between them. The ground
+      stays dark in both themes — it is the launch colour, not the app's — but
+      the mark takes the accent of the theme you actually run, so the splash
+      hands over to an app that looks like it.
     -->
     <style>
       /* The field is the app's own aurora backdrop — the four brand radials that
@@ -53,6 +66,24 @@
          the splash instead, and reverts when the splash is removed. */
       body:has(#splash) {
         background: #0f1119;
+      }
+      :root[data-theme='dark'] body:has(#splash) {
+        background: #000000;
+      }
+
+      /* The splash accent follows the theme the app will actually open in, so
+         the handover is to something that looks like itself. */
+      #splash {
+        --splash-a: #a49dff;
+        --splash-b: #6c63ff;
+        --splash-glow: rgba(108, 99, 255, 0.45);
+        --splash-tint: rgba(108, 99, 255, 0.3);
+      }
+      :root[data-theme='dark'] #splash {
+        --splash-a: #d4ff66;
+        --splash-b: #abf200;
+        --splash-glow: rgba(171, 242, 0, 0.38);
+        --splash-tint: rgba(120, 170, 0, 0.26);
       }
 
       #splash {
@@ -69,6 +100,17 @@
           radial-gradient(48% 34% at 90% 14%, rgba(14, 165, 233, 0.3), transparent 66%),
           radial-gradient(50% 40% at 84% 88%, rgba(45, 212, 191, 0.22), transparent 68%),
           radial-gradient(56% 44% at 14% 94%, rgba(168, 85, 247, 0.36), transparent 70%);
+      }
+
+      /* The neon world has no violet in it, so the field goes lime-on-black
+         rather than carrying the light theme's aurora into a dark-mode launch. */
+      :root[data-theme='dark'] #splash {
+        background-color: #000000;
+        background-image:
+          radial-gradient(54% 38% at 14% 8%, rgba(171, 242, 0, 0.16), transparent 62%),
+          radial-gradient(46% 32% at 88% 16%, rgba(171, 242, 0, 0.07), transparent 64%),
+          radial-gradient(52% 42% at 84% 90%, rgba(130, 138, 144, 0.12), transparent 66%),
+          radial-gradient(58% 44% at 12% 94%, rgba(171, 242, 0, 0.1), transparent 68%);
       }
 
       /* Gym photography, layered OVER the field and faded in only once it has
@@ -94,8 +136,23 @@
         position: absolute;
         inset: 0;
         background:
-          linear-gradient(150deg, rgba(108, 99, 255, 0.3), rgba(24, 20, 66, 0.42)),
+          linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.44)),
           radial-gradient(102% 72% at 50% 46%, transparent 24%, rgba(9, 10, 18, 0.86) 100%);
+      }
+
+      /* A pulse of the accent leaving the mark, once it has formed. Sized to the
+         mark and behind it, so it reads as light coming off the logo rather than
+         a ring drawn around it. Loops while the app loads, which also keeps a
+         slow start from looking frozen. */
+      #splash .splash-pulse {
+        position: absolute;
+        width: clamp(128px, 34vw, 176px);
+        aspect-ratio: 1;
+        margin-bottom: 6vh;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--splash-glow) 0%, transparent 68%);
+        opacity: 0;
+        animation: splash-pulse 2200ms cubic-bezier(0.22, 1, 0.36, 1) 640ms infinite;
       }
 
       #splash .splash-mark {
@@ -105,6 +162,36 @@
         /* Optical centering — dead-centre reads low on a tall phone screen. */
         margin-bottom: 6vh;
         filter: drop-shadow(0 16px 38px rgba(12, 10, 40, 0.7));
+        /* The mark wipes downward as it appears, so it forms the way the shape
+           reads — wide at the shoulders first, converging to the point. */
+        animation: splash-mark-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes splash-mark-in {
+        from {
+          opacity: 0;
+          transform: scale(0.88);
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+          clip-path: inset(0 0 0 0);
+        }
+      }
+
+      @keyframes splash-pulse {
+        0% {
+          opacity: 0;
+          transform: scale(0.55);
+        }
+        30% {
+          opacity: 0.55;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(2.2);
+        }
       }
 
       /* Slow-load state. Pure CSS on a delay, so it needs no timer and no
@@ -152,6 +239,13 @@
         #splash .splash-photo {
           transition: none;
         }
+        #splash .splash-mark {
+          animation: none;
+        }
+        #splash .splash-pulse {
+          animation: none;
+          opacity: 0;
+        }
         #splash.is-done {
           transform: none;
           filter: none;
@@ -171,11 +265,12 @@
         onload="this.classList.add('is-in')"
       />
       <div class="splash-wash"></div>
+      <div class="splash-pulse"></div>
       <svg class="splash-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#a49dff" />
-            <stop offset="1" stop-color="#6c63ff" />
+            <stop offset="0" stop-color="var(--splash-a)" />
+            <stop offset="1" stop-color="var(--splash-b)" />
           </linearGradient>
         </defs>
         <!-- Same path as scripts/build-icons.mjs — keep the two in step. -->
