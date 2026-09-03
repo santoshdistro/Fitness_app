@@ -81,12 +81,18 @@ export function applyBackdrop(backdrop: string): void {
  * drift when the palette changes; the literals are only a pre-stylesheet fallback.
  */
 export function applyThemeColor(theme: Theme, backdrop: string, surface: Surface): void {
-  // ALL of them: index.html ships one per colour scheme so the band is right
-  // before any script runs, and the browser uses whichever media matched. The
-  // app's theme is a manual setting that need not agree with the phone's, so
-  // both get the same value here and the matched one is correct either way.
-  const metas = document.querySelectorAll('meta[name="theme-color"]');
-  if (!metas.length) return;
+  // There is exactly one tag and it carries no media attribute — see the head
+  // script in index.html. Scoping it per colour scheme let the PHONE's
+  // appearance choose the colour, which is how a light app ended up with a
+  // black strip under it. iOS ignores this update (it takes the colour at
+  // load), but Chrome applies it live, so a theme switch still lands there.
+  const metas = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')];
+  if (!metas.length) {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+    metas.push(meta);
+  }
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   const color =
     surface === 'glass' && backdrop

@@ -3,16 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-    <!-- Two, media-scoped, rather than one. iOS reads this at load and ignores
-         the value being changed afterwards, so a single tag meant one colour
-         for both themes — the black bar over the light app, then a white bar
-         over the dark one. A browser picks the first tag whose media matches,
-         so these give a correct band before any script runs. applyThemeColor
-         then writes the app's real colour into BOTH, so whichever one the
-         browser matched is right even when the app theme and the phone's
-         appearance disagree. -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7fb" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+    <!-- Blocking on purpose, and tiny. Two jobs, both of which have to happen
+         while the head is still parsing.
+
+         It stamps the saved theme before the first paint, so the splash knows
+         which accent to use — main.tsx is a deferred module and runs too late.
+
+         And it CREATES the theme-color tag rather than editing one written in
+         the markup, because iOS commits that colour the moment it parses the
+         tag and ignores every change afterwards — so a tag in the markup is
+         already decided before this script can correct it.
+
+         What used to sit here was a PAIR of media-scoped tags, one per colour
+         scheme, and that handed the choice to the phone's appearance rather
+         than the app's: a phone that had switched itself to dark for the
+         evening matched the dark tag, and iOS painted the strip below the
+         viewport black underneath a light app. It also explains why changing
+         the theme in-app never moved it and relaunching did. One unmediated
+         tag, created with the app's own colour, leaves the system appearance
+         nothing to win.
+
+         The literals repeat --bg and --page-edge on purpose: no stylesheet has
+         been parsed yet, so they cannot be read from CSS. Keep them in step. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('app_settings') || '{}');
+        var dark = s.theme === 'dark';
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
+        var m = document.createElement('meta');
+        m.setAttribute('name', 'theme-color');
+        m.setAttribute('content', c);
+        document.head.appendChild(m);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
 
     <!-- iOS "Add to Home Screen" behavior.
 
@@ -45,35 +71,6 @@
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 
     <title>Fitness</title>
-
-    <!-- Blocking on purpose, and tiny. Two jobs, both of which have to happen
-         while the head is still parsing.
-
-         It stamps the saved theme before the first paint, so the splash knows
-         which accent to use — main.tsx is a deferred module and runs too late.
-
-         And it writes the app's own colour into BOTH theme-color tags above.
-         iOS reads those during load and ignores every change afterwards, so
-         main.tsx cannot correct them: with a phone set to dark and the app set
-         to light, iOS matched the dark tag and painted a black bar over a light
-         app. Setting both to the app's colour here means whichever tag iOS
-         matches is the right one.
-
-         The literals repeat --bg and --page-edge on purpose: no stylesheet has
-         been parsed yet, so they cannot be read from CSS. Keep them in step. -->
-    <script>
-      try {
-        var s = JSON.parse(localStorage.getItem('app_settings') || '{}');
-        var dark = s.theme === 'dark';
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-        var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
-        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
-          m.setAttribute('content', c);
-        });
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light');
-      }
-    </script>
 
     <!--
       Splash screen. Everything it needs is inline, so it paints on the very
