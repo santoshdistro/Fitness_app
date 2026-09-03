@@ -79,7 +79,7 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               {detail.instructions.map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
                     style={{ background: 'var(--accent)' }}
                   >
                     {i + 1}
@@ -99,7 +99,7 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               {cardio.steps.map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
                     style={{ background: 'var(--accent)' }}
                   >
                     {i + 1}
@@ -119,7 +119,7 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               {text.steps.map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
                     style={{ background: 'var(--accent)' }}
                   >
                     {i + 1}

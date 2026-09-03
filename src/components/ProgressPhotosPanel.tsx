@@ -238,7 +238,7 @@ export function ProgressPhotosPanel() {
               className="flex items-center gap-1.5 rounded-2xl border px-4 py-3 text-sm font-semibold"
               style={
                 compareMode
-                  ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { borderColor: 'var(--card-border)', color: 'var(--text)' }
               }
             >
@@ -316,7 +316,7 @@ export function ProgressPhotosPanel() {
                       className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full"
                       style={
                         isSelected
-                          ? { background: 'var(--accent)', color: '#fff' }
+                          ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                           : { background: 'rgba(255,255,255,0.8)' }
                       }
                     >

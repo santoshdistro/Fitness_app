@@ -297,7 +297,7 @@ export function HandbookScreen() {
                 className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-semibold"
                 style={
                   active
-                    ? { background: 'var(--accent)', color: 'white' }
+                    ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                     : { background: 'var(--bg)', color: 'var(--muted)' }
                 }
               >
@@ -629,7 +629,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
         <ol className="flex flex-col gap-2">
           {recipe.steps.map((step, i) => (
             <li key={i} className="flex gap-2 text-xs text-[var(--text)]">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold text-white">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold text-[var(--on-accent)]">
                 {i + 1}
               </span>
               <span className="pt-0.5">{step}</span>

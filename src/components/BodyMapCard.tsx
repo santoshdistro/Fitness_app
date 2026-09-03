@@ -94,7 +94,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
               className="rounded-full px-3 py-1 text-[10px] font-bold"
               style={
                 period === o.key
-                  ? { background: 'var(--accent)', color: '#fff' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { color: 'var(--muted)' }
               }
             >

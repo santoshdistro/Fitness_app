@@ -125,7 +125,7 @@ export function TrendsPanel() {
             className="tap-44 flex-1 rounded-xl py-2 text-xs font-bold"
             style={
               active
-                ? { background: 'var(--accent)', color: '#fff' }
+                ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                 : { color: 'var(--muted)' }
             }
           >

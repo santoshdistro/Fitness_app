@@ -46,7 +46,7 @@ export function AdaptiveTdeeCard({
 
   return (
     <div
-      className="overflow-hidden p-5 text-white"
+      className="overflow-hidden p-5 text-[var(--on-accent)]"
       style={{
         borderRadius: 'var(--radius-card)',
         background: 'var(--accent-gradient)',

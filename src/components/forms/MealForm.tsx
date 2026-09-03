@@ -503,7 +503,7 @@ export function MealForm({ onSaved, initial }: Props) {
             onClick={handleAiEstimate}
             disabled={searching || estimating || !query.trim()}
             aria-label="Estimate with AI"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[image:var(--accent-gradient)]"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
           >
             {estimating ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -626,7 +626,7 @@ export function MealForm({ onSaved, initial }: Props) {
                       className="rounded-xl px-3 text-xs font-bold"
                       style={
                         unit === u
-                          ? { background: 'var(--accent)', color: '#fff' }
+                          ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                           : { color: 'var(--muted)' }
                       }
                     >

@@ -85,7 +85,7 @@ export function HealthSyncPanel() {
           type="button"
           onClick={regenerate}
           disabled={working}
-          className="w-full rounded-2xl py-3 text-sm font-bold text-white"
+          className="w-full rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
           style={{ background: 'var(--accent-gradient)' }}
         >
           {working ? 'Generating…' : 'Generate my sync token'}
@@ -115,7 +115,7 @@ export function HealthSyncPanel() {
             <button
               type="button"
               onClick={() => runSyncShortcut(shortcutName)}
-              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
               style={{ background: 'var(--accent-gradient)' }}
             >
               <Play size={15} fill="currentColor" />

@@ -141,7 +141,7 @@ export function BodyScanForm() {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[image:var(--accent-gradient)]"
+            className="w-full rounded-2xl py-3.5 text-sm font-semibold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
           >
             Take / choose photo
           </button>
@@ -175,7 +175,7 @@ export function BodyScanForm() {
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="w-full rounded-2xl py-3.5 text-sm font-semibold text-white bg-[image:var(--accent-gradient)]"
+                className="w-full rounded-2xl py-3.5 text-sm font-semibold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
               >
                 Try another photo
               </button>
@@ -203,7 +203,7 @@ export function BodyScanForm() {
                 type="button"
                 onClick={saveToProgress}
                 disabled={savePhoto !== 'idle'}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-white disabled:opacity-60 bg-[image:var(--accent-gradient)]"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-[var(--on-accent)] disabled:opacity-60 bg-[image:var(--accent-gradient)]"
               >
                 <ImagePlus size={15} />
                 {savePhoto === 'saved'

@@ -7,7 +7,7 @@ export function AchievementsPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div
-        className="overflow-hidden p-5 text-center text-white"
+        className="overflow-hidden p-5 text-center text-[var(--on-accent)]"
         style={{ borderRadius: 'var(--radius-card)', background: 'var(--accent-gradient)' }}
       >
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Achievements</p>

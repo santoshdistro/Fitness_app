@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- href is rewritten to the built stylesheet by check-nav-edge.mjs -->
+    <link rel="stylesheet" href="APP_CSS" />
+    <style>
+      .shell { position: fixed; inset: 0; display: flex; flex-direction: column; background-color: var(--bg); }
+      .body { flex: 1; overflow: auto; padding: 16px; }
+      .row { display: flex; }
+      .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; font: 700 10px/1.4 sans-serif; letter-spacing: .06em; color: var(--muted); }
+      .tab .dot { width: 21px; height: 21px; border-radius: 6px; background: currentColor; opacity: .8; }
+      .tab.on { color: var(--accent); }
+      .card { height: 300px; border-radius: 20px; margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="shell" style="padding-top: env(safe-area-inset-top)">
+      <div class="body">
+        <div class="glass-card card"></div>
+        <div class="glass-card card"></div>
+      </div>
+      <nav
+        class="glass-card"
+        style="
+          flex-shrink: 0;
+          padding-inline: 12px;
+          margin-inline: var(--nav-inset);
+          margin-bottom: var(--nav-gap);
+          border-radius: var(--nav-radius);
+          border-width: var(--nav-border);
+          padding-top: var(--nav-pt);
+          padding-bottom: var(--nav-pb);
+        "
+      >
+        <div class="row">
+          <div class="tab on"><div class="dot"></div><span>HOME</span></div>
+          <div class="tab"><div class="dot"></div><span>STATS</span></div>
+          <div class="tab"><div class="dot"></div><span>FOOD</span></div>
+          <div class="tab"><div class="dot"></div><span>PLAN</span></div>
+          <div class="tab"><div class="dot"></div><span>GYM</span></div>
+        </div>
+      </nav>
+    </div>
+  </body>
+</html>

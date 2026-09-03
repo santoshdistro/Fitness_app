@@ -37,7 +37,7 @@ export function FastingPanel() {
     return (
       <div className="flex flex-col gap-4">
         <div
-          className="overflow-hidden p-6 text-center text-white"
+          className="overflow-hidden p-6 text-center text-[var(--on-accent)]"
           style={{
             borderRadius: 'var(--radius-card)',
             background: reached
@@ -62,7 +62,7 @@ export function FastingPanel() {
         <button
           type="button"
           onClick={end}
-          className="rounded-2xl py-3.5 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
+          className="rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
         >
           End fast &amp; log it
         </button>
@@ -94,7 +94,7 @@ export function FastingPanel() {
               className="rounded-full px-3 py-1.5 text-xs font-semibold"
               style={
                 target === p.hours
-                  ? { background: 'var(--accent)', color: '#fff' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -105,7 +105,7 @@ export function FastingPanel() {
         <button
           type="button"
           onClick={() => start(target)}
-          className="w-full rounded-2xl py-3.5 text-sm font-bold text-white bg-[image:var(--accent-gradient)]"
+          className="w-full rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
         >
           Start {target}h fast
         </button>

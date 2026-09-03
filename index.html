@@ -3,21 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+    <!-- ONE tag, in the markup, with no media attribute. Every part of that is
+         load-bearing, and each was learned the hard way on device:
+
+         In the markup, because iOS reads this while parsing and a tag created
+         by script arrives too late — with no tag present at that moment it
+         falls back to a BLACK band, which is exactly what a script-created tag
+         produced. It also ignores later edits to the tag, so this value is the
+         one the band gets for the whole session.
+
+         No media attribute, because a pair scoped to prefers-color-scheme hands
+         the choice to the PHONE's appearance rather than the app's: a phone
+         that had gone dark for the evening matched the dark tag and painted
+         black over a light app, however the app itself was set. That is also
+         why changing the theme in-app never moved the band and relaunching did.
+
+         Under black-translucent this is what paints the strip iOS leaves below
+         the viewport — the one part of the bottom bar the page cannot draw. It
+         was measured doing exactly that: with the dark tag matched, that strip
+         went black under a light app while the body background stayed white.
+
+         The consequence, and it is a real limit rather than an oversight: on
+         iOS this cannot follow the in-app theme toggle, because the value is
+         taken at load and never re-read. It holds the light background, since
+         that is the theme the app runs in; switching the app to dark leaves a
+         light strip under the nav until this literal changes. Chrome does
+         honour the update below, so it only bites on iOS. -->
     <meta name="theme-color" content="#f7f7fb" />
 
-    <!-- iOS "Add to Home Screen" behavior.
+    <!-- Blocking on purpose, and tiny. It stamps the saved theme before the
+         first paint, so the splash knows which accent to use — main.tsx is a
+         deferred module and runs too late — and updates theme-color for the
+         browsers that do read it live.
 
-         status-bar-style is deliberately NOT black-translucent. That is the
-         legacy full-screen mechanism: iOS moves the web view up under the
-         status bar without resizing it, so on a 844pt screen the viewport
-         stayed 797pt and the missing 47pt fell off the BOTTOM as a strip no
-         CSS could reach — measured on device, innerHeight 797 vs screen 844.
-         With `default`, viewport-fit=cover sizes the view to the whole screen
-         and the safe-area insets do the work instead: the shell pads the top
-         by env(safe-area-inset-top), the nav pads the bottom for the home
-         indicator. -->
+         The literals repeat --bg and --page-edge on purpose: no stylesheet has
+         been parsed yet, so they cannot be read from CSS. Keep them in step. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('app_settings') || '{}');
+        var dark = s.theme === 'dark';
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', c);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
+
+    <!-- iOS "Add to Home Screen" behavior. Neither setting gives both edges,
+         and this is a decision, not a default.
+
+         `default` reserves an opaque band at the top and hands over a viewport
+         that reaches the bottom of the screen — a perfect bottom edge. But that
+         band is painted black on device whatever theme-color says, so a light
+         app runs under a black bar. Tried on device; rejected.
+
+         black-translucent puts the app UNDER the status bar, so the background
+         reaches the top edge and the clock sits over it. iOS pays for that by
+         handing the page a viewport shorter than the screen by exactly the top
+         inset, and that height falls off the BOTTOM — measured, innerHeight 797
+         against an 844pt screen. Nothing can be drawn in that strip.
+
+         So the strip is made to belong to the bar instead of sitting under it:
+         the nav goes flush and square-bottomed, adds no bottom padding of its
+         own, and the strip is painted to continue it (--page-edge, and see
+         :root.viewport-short). The bar reads as running off the bottom of the
+         screen, which is what a native tab bar does — about 18pt taller than
+         one, and that is the accepted cost of the full-bleed top. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -36,11 +91,12 @@
       auth check. Those three together are the couple of seconds the app used to
       spend on a blank screen and then a 24px spinner.
 
-      The ground is #0f1119 to match `background_color` in the manifest, which is
+      The ground is #0a0a0a to match `background_color` in the manifest, which is
       what iOS and Android paint for a standalone launch. Matching it means the
-      OS launch screen and this hand over with no flash between them. It stays
-      dark whatever theme the app is set to: the theme attribute is applied by a
-      module script, which runs after this has already painted.
+      OS launch screen and this hand over with no flash between them, and it is
+      the icon's ground too, so home screen, launch and splash are one black.
+      The mark itself is white in both themes; what changes is the accent behind
+      it, so the splash hands over to an app that looks like itself.
     -->
     <style>
       /* The field is the app's own aurora backdrop — the four brand radials that
@@ -52,7 +108,18 @@
          yet — a white band under a dark photo reads as broken — so it matches
          the splash instead, and reverts when the splash is removed. */
       body:has(#splash) {
-        background: #0f1119;
+        background: #0a0a0a;
+      }
+
+      /* The glow and photo tint follow the theme the app will actually open in;
+         the mark stays white in both. */
+      #splash {
+        --splash-glow: rgba(108, 99, 255, 0.45);
+        --splash-tint: rgba(108, 99, 255, 0.3);
+      }
+      :root[data-theme='dark'] #splash {
+        --splash-glow: rgba(203, 238, 79, 0.34);
+        --splash-tint: rgba(150, 190, 90, 0.22);
       }
 
       #splash {
@@ -63,12 +130,23 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        background-color: #0f1119;
+        background-color: #0a0a0a;
         background-image:
           radial-gradient(52% 38% at 12% 8%, rgba(125, 117, 255, 0.45), transparent 66%),
           radial-gradient(48% 34% at 90% 14%, rgba(14, 165, 233, 0.3), transparent 66%),
           radial-gradient(50% 40% at 84% 88%, rgba(45, 212, 191, 0.22), transparent 68%),
           radial-gradient(56% 44% at 14% 94%, rgba(168, 85, 247, 0.36), transparent 70%);
+      }
+
+      /* The neon world has no violet in it, so the field goes lime-on-black
+         rather than carrying the light theme's aurora into a dark-mode launch. */
+      :root[data-theme='dark'] #splash {
+        background-color: #0a0a0a;
+        background-image:
+          radial-gradient(54% 38% at 14% 8%, rgba(203, 238, 79, 0.15), transparent 62%),
+          radial-gradient(46% 32% at 88% 16%, rgba(119, 235, 216, 0.09), transparent 64%),
+          radial-gradient(52% 42% at 84% 90%, rgba(147, 155, 168, 0.1), transparent 66%),
+          radial-gradient(58% 44% at 12% 94%, rgba(203, 238, 79, 0.09), transparent 68%);
       }
 
       /* Gym photography, layered OVER the field and faded in only once it has
@@ -94,8 +172,23 @@
         position: absolute;
         inset: 0;
         background:
-          linear-gradient(150deg, rgba(108, 99, 255, 0.3), rgba(24, 20, 66, 0.42)),
+          linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.44)),
           radial-gradient(102% 72% at 50% 46%, transparent 24%, rgba(9, 10, 18, 0.86) 100%);
+      }
+
+      /* A pulse of the accent leaving the mark, once it has formed. Sized to the
+         mark and behind it, so it reads as light coming off the logo rather than
+         a ring drawn around it. Loops while the app loads, which also keeps a
+         slow start from looking frozen. */
+      #splash .splash-pulse {
+        position: absolute;
+        width: clamp(128px, 34vw, 176px);
+        aspect-ratio: 1;
+        margin-bottom: 6vh;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--splash-glow) 0%, transparent 68%);
+        opacity: 0;
+        animation: splash-pulse 2200ms cubic-bezier(0.22, 1, 0.36, 1) 640ms infinite;
       }
 
       #splash .splash-mark {
@@ -104,7 +197,37 @@
         height: auto;
         /* Optical centering — dead-centre reads low on a tall phone screen. */
         margin-bottom: 6vh;
-        filter: drop-shadow(0 16px 38px rgba(12, 10, 40, 0.7));
+        filter: drop-shadow(0 16px 38px rgba(0, 0, 0, 0.75));
+        /* The mark wipes downward as it appears, so it forms the way the shape
+           reads — wide at the shoulders first, converging to the point. */
+        animation: splash-mark-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes splash-mark-in {
+        from {
+          opacity: 0;
+          transform: scale(0.88);
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+          clip-path: inset(0 0 0 0);
+        }
+      }
+
+      @keyframes splash-pulse {
+        0% {
+          opacity: 0;
+          transform: scale(0.55);
+        }
+        30% {
+          opacity: 0.55;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(2.2);
+        }
       }
 
       /* Slow-load state. Pure CSS on a delay, so it needs no timer and no
@@ -152,6 +275,13 @@
         #splash .splash-photo {
           transition: none;
         }
+        #splash .splash-mark {
+          animation: none;
+        }
+        #splash .splash-pulse {
+          animation: none;
+          opacity: 0;
+        }
         #splash.is-done {
           transform: none;
           filter: none;
@@ -171,22 +301,24 @@
         onload="this.classList.add('is-in')"
       />
       <div class="splash-wash"></div>
+      <div class="splash-pulse"></div>
+      <!-- Same geometry as scripts/build-icons.mjs — keep the two in step. White
+           rather than the accent: the mark is the mark everywhere, and the lime
+           stays reserved for things you press. The colour on this screen comes
+           from the pulse behind it. -->
       <svg class="splash-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#a49dff" />
-            <stop offset="1" stop-color="#6c63ff" />
-          </linearGradient>
+          <clipPath id="splash-cut-top"><polygon points="0,0 100,0 100,40 0,56" /></clipPath>
+          <clipPath id="splash-cut-bot"><polygon points="0,59 100,43 100,100 0,100" /></clipPath>
         </defs>
-        <!-- Same path as scripts/build-icons.mjs — keep the two in step. -->
-        <path
-          d="M 24 29 L 50 71 L 76 29 L 60 29 L 50 60 L 40 29 Z"
-          fill="url(#splash-g)"
-          stroke="url(#splash-g)"
-          stroke-width="6"
-          stroke-linejoin="round"
-          stroke-linecap="round"
-        />
+        <g fill="#ffffff">
+          <g clip-path="url(#splash-cut-top)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(-3 -2.5)" />
+          </g>
+          <g clip-path="url(#splash-cut-bot)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(3 2.5)" />
+          </g>
+        </g>
       </svg>
       <p class="splash-hint">Taking longer than usual — check your connection.</p>
     </div>

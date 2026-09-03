@@ -55,7 +55,7 @@ export function WorkoutOverviewCard() {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <span
-            className="flex h-7 w-7 items-center justify-center rounded-full text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--on-accent)]"
             style={{ background: 'var(--accent-gradient)' }}
           >
             <Activity size={14} />

@@ -92,7 +92,7 @@ export function GoalsForm({ onSaved }: Props) {
               className="flex-1 rounded-2xl border py-2.5 text-xs font-semibold"
               style={
                 goal === o.value
-                  ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { borderColor: 'var(--card-border)', color: 'var(--text)' }
               }
             >
@@ -132,7 +132,7 @@ export function GoalsForm({ onSaved }: Props) {
                 className="flex-1 rounded-2xl border py-2.5 text-xs font-semibold"
                 style={
                   rate === r
-                    ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+                    ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
                     : { borderColor: 'var(--card-border)', color: 'var(--text)' }
                 }
               >

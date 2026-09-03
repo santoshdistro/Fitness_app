@@ -76,7 +76,7 @@ export function RemindersForm() {
           type="button"
           onClick={status === 'on' ? disable : enable}
           disabled={busy}
-          className="rounded-full px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+          className="rounded-full px-4 py-2 text-xs font-semibold text-[var(--on-accent)] disabled:opacity-50"
           style={{ background: status === 'on' ? '#ef4444' : 'var(--accent)' }}
         >
           {busy ? '…' : status === 'on' ? 'Turn off' : 'Turn on'}

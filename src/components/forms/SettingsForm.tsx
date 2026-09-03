@@ -218,7 +218,7 @@ function ExportSection() {
         type="button"
         onClick={() => run('json', () => exportJson(userId!))}
         disabled={!!busy || !userId}
-        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-50"
         style={{ background: 'var(--accent-gradient)' }}
       >
         <Download size={16} />
@@ -272,7 +272,7 @@ function UnitRow({
             className="rounded-full px-3 py-1 text-xs font-semibold"
             style={
               value === o.value
-                ? { background: 'var(--accent)', color: '#fff' }
+                ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                 : { color: 'var(--muted)' }
             }
           >
@@ -378,7 +378,7 @@ function ThemeButton({
       className="flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-semibold"
       style={
         active
-          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
           : { borderColor: 'var(--card-border)', color: 'var(--text)' }
       }
     >

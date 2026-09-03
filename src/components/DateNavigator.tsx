@@ -104,7 +104,7 @@ export function DateNavigator({ selectedDate, onChange }: Props) {
                   className="mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm disabled:opacity-30"
                   style={
                     selected
-                      ? { background: 'var(--accent)', color: '#fff', fontWeight: 700 }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700 }
                       : cell === today
                         ? { color: 'var(--accent)', fontWeight: 700 }
                         : { color: 'var(--text)' }
@@ -137,7 +137,7 @@ export function DateNavigator({ selectedDate, onChange }: Props) {
                   className="flex h-9 w-9 items-center justify-center rounded-full text-sm"
                   style={
                     selected
-                      ? { background: 'var(--accent)', color: '#fff', fontWeight: 700 }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700 }
                       : dateStr === today
                         ? { border: '1.5px dashed var(--accent)', color: 'var(--text)' }
                         : { color: 'var(--text)' }

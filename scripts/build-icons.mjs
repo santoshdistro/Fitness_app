@@ -15,36 +15,44 @@
 import { writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 
-const ACCENT = '#6c63ff';
-const ACCENT_DEEP = '#4b3fe0';
+const GROUND = '#0a0a0a';
+const INK = '#ffffff';
 
 /**
- * The mark, on a 100x100 grid. Round joins come from stroking it with its own
- * paint. The inner vertex sits well below the midpoint so the arms visibly thin
- * on the way down — roughly 2.3:1 top to bottom. Raise it and the taper washes
- * out into a plain letter V, which is the whole difference between this mark and
- * a font glyph.
+ * The mark, on a 100x100 grid: a V with flat mitred cuts — no rounding — sliced
+ * by a shallow diagonal, the two halves sliding apart along it. The V is the
+ * taper the programme is built around; the slice is what stops it being a font
+ * glyph, and comes from the faceted-plane lettering the brief pointed at.
+ *
+ * CUT is where the slice crosses, GAP the clean space along it, DX/DY how far
+ * the halves travel. Push DX/DY much past 3 and the two planes stop reading as
+ * one letter; drop GAP to 0 and the break closes up into a seam.
  */
-const MARK = 'M 24 29 L 50 71 L 76 29 L 60 29 L 50 60 L 40 29 Z';
+const MARK = 'M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z';
+const CUT = 48;
+const GAP = 3;
+const DX = 3;
+const DY = 2.5;
 
 /**
- * A gradient tile with the mark knocked out in white — the same pairing the
- * app's primary buttons use, so the icon and the thing it opens agree.
+ * White mark on black. Not the brand accent: the lime is reserved for "press
+ * this" inside the app, and a black tile sits on any home-screen wallpaper
+ * without competing with it.
  * `scale` shrinks the mark for maskable icons, whose safe zone is the middle 80%.
  * `radius` rounds the tile itself; iOS and Android mask their own, so PNGs ship square.
  */
 function tile({ scale = 1, radius = 0 } = {}) {
   const shift = (100 - 100 * scale) / 2;
+  // The clip paths live inside the scaled group, so they scale with the mark.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${ACCENT}"/>
-      <stop offset="1" stop-color="${ACCENT_DEEP}"/>
-    </linearGradient>
+    <clipPath id="cut-top"><polygon points="0,0 100,0 100,${CUT - 8} 0,${CUT + 8}"/></clipPath>
+    <clipPath id="cut-bot"><polygon points="0,${CUT + 8 + GAP} 100,${CUT - 8 + GAP} 100,100 0,100"/></clipPath>
   </defs>
-  <rect width="100" height="100" rx="${radius}" fill="url(#g)"/>
-  <g transform="translate(${shift} ${shift}) scale(${scale})">
-    <path d="${MARK}" fill="#fff" stroke="#fff" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <rect width="100" height="100" rx="${radius}" fill="${GROUND}"/>
+  <g transform="translate(${shift} ${shift}) scale(${scale})" fill="${INK}">
+    <g clip-path="url(#cut-top)"><path d="${MARK}" transform="translate(${-DX} ${-DY})"/></g>
+    <g clip-path="url(#cut-bot)"><path d="${MARK}" transform="translate(${DX} ${DY})"/></g>
   </g>
 </svg>`;
 }
