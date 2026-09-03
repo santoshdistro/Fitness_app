@@ -76,21 +76,31 @@ for (const theme of ['light', 'dark']) {
     const edge = await frame.evaluate(() => getComputedStyle(document.body).backgroundColor);
     await page.evaluate(c => (document.body.style.background = c), edge);
 
-    const box = await frame.evaluate(() => {
+    // Distances are reported from the bottom of the SCREEN, not the viewport:
+    // the strip is the part of the bar the user sees but the page cannot reach,
+    // so anything measured against the viewport flatters the result. A native
+    // iOS tab bar is ~83pt of furniture with labels ~40pt off the screen edge.
+    const box = await frame.evaluate(lost => {
       const nav = document.querySelector('nav');
       const r = nav.getBoundingClientRect();
+      const label = nav.querySelector('.tab span').getBoundingClientRect();
+      const tab = nav.querySelector('.tab').getBoundingClientRect();
       const cs = getComputedStyle(nav);
+      const screenBottom = window.innerHeight + lost;
       return {
-        bottomGapInsideViewport: Math.round(window.innerHeight - r.bottom),
+        furniture: Math.round(screenBottom - r.top),
+        labelToScreenEdge: Math.round(screenBottom - label.bottom),
+        tabHeight: Math.round(tab.height),
         navLeft: Math.round(r.left),
         radius: cs.borderRadius,
         borderWidths: `${cs.borderTopWidth} ${cs.borderRightWidth} ${cs.borderBottomWidth} ${cs.borderLeftWidth}`,
         navFill: cs.backgroundColor,
       };
-    });
+    }, d.lost);
     console.log(
       `${theme.padEnd(5)} ${d.name.padEnd(30)} lost=${String(d.lost).padStart(2)}  ` +
-        `gap=${box.bottomGapInsideViewport}  left=${box.navLeft}  r=${box.radius}  ` +
+        `barHeight=${String(box.furniture).padStart(3)}  labelToEdge=${String(box.labelToScreenEdge).padStart(2)}  ` +
+        `tap=${box.tabHeight}  left=${box.navLeft}  r=${box.radius}  ` +
         `border=${box.borderWidths}  fill=${box.navFill}  strip=${edge}`,
     );
     await page.screenshot({ path: `/tmp/nav-${theme}-${d.name}.png` });

@@ -263,13 +263,14 @@ export function AppShell() {
           below painted in the same fill so the bar reads as running off the
           screen rather than stopping above a gap. */}
       <nav
-        className="glass-card shrink-0 px-3 pt-2"
+        className="glass-card shrink-0 px-3"
         style={{
           marginInline: 'var(--nav-inset)',
           marginBottom: 'var(--nav-gap)',
           borderRadius: 'var(--nav-radius)',
           borderWidth: 'var(--nav-border)',
-          paddingBottom: 'max(0.5rem, var(--safe-bottom))',
+          paddingTop: 'var(--nav-pt)',
+          paddingBottom: 'var(--nav-pb)',
         }}
       >
         <div

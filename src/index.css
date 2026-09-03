@@ -51,6 +51,8 @@
   --nav-gap: 0.5rem;
   --nav-radius: 26px;
   --nav-border: 1px;
+  --nav-pt: 0.5rem;
+  --nav-pb: max(0.5rem, var(--safe-bottom));
 }
 
 /* Dark is its own world, not a dimmed light theme, and every value here is
@@ -121,6 +123,14 @@
   --nav-gap: max(0px, calc(0.5rem - var(--edge-lost)));
   --nav-radius: 26px 26px 0 0;
   --nav-border: 1px 0 0 0;
+  /* The strip IS the bar's bottom padding — it is the same fill, it sits under
+     the labels, and it is the one part of the bar we cannot move. So the bar
+     adds none of its own, and the labels go as low as the viewport allows.
+     A native tab bar is the same shape: a shallow top pad, then the whole
+     home-indicator band underneath. Top pad trims with it so the bar's card
+     edge drops too, rather than growing a taller bar around the same row. */
+  --nav-pt: 0.375rem;
+  --nav-pb: 0px;
 }
 
 /* A vivid, fixed backdrop so the frosted glass has rich colour to refract. */
