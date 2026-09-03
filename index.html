@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-    <meta name="theme-color" content="#f7f7fb" />
+    <!-- Two, media-scoped, rather than one. iOS reads this at load and ignores
+         the value being changed afterwards, so a single tag meant one colour
+         for both themes — the black bar over the light app, then a white bar
+         over the dark one. A browser picks the first tag whose media matches,
+         so these give a correct band before any script runs. applyThemeColor
+         then writes the app's real colour into BOTH, so whichever one the
+         browser matched is right even when the app theme and the phone's
+         appearance disagree. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7fb" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
 
     <!-- iOS "Add to Home Screen" behavior.
 

@@ -81,14 +81,18 @@ export function applyBackdrop(backdrop: string): void {
  * drift when the palette changes; the literals are only a pre-stylesheet fallback.
  */
 export function applyThemeColor(theme: Theme, backdrop: string, surface: Surface): void {
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) return;
-  if (surface === 'glass' && backdrop) {
-    meta.setAttribute('content', '#0b0d16');
-    return;
-  }
+  // ALL of them: index.html ships one per colour scheme so the band is right
+  // before any script runs, and the browser uses whichever media matched. The
+  // app's theme is a manual setting that need not agree with the phone's, so
+  // both get the same value here and the matched one is correct either way.
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  if (!metas.length) return;
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  meta.setAttribute('content', bg || (theme === 'dark' ? '#0a0a0a' : '#f7f7fb'));
+  const color =
+    surface === 'glass' && backdrop
+      ? '#0b0d16'
+      : bg || (theme === 'dark' ? '#0a0a0a' : '#f7f7fb');
+  metas.forEach(meta => meta.setAttribute('content', color));
 }
 
 export function useSettings() {
