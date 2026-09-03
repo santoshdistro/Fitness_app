@@ -40,14 +40,25 @@ try {
  * page — nothing can be drawn there but the body background. So the nav goes
  * flush to the bottom of what we DO have and the strip is painted to continue
  * it, which is how a native tab bar's indicator area looks anyway.
+ *
+ * Crucially this is NOT a one-time measurement. iOS hands over the short
+ * viewport at launch and then expands it to the full screen once the app is
+ * interacted with — caught on device as the nav sitting 21pt off the bottom in
+ * one screenshot and 56pt in another, a minute apart. Measuring once locks in
+ * whichever state the app happened to launch in, so every signal that the
+ * viewport may have changed re-runs this, scrolling included.
  */
 const MAX_PLAUSIBLE_INSET = 120;
 
 /**
  * env(safe-area-inset-top) in pixels. Custom properties are not resolved by
- * getComputedStyle, so the value has to be measured off a real box.
+ * getComputedStyle, so the value has to be measured off a real box. Cached:
+ * this only changes with orientation, and the probe forces a layout — which
+ * is not something to do on every scroll frame.
  */
-function topInset(): number {
+let insetTop = -1;
+
+function measureTopInset(): number {
   const probe = document.createElement('div');
   probe.style.cssText =
     'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
@@ -57,16 +68,21 @@ function topInset(): number {
   return height;
 }
 
-function trackViewportEdge() {
+function trackViewportEdge(remeasureInset = false) {
+  if (remeasureInset || insetTop < 0) insetTop = measureTopInset();
   // Standalone only. In a browser the viewport is short because of the toolbars,
   // and there env() genuinely does describe an overlapping indicator.
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as { standalone?: boolean }).standalone === true;
+  // The larger of the two: innerHeight can still report the launch-time value
+  // after iOS has already expanded the visual viewport underneath it, and
+  // believing the smaller number is what strands the strip.
+  const height = Math.max(window.innerHeight, window.visualViewport?.height ?? 0);
   // Clamped: some browsers report screen.height in the device's fixed
   // orientation, which in landscape makes this difference meaningless. A status
   // bar is never 120pt, so anything larger is a measurement we don't trust.
-  const lost = Math.round(window.screen.height - window.innerHeight);
+  const lost = Math.round(window.screen.height - height);
   // The top inset is what separates the two ways of losing height. Under
   // black-translucent the app is UNDER the status bar, so the inset is real and
   // the missing height fell off the bottom. Under `default` the viewport starts
@@ -75,14 +91,34 @@ function trackViewportEdge() {
   // indicator really is overlapping it. Reading only the difference cannot tell
   // those apart, and getting it backwards either strands a strip or jams the
   // labels under the indicator.
-  const short = standalone && lost > 1 && lost <= MAX_PLAUSIBLE_INSET && topInset() > 0;
+  const short = standalone && lost > 1 && lost <= MAX_PLAUSIBLE_INSET && insetTop > 0;
   const root = document.documentElement;
   root.classList.toggle('standalone', standalone);
   root.classList.toggle('viewport-short', short);
 }
+
+// Coalesced to one check per frame: the scroll listener is capturing, so it
+// fires for the app's own scroll containers as well as the window.
+let queued = false;
+function scheduleTrack() {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    trackViewportEdge();
+  });
+}
+
 trackViewportEdge();
-window.addEventListener('resize', trackViewportEdge);
-window.addEventListener('orientationchange', trackViewportEdge);
+window.addEventListener('resize', () => trackViewportEdge(true));
+window.addEventListener('orientationchange', () => trackViewportEdge(true));
+window.addEventListener('pageshow', () => trackViewportEdge(true));
+window.visualViewport?.addEventListener('resize', scheduleTrack);
+window.addEventListener('scroll', scheduleTrack, true);
+// iOS settles the standalone viewport a beat after launch, without firing
+// anything we can listen for.
+setTimeout(() => trackViewportEdge(true), 300);
+setTimeout(() => trackViewportEdge(true), 1200);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
