@@ -26,21 +26,20 @@
   --tray: rgba(20, 20, 43, 0.04);
   --accent-shadow: rgba(108, 99, 255, 0.7);
   --radius-card: 24px;
-  /* The colour iOS paints BEHIND the web view. black-translucent leaves 47pt
-     of screen below the viewport, and the nav floats above it with a margin, so
-     this continues the PAGE rather than the nav — matching --bg makes the strip
-     read as more of the page under a floating bar. Kept solid on purpose: --bg
+  /* The colour iOS paints BEHIND the web view — the strip below the home
+     indicator when an older home-screen install ignores viewport-fit=cover.
+     The nav sits against that edge, so it is the nav's colour, not --bg, or the
+     strip reads as a gap underneath the menu. Kept solid on purpose: --card
      goes translucent in liquid-glass mode and there is nothing behind it here. */
-  --page-edge: #f7f7fb;
-  /* Clearance for the home indicator. Normally the real inset — but see
-     trackSafeBottom in main.tsx: when iOS gives a viewport shorter than the
-     screen, the indicator sits outside it and env() is describing a screen we
-     were not given, so reserving space for it is pure dead bar. */
+  --page-edge: #ffffff;
+  /* Clearance for the home indicator. Simply the real inset: with
+     status-bar-style `default` iOS places the viewport BELOW the status bar, so
+     it still reaches the bottom of the screen and the indicator genuinely does
+     overlap the nav. A measured override used to zero this out, for the
+     black-translucent layout where the indicator falls outside the viewport —
+     it read the same "viewport shorter than screen" there and here, where the
+     shortfall is at the TOP, and would have put the indicator over the labels. */
   --safe-bottom: env(safe-area-inset-bottom);
-}
-
-:root.viewport-short {
-  --safe-bottom: 0px;
 }
 
 /* Dark is its own world, not a dimmed light theme, and every value here is
@@ -69,7 +68,7 @@
   --on-accent: #0a0c05;
   --tray: rgba(203, 238, 79, 0.07);
   --accent-shadow: rgba(203, 238, 79, 0.42);
-  --page-edge: #0a0a0a;
+  --page-edge: #141416;
 }
 
 /* The kit's other three, kept for chart series only — telling two lines apart

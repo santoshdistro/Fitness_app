@@ -256,12 +256,7 @@ export function AppShell() {
           bar — 38px of nothing under a 45px row. The indicator itself only
           occupies the bottom ~13px, so the inset is trimmed by 12px and the top
           padding by 4px: still clear of the indicator, 20px less dead space. */}
-      {/* Floating, not full-width. black-translucent buys the full-bleed top by
-          leaving 47pt of screen below the viewport, and a square bar sitting
-          against that strip reads as a gap under the menu. With a margin and a
-          radius the same strip reads as the bar's own margin — which is what
-          the app did originally, and what both design references do. */}
-      <nav className="glass-card mx-3 mb-2 shrink-0 rounded-[26px] px-3 pt-2 pb-[max(0.5rem,var(--safe-bottom))]">
+      <nav className="glass-card shrink-0 rounded-none border-x-0 border-b-0 px-3 pt-2 pb-[max(0.5rem,calc(var(--safe-bottom)-0.75rem))]">
         <div
           className="relative flex"
           onTouchStart={handleNavTouch}

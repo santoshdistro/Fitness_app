@@ -16,24 +16,17 @@
 
     <!-- iOS "Add to Home Screen" behavior.
 
-         black-translucent puts the app under the status bar, so its background
-         reaches the top edge and the clock sits over it. The catch is that iOS
-         then hands the page a viewport 47pt shorter than the screen, and that
-         47pt falls off the BOTTOM — measured on device, innerHeight 797 against
-         an 844pt screen.
-
-         `default` avoids that but reserves an opaque band the app can never
-         draw into, which is the strip above the clock. Neither setting gives
-         both edges.
-
-         So: take the full-bleed top, and let the nav float — margins and a
-         radius — so the space beneath it reads as the margin of a floating bar
-         rather than a gap under a full-width one. That is what the app did
-         before a cascade-layer fix accidentally squared the nav off, and what
-         both design references do. --page-edge paints the strip in the app
-         background so it continues the page. -->
+         status-bar-style is deliberately NOT black-translucent. That is the
+         legacy full-screen mechanism: iOS moves the web view up under the
+         status bar without resizing it, so on a 844pt screen the viewport
+         stayed 797pt and the missing 47pt fell off the BOTTOM as a strip no
+         CSS could reach — measured on device, innerHeight 797 vs screen 844.
+         With `default`, viewport-fit=cover sizes the view to the whole screen
+         and the safe-area insets do the work instead: the shell pads the top
+         by env(safe-area-inset-top), the nav pads the bottom for the home
+         indicator. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
