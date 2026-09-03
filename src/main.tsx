@@ -2,26 +2,23 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { applyTheme, applySurface, applyBackdrop, applyThemeColor } from './hooks/useSettings';
 
-// Apply the saved theme + surface before first paint to avoid a flash.
+// Apply the saved theme + surface before first paint to avoid a flash. These are
+// the same helpers the settings hook runs, rather than a second copy of the
+// logic: the copy that used to live here had drifted, and tinted the iOS status
+// bar from a backdrop that the normal surface never displays.
 try {
-  const saved = localStorage.getItem('app_settings');
-  const parsed = saved ? JSON.parse(saved) : {};
-  const isDark = parsed.theme === 'dark';
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-surface', parsed.surface === 'glass' ? 'glass' : 'normal');
-  if (parsed.backdrop) {
-    document.documentElement.style.setProperty('--backdrop-image', `url("${parsed.backdrop}")`);
-    document.documentElement.setAttribute('data-backdrop', 'image');
-  } else {
-    document.documentElement.setAttribute('data-backdrop', 'aurora');
-  }
-  // Match the iOS status-bar tint to the surface before first paint.
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', parsed.backdrop ? '#0b0d16' : isDark ? '#101018' : '#f7f7fb');
+  const parsed = JSON.parse(localStorage.getItem('app_settings') ?? '{}');
+  const theme = parsed.theme === 'dark' ? 'dark' : 'light';
+  const surface = parsed.surface === 'glass' ? 'glass' : 'normal';
+  applyTheme(theme);
+  applySurface(surface);
+  applyBackdrop(parsed.backdrop ?? '');
+  applyThemeColor(theme, parsed.backdrop ?? '', surface);
 } catch {
-  document.documentElement.setAttribute('data-theme', 'light');
-  document.documentElement.setAttribute('data-surface', 'normal');
+  applyTheme('light');
+  applySurface('normal');
 }
 
 /**

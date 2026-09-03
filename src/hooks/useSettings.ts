@@ -68,16 +68,27 @@ export function applyBackdrop(backdrop: string): void {
 }
 
 /**
- * Keeps the iOS PWA status-bar tint in step with the surface. On iOS the area
- * behind the status bar is painted from the `theme-color` meta, so a fixed
- * near-white value shows as a white strip up top in dark / photo-glass modes.
- * A photo backdrop reads dark; otherwise follow the light/dark theme.
+ * Keeps the iOS PWA status-bar tint in step with the surface. On iOS the band
+ * above the web view is painted from the `theme-color` meta, so getting this
+ * wrong shows as a stripe across the top of the app.
+ *
+ * The backdrop only darkens anything in GLASS mode. A backdrop picked once and
+ * left behind stays in settings, inert on the normal surface — and testing it
+ * alone painted a near-black bar over the light theme, in both themes, for as
+ * long as that stale value sat there.
+ *
+ * The colour is read back from --bg rather than repeated as a hex, so it cannot
+ * drift when the palette changes; the literals are only a pre-stylesheet fallback.
  */
-export function applyThemeColor(theme: Theme, backdrop: string): void {
+export function applyThemeColor(theme: Theme, backdrop: string, surface: Surface): void {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) return;
-  const color = backdrop ? '#0b0d16' : theme === 'dark' ? '#101018' : '#f7f7fb';
-  meta.setAttribute('content', color);
+  if (surface === 'glass' && backdrop) {
+    meta.setAttribute('content', '#0b0d16');
+    return;
+  }
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  meta.setAttribute('content', bg || (theme === 'dark' ? '#0a0a0a' : '#f7f7fb'));
 }
 
 export function useSettings() {
@@ -96,8 +107,8 @@ export function useSettings() {
   }, [settings.backdrop]);
 
   useEffect(() => {
-    applyThemeColor(settings.theme, settings.backdrop);
-  }, [settings.theme, settings.backdrop]);
+    applyThemeColor(settings.theme, settings.backdrop, settings.surface);
+  }, [settings.theme, settings.backdrop, settings.surface]);
 
   const save = useCallback((next: Partial<Settings>) => {
     setSettings(current => {
