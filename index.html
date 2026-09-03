@@ -165,13 +165,18 @@
         opacity: 0.7;
       }
 
-      /* Two jobs: a periwinkle duotone that pulls any photo into the brand
-         whatever its own colour is, and a vignette that darkens the edges so the
-         mark holds contrast wherever the crop happens to land. */
+      /* Three jobs: a periwinkle duotone that pulls any photo into the brand
+         whatever its own colour is, a vignette that darkens the edges so the
+         mark holds contrast wherever the crop happens to land, and a fade at
+         the bottom into the same black the strip below the viewport is painted.
+         Without that last one the photo ends on mid-grey dumbbells against a
+         pure-black band and the seam is the first thing you see on launch;
+         listed first so it sits above the other two. */
       #splash .splash-wash {
         position: absolute;
         inset: 0;
         background:
+          linear-gradient(to top, #0a0a0a 0, rgba(10, 10, 10, 0.88) 44px, transparent 132px),
           linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.44)),
           radial-gradient(102% 72% at 50% 46%, transparent 24%, rgba(9, 10, 18, 0.86) 100%);
       }
