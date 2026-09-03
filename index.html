@@ -3,25 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-    <!-- Blocking on purpose, and tiny. Two jobs, both of which have to happen
-         while the head is still parsing.
+    <!-- ONE tag, in the markup, with no media attribute. Every part of that is
+         load-bearing, and each was learned the hard way on device:
 
-         It stamps the saved theme before the first paint, so the splash knows
-         which accent to use — main.tsx is a deferred module and runs too late.
+         In the markup, because iOS reads this while parsing and a tag created
+         by script arrives too late — with no tag present at that moment it
+         falls back to a BLACK band, which is exactly what a script-created tag
+         produced. It also ignores later edits to the tag, so this value is the
+         one the band gets for the whole session.
 
-         And it CREATES the theme-color tag rather than editing one written in
-         the markup, because iOS commits that colour the moment it parses the
-         tag and ignores every change afterwards — so a tag in the markup is
-         already decided before this script can correct it.
+         No media attribute, because a pair scoped to prefers-color-scheme hands
+         the choice to the PHONE's appearance rather than the app's: a phone
+         that had gone dark for the evening matched the dark tag and painted
+         black over a light app, however the app itself was set. That is also
+         why changing the theme in-app never moved the band and relaunching did.
 
-         What used to sit here was a PAIR of media-scoped tags, one per colour
-         scheme, and that handed the choice to the phone's appearance rather
-         than the app's: a phone that had switched itself to dark for the
-         evening matched the dark tag, and iOS painted the strip below the
-         viewport black underneath a light app. It also explains why changing
-         the theme in-app never moved it and relaunching did. One unmediated
-         tag, created with the app's own colour, leaves the system appearance
-         nothing to win.
+         The consequence, and it is a real limit rather than an oversight: on
+         iOS this cannot follow the in-app theme toggle. The colour is the light
+         background, because that is the theme the app runs in; switching the
+         app to dark leaves a light band above it until this literal changes.
+         Chrome does honour the update below, so it only bites on iOS. -->
+    <meta name="theme-color" content="#f7f7fb" />
+
+    <!-- Blocking on purpose, and tiny. It stamps the saved theme before the
+         first paint, so the splash knows which accent to use — main.tsx is a
+         deferred module and runs too late — and updates theme-color for the
+         browsers that do read it live.
 
          The literals repeat --bg and --page-edge on purpose: no stylesheet has
          been parsed yet, so they cannot be read from CSS. Keep them in step. -->
@@ -31,10 +38,8 @@
         var dark = s.theme === 'dark';
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
         var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
-        var m = document.createElement('meta');
-        m.setAttribute('name', 'theme-color');
-        m.setAttribute('content', c);
-        document.head.appendChild(m);
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', c);
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'light');
       }

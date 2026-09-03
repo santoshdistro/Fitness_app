@@ -81,11 +81,10 @@ export function applyBackdrop(backdrop: string): void {
  * drift when the palette changes; the literals are only a pre-stylesheet fallback.
  */
 export function applyThemeColor(theme: Theme, backdrop: string, surface: Surface): void {
-  // There is exactly one tag and it carries no media attribute — see the head
-  // script in index.html. Scoping it per colour scheme let the PHONE's
-  // appearance choose the colour, which is how a light app ended up with a
-  // black strip under it. iOS ignores this update (it takes the colour at
-  // load), but Chrome applies it live, so a theme switch still lands there.
+  // There is exactly one tag and it carries no media attribute — see index.html
+  // for why both matter. iOS ignores this update entirely (it takes the colour
+  // while parsing the markup and never looks again), but Chrome applies it
+  // live, so a theme switch still lands there.
   const metas = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')];
   if (!metas.length) {
     const meta = document.createElement('meta');
