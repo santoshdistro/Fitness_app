@@ -39,13 +39,30 @@
 
     <title>Fitness</title>
 
-    <!-- Blocking on purpose, and tiny: it stamps the saved theme before the
-         first paint. main.tsx does this too, but as a module it is deferred,
-         so without this the splash could not know which accent to use. -->
+    <!-- Blocking on purpose, and tiny. Two jobs, both of which have to happen
+         while the head is still parsing.
+
+         It stamps the saved theme before the first paint, so the splash knows
+         which accent to use — main.tsx is a deferred module and runs too late.
+
+         And it writes the app's own colour into BOTH theme-color tags above.
+         iOS reads those during load and ignores every change afterwards, so
+         main.tsx cannot correct them: with a phone set to dark and the app set
+         to light, iOS matched the dark tag and painted a black bar over a light
+         app. Setting both to the app's colour here means whichever tag iOS
+         matches is the right one.
+
+         The literals repeat --bg and --page-edge on purpose: no stylesheet has
+         been parsed yet, so they cannot be read from CSS. Keep them in step. -->
     <script>
       try {
-        var t = JSON.parse(localStorage.getItem('app_settings') || '{}').theme;
-        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+        var s = JSON.parse(localStorage.getItem('app_settings') || '{}');
+        var dark = s.theme === 'dark';
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+          m.setAttribute('content', c);
+        });
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'light');
       }
