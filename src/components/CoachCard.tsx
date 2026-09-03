@@ -17,7 +17,7 @@ export function CoachCard({ status, insight, message, onRetry }: Props) {
         animationDelay: '0.24s',
         borderRadius: 'var(--radius-card)',
         background: 'var(--accent-gradient)',
-        boxShadow: '0 10px 22px -12px rgba(108,99,255,0.6)',
+        boxShadow: '0 10px 22px -12px var(--accent-shadow)',
       }}
     >
       <div className="flex items-start gap-2.5">

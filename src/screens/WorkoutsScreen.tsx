@@ -177,7 +177,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <button
             type="button"
             onClick={() => openGuided({ title: resumable.title, exercises: resumable.exercises })}
-            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
+            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-[var(--on-accent)]"
             style={{ background: 'var(--accent-gradient)' }}
           >
             Continue
@@ -290,7 +290,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           style={{
             borderRadius: 'var(--radius-card)',
             background: 'var(--accent-gradient)',
-            boxShadow: '0 12px 28px -10px rgba(108,99,255,0.6)',
+            boxShadow: '0 12px 28px -10px var(--accent-shadow)',
           }}
         >
           <div className="flex items-start justify-between gap-3">
@@ -469,7 +469,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
               className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold whitespace-nowrap"
               style={
                 activeProgram?.equipment === option.value
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -773,7 +773,7 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
                 setAssignDay(null);
                 setTab('plan');
               }}
-              className="flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white"
+              className="flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)]"
               style={{ background: 'var(--accent-gradient)' }}
             >
               <CalendarPlus size={16} /> Add to {new Date(`${assignDate}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -837,7 +837,7 @@ function CuratedPlanForm({
               className="rounded-xl px-3 py-2 text-xs font-bold"
               style={
                 physique === p.value
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -862,7 +862,7 @@ function CuratedPlanForm({
               className="rounded-xl px-3 py-2 text-xs font-bold"
               style={
                 goal === g.value
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -883,7 +883,7 @@ function CuratedPlanForm({
               className="rounded-xl px-3 py-2 text-xs font-bold"
               style={
                 level === l
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -904,7 +904,7 @@ function CuratedPlanForm({
               className="flex-1 rounded-xl py-2 text-xs font-bold"
               style={
                 days === d
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -917,7 +917,7 @@ function CuratedPlanForm({
       <button
         type="button"
         onClick={() => onBuild(goal, level, days, physique)}
-        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
+        className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
         style={{ background: 'var(--accent-gradient)' }}
       >
         <Wand2 size={15} /> Build my program

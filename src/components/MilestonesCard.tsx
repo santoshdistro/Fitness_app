@@ -40,7 +40,7 @@ export function MilestonesCard() {
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white"
+          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-[var(--on-accent)]"
           style={{ background: 'var(--accent-gradient)' }}
         >
           <Plus size={13} /> Add

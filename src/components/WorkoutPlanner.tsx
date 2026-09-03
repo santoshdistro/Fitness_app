@@ -264,7 +264,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
         <button
           type="button"
           onClick={() => setBuilderOpen(true)}
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-white"
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold text-[var(--on-accent)]"
           style={{ background: 'var(--accent-gradient)' }}
         >
           <Sparkles size={15} /> Build with AI
@@ -338,7 +338,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
               className="flex shrink-0 flex-col items-center rounded-2xl px-3 py-2"
               style={
                 active
-                  ? { background: 'var(--accent)', color: 'white' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: rest ? 'var(--muted)' : 'var(--text)' }
               }
             >
@@ -385,7 +385,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                 onClick={() =>
                   applyRange([{ date: viewDate, exercises: templatesForFocus(focus) }])
                 }
-                className="mt-2 rounded-full px-4 py-2 text-[11px] font-bold text-white"
+                className="mt-2 rounded-full px-4 py-2 text-[11px] font-bold text-[var(--on-accent)]"
                 style={{ background: 'var(--accent)' }}
               >
                 Prefill {focus} exercises
@@ -486,7 +486,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
             className="rounded-xl px-3 py-2 text-xs font-bold"
             style={
               pending.length === 0
-                ? { background: 'var(--accent)', color: '#fff' }
+                ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                 : { background: 'var(--bg)', color: 'var(--muted)' }
             }
           >
@@ -557,7 +557,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                   className="rounded-xl px-3 py-2 text-xs font-bold"
                   style={
                     autofillLevel === l
-                      ? { background: 'var(--accent)', color: 'white' }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                       : { background: 'var(--bg)', color: 'var(--muted)' }
                   }
                 >
@@ -582,7 +582,7 @@ export function WorkoutPlanner({ onStartGuided }: Props) {
                   className="rounded-xl px-3 py-2 text-xs font-bold"
                   style={
                     autofillPhysique === p.value
-                      ? { background: 'var(--accent)', color: 'white' }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                       : { background: 'var(--bg)', color: 'var(--muted)' }
                   }
                 >
@@ -687,7 +687,7 @@ function FocusChip({ label, on, onClick }: { label: string; on: boolean; onClick
       type="button"
       onClick={onClick}
       className="rounded-full px-3 py-1.5 text-xs font-bold"
-      style={on ? { background: 'var(--accent)', color: '#fff' } : { background: 'var(--bg)', color: 'var(--muted)' }}
+      style={on ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { background: 'var(--bg)', color: 'var(--muted)' }}
     >
       {label}
     </button>

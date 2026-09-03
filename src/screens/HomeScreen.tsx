@@ -254,9 +254,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onOpenProfile}
             aria-label="Edit profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)]"
+            // The ring reads as a gap cut out of the page, so it follows the
+            // background — as white it was invisible on light and a bright
+            // circle on black. The initials sit ON the accent, so they take
+            // --on-accent like every other accent surface.
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--bg)] bg-[var(--accent)]"
           >
-            <span className="text-sm font-bold text-white">{initialsFromName(profile?.name)}</span>
+            <span className="text-sm font-bold text-[var(--on-accent)]">
+              {initialsFromName(profile?.name)}
+            </span>
           </button>
           {streak > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
@@ -464,7 +470,7 @@ function JourneyEditor({
         type="button"
         disabled={!weight || Number(weight) <= 0}
         onClick={() => onStart(unitToKg(Number(weight), u), date)}
-        className="rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50"
+        className="rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50"
         style={{ background: 'var(--accent-gradient)' }}
       >
         {startDate ? 'Restart from here' : 'Start my journey'}

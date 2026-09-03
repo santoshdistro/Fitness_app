@@ -415,7 +415,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-colors"
             style={
               tab === t.key
-                ? { background: 'var(--accent)', color: '#fff' }
+                ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                 : { color: 'var(--muted)' }
             }
           >

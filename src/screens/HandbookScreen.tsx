@@ -297,7 +297,7 @@ export function HandbookScreen() {
                 className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-semibold"
                 style={
                   active
-                    ? { background: 'var(--accent)', color: 'white' }
+                    ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                     : { background: 'var(--bg)', color: 'var(--muted)' }
                 }
               >

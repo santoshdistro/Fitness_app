@@ -278,7 +278,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
                       className="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
                       style={
                         m.role === 'user'
-                          ? { background: 'var(--accent-gradient)', color: '#fff' }
+                          ? { background: 'var(--accent-gradient)', color: 'var(--on-accent)' }
                           : { background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--text)' }
                       }
                     >

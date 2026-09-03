@@ -529,7 +529,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                 className="tap-44 rounded-full px-3 py-1.5 text-[11px] font-semibold"
                 style={
                   restDuration === sec
-                    ? { background: 'var(--accent)', color: '#fff' }
+                    ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                     : { background: 'var(--bg)', color: 'var(--muted)' }
                 }
               >

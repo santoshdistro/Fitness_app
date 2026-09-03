@@ -115,7 +115,7 @@ export function WorkoutProgressChart({ group, onGroupChange }: Props) {
               type="button"
               onClick={() => { onGroupChange(g.key); setActive(null); setHidden(new Set()); }}
               className="rounded-full px-2 py-1 text-[10px] font-bold"
-              style={group === g.key ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
+              style={group === g.key ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--muted)' }}
             >
               {g.label}
             </button>

@@ -94,7 +94,7 @@ export function FastingPanel() {
               className="rounded-full px-3 py-1.5 text-xs font-semibold"
               style={
                 target === p.hours
-                  ? { background: 'var(--accent)', color: '#fff' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >

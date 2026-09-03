@@ -626,7 +626,7 @@ export function MealForm({ onSaved, initial }: Props) {
                       className="rounded-xl px-3 text-xs font-bold"
                       style={
                         unit === u
-                          ? { background: 'var(--accent)', color: '#fff' }
+                          ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                           : { color: 'var(--muted)' }
                       }
                     >

@@ -92,7 +92,7 @@ export function MealEditSheet({
                   className="rounded-xl px-3 py-2 text-xs font-bold"
                   style={
                     category === o.value
-                      ? { background: 'var(--accent)', color: 'white' }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                       : { background: 'var(--bg)', color: 'var(--muted)' }
                   }
                 >
@@ -138,7 +138,7 @@ export function MealEditSheet({
                   className="flex-1 rounded-xl py-2 text-xs font-bold"
                   style={
                     Math.abs(mult - q) < 0.001
-                      ? { background: 'var(--accent)', color: 'white' }
+                      ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                       : { background: 'var(--bg)', color: 'var(--muted)' }
                   }
                 >
@@ -165,7 +165,7 @@ export function MealEditSheet({
             type="button"
             disabled={saving || mult <= 0}
             onClick={() => onConfirm(mult, category, curAmount)}
-            className="rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-50"
+            className="rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50"
             style={{ background: 'var(--accent-gradient)' }}
           >
             {saving ? 'Saving…' : mode === 'today' ? 'Add to today' : 'Save changes'}

@@ -470,7 +470,7 @@ function ChoiceCard({
       className={`flex items-center justify-center rounded-2xl border p-4 ${full ? 'w-full justify-start' : 'flex-1'}`}
       style={
         active
-          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
           : { borderColor: 'var(--card-border)', background: 'var(--card)', color: 'var(--text)' }
       }
     >

@@ -241,7 +241,7 @@ export function AppShell() {
           setActiveSheet('quickAdd');
         }}
         aria-label="Quick add"
-        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_8px_24px_rgba(108,99,255,0.4)] transition-transform active:scale-90"
+        className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-[var(--on-accent)] shadow-[0_8px_24px_var(--accent-shadow)] transition-transform active:scale-90"
         style={{
           background: 'var(--accent-gradient)',
           bottom: 'calc(var(--safe-bottom) + 5rem)',
