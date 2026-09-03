@@ -292,10 +292,14 @@ export function AppShell() {
           {TABS.map(({ key, label, icon: Icon }) => {
             const isActive = activeTab === key;
             return (
+              // No bottom padding on the tab: under black-translucent the strip
+              // below the viewport already sits under these labels, and every
+              // pixel added here is one the labels sit further from the edge.
+              // The top pad carries the 44pt tap target on its own (45pt).
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className="relative z-10 flex flex-1 flex-col items-center gap-1 py-1"
+                className="relative z-10 flex flex-1 flex-col items-center gap-1 pt-1.5 pb-0"
                 style={{
                   color: isActive ? 'var(--section)' : 'var(--muted)',
                   transition: 'color 450ms ease',
