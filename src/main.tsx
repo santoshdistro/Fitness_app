@@ -29,22 +29,37 @@ try {
  * home indicator is then outside the viewport entirely, and padding reserved
  * for it is dead space.
  *
- * So measure rather than trust: when the viewport is short, the inset does not
- * apply and --safe-bottom collapses to zero. When iOS hands over the whole
- * screen the indicator really is overlapping, and env() is used as normal.
+ * How much is lost is the top inset, so it is device-specific: ~47pt on a
+ * Dynamic Island phone, ~44pt on a notch, ~20pt on a flat-top one, 0 anywhere
+ * that hands over the whole screen. Guessing a number fits one phone, so this
+ * measures it and publishes it as --edge-lost for the layout to subtract.
+ *
+ * Two things follow from a short viewport: the bottom inset does not apply
+ * (--safe-bottom collapses to zero), and the strip below is unreachable by the
+ * page — nothing can be drawn there but the body background. So the nav goes
+ * flush to the bottom of what we DO have and the strip is painted to continue
+ * it, which is how a native tab bar's indicator area looks anyway.
  */
-function trackSafeBottom() {
+const MAX_PLAUSIBLE_INSET = 120;
+
+function trackViewportEdge() {
   // Standalone only. In a browser the viewport is short because of the toolbars,
   // and there env() genuinely does describe an overlapping indicator.
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as { standalone?: boolean }).standalone === true;
-  const short = window.screen.height - window.innerHeight > 1;
-  document.documentElement.classList.toggle('viewport-short', standalone && short);
+  // Clamped: some browsers report screen.height in the device's fixed
+  // orientation, which in landscape makes this difference meaningless. A status
+  // bar is never 120pt, so anything larger is a measurement we don't trust.
+  const lost = Math.round(window.screen.height - window.innerHeight);
+  const short = standalone && lost > 1 && lost <= MAX_PLAUSIBLE_INSET;
+  const root = document.documentElement;
+  root.classList.toggle('viewport-short', short);
+  root.style.setProperty('--edge-lost', `${short ? lost : 0}px`);
 }
-trackSafeBottom();
-window.addEventListener('resize', trackSafeBottom);
-window.addEventListener('orientationchange', trackSafeBottom);
+trackViewportEdge();
+window.addEventListener('resize', trackViewportEdge);
+window.addEventListener('orientationchange', trackViewportEdge);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -26,21 +26,31 @@
   --tray: rgba(20, 20, 43, 0.04);
   --accent-shadow: rgba(108, 99, 255, 0.7);
   --radius-card: 24px;
-  /* The colour iOS paints BEHIND the web view. black-translucent leaves 47pt
-     of screen below the viewport, and the nav floats above it with a margin, so
-     this continues the PAGE rather than the nav — matching --bg makes the strip
-     read as more of the page under a floating bar. Kept solid on purpose: --bg
-     goes translucent in liquid-glass mode and there is nothing behind it here. */
+  /* The colour iOS paints BEHIND the web view, i.e. the strip below a short
+     viewport. Kept solid on purpose: --bg goes translucent in liquid-glass mode
+     and there is nothing behind it here. */
   --page-edge: #f7f7fb;
+  /* What the strip becomes when there IS one: the nav's own fill, so the bar
+     appears to run to the bottom of the screen instead of stopping short of it. */
+  --edge-fill: #ffffff;
   /* Clearance for the home indicator. Normally the real inset — but see
-     trackSafeBottom in main.tsx: when iOS gives a viewport shorter than the
+     trackViewportEdge in main.tsx: when iOS gives a viewport shorter than the
      screen, the indicator sits outside it and env() is describing a screen we
      were not given, so reserving space for it is pure dead bar. */
   --safe-bottom: env(safe-area-inset-bottom);
-}
+  /* Measured in main.tsx: how much screen falls off the bottom. 0 unless a
+     home-screen launch says otherwise, so the browser keeps the floating look. */
+  --edge-lost: 0px;
 
-:root.viewport-short {
-  --safe-bottom: 0px;
+  /* Bottom nav geometry, in one place because it has to answer to --edge-lost.
+     With no lost strip the bar is a floating rounded card with a margin; with
+     one, that margin would sit ON TOP of an unreachable strip and read as a gap
+     under the menu, so it goes flush and square-bottomed and the strip carries
+     on in the same colour. */
+  --nav-inset: 0.75rem;
+  --nav-gap: 0.5rem;
+  --nav-radius: 26px;
+  --nav-border: 1px;
 }
 
 /* Dark is its own world, not a dimmed light theme, and every value here is
@@ -70,6 +80,7 @@
   --tray: rgba(203, 238, 79, 0.07);
   --accent-shadow: rgba(203, 238, 79, 0.42);
   --page-edge: #0a0a0a;
+  --edge-fill: #141416;
 }
 
 /* The kit's other three, kept for chart series only — telling two lines apart
@@ -93,6 +104,23 @@
   --card: rgba(40, 42, 64, 0.34);
   --card-border: rgba(255, 255, 255, 0.28);
   --input-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Deliberately placed AFTER every theme and surface block, not next to the base
+   tokens: it has the same specificity as :root[data-theme='dark'], so up there
+   the dark palette's --page-edge simply won on source order and the strip stayed
+   page-coloured under a bar-coloured nav. --edge-fill is the solid theme value
+   even in glass mode, because nothing sits behind the strip to refract. */
+:root.viewport-short {
+  --safe-bottom: 0px;
+  --page-edge: var(--edge-fill);
+  --nav-inset: 0px;
+  /* Whatever the device didn't give us already reads as space below the bar, so
+     only add margin up to the target — on any phone that loses more than 8pt
+     this is simply 0, and the visible gap is the same everywhere. */
+  --nav-gap: max(0px, calc(0.5rem - var(--edge-lost)));
+  --nav-radius: 26px 26px 0 0;
+  --nav-border: 1px 0 0 0;
 }
 
 /* A vivid, fixed backdrop so the frosted glass has rich colour to refract. */

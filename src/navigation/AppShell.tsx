@@ -226,7 +226,7 @@ export function AppShell() {
         style={{
           background: 'var(--card)',
           border: '1px solid var(--card-border)',
-          bottom: 'calc(var(--safe-bottom) + 9.75rem)',
+          bottom: 'calc(var(--safe-bottom) + var(--nav-gap) + 9.75rem)',
         }}
       >
         <Sparkles size={24} strokeWidth={2.5} />
@@ -244,7 +244,7 @@ export function AppShell() {
         className="fixed right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full text-[var(--on-accent)] shadow-[0_8px_24px_var(--accent-shadow)] transition-transform active:scale-90"
         style={{
           background: 'var(--accent-gradient)',
-          bottom: 'calc(var(--safe-bottom) + 5rem)',
+          bottom: 'calc(var(--safe-bottom) + var(--nav-gap) + 5rem)',
         }}
       >
         <Plus size={24} strokeWidth={2.5} />
@@ -256,12 +256,22 @@ export function AppShell() {
           bar — 38px of nothing under a 45px row. The indicator itself only
           occupies the bottom ~13px, so the inset is trimmed by 12px and the top
           padding by 4px: still clear of the indicator, 20px less dead space. */}
-      {/* Floating, not full-width. black-translucent buys the full-bleed top by
-          leaving 47pt of screen below the viewport, and a square bar sitting
-          against that strip reads as a gap under the menu. With a margin and a
-          radius the same strip reads as the bar's own margin — which is what
-          the app did originally, and what both design references do. */}
-      <nav className="glass-card mx-3 mb-2 shrink-0 rounded-[26px] px-3 pt-2 pb-[max(0.5rem,var(--safe-bottom))]">
+      {/* Geometry comes from tokens (see --nav-* in index.css) because it has to
+          answer to how much screen the device actually gave us. Floating rounded
+          card when the viewport reaches the bottom edge; flush, square-bottomed
+          and borderless at the sides when it doesn't, with the unreachable strip
+          below painted in the same fill so the bar reads as running off the
+          screen rather than stopping above a gap. */}
+      <nav
+        className="glass-card shrink-0 px-3 pt-2"
+        style={{
+          marginInline: 'var(--nav-inset)',
+          marginBottom: 'var(--nav-gap)',
+          borderRadius: 'var(--nav-radius)',
+          borderWidth: 'var(--nav-border)',
+          paddingBottom: 'max(0.5rem, var(--safe-bottom))',
+        }}
+      >
         <div
           className="relative flex"
           onTouchStart={handleNavTouch}
