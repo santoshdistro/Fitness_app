@@ -18,11 +18,17 @@
          black over a light app, however the app itself was set. That is also
          why changing the theme in-app never moved the band and relaunching did.
 
+         Under black-translucent this is what paints the strip iOS leaves below
+         the viewport — the one part of the bottom bar the page cannot draw. It
+         was measured doing exactly that: with the dark tag matched, that strip
+         went black under a light app while the body background stayed white.
+
          The consequence, and it is a real limit rather than an oversight: on
-         iOS this cannot follow the in-app theme toggle. The colour is the light
-         background, because that is the theme the app runs in; switching the
-         app to dark leaves a light band above it until this literal changes.
-         Chrome does honour the update below, so it only bites on iOS. -->
+         iOS this cannot follow the in-app theme toggle, because the value is
+         taken at load and never re-read. It holds the light background, since
+         that is the theme the app runs in; switching the app to dark leaves a
+         light strip under the nav until this literal changes. Chrome does
+         honour the update below, so it only bites on iOS. -->
     <meta name="theme-color" content="#f7f7fb" />
 
     <!-- Blocking on purpose, and tiny. It stamps the saved theme before the
@@ -45,26 +51,28 @@
       }
     </script>
 
-    <!-- iOS "Add to Home Screen" behavior.
+    <!-- iOS "Add to Home Screen" behavior. Neither setting gives both edges,
+         and this is a decision, not a default.
 
-         black-translucent puts the app under the status bar, but iOS then hands
-         the page a viewport shorter than the screen by exactly the top inset,
-         and that height falls off the BOTTOM — measured on device, innerHeight
-         797 against an 844pt screen. Nothing can be drawn in that strip, so the
-         menu can never reach the bottom edge; it was ~47pt of dead bar.
+         `default` reserves an opaque band at the top and hands over a viewport
+         that reaches the bottom of the screen — a perfect bottom edge. But that
+         band is painted black on device whatever theme-color says, so a light
+         app runs under a black bar. Tried on device; rejected.
 
-         `default` reserves a band at the top instead, and the viewport then
-         does reach the bottom of the screen. That band is painted from
-         theme-color — which is why this was unusable while two media-scoped
-         tags let the PHONE's appearance pick the colour and paint it black over
-         a light app. With one tag carrying the app's own colour, the band is
-         the app's own background and the seam is invisible, so `default` now
-         costs nothing at the top and buys the whole bottom edge.
+         black-translucent puts the app UNDER the status bar, so the background
+         reaches the top edge and the clock sits over it. iOS pays for that by
+         handing the page a viewport shorter than the screen by exactly the top
+         inset, and that height falls off the BOTTOM — measured, innerHeight 797
+         against an 844pt screen. Nothing can be drawn in that strip.
 
-         The one visible trade is the splash: its photo starts below the band
-         rather than under the clock. -->
+         So the strip is made to belong to the bar instead of sitting under it:
+         the nav goes flush and square-bottomed, adds no bottom padding of its
+         own, and the strip is painted to continue it (--page-edge, and see
+         :root.viewport-short). The bar reads as running off the bottom of the
+         screen, which is what a native tab bar does — about 18pt taller than
+         one, and that is the accepted cost of the full-bleed top. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
