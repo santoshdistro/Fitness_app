@@ -42,24 +42,24 @@
 
     <!-- iOS "Add to Home Screen" behavior.
 
-         black-translucent puts the app under the status bar, so its background
-         reaches the top edge and the clock sits over it. The catch is that iOS
-         then hands the page a viewport 47pt shorter than the screen, and that
-         47pt falls off the BOTTOM — measured on device, innerHeight 797 against
-         an 844pt screen.
+         black-translucent puts the app under the status bar, but iOS then hands
+         the page a viewport shorter than the screen by exactly the top inset,
+         and that height falls off the BOTTOM — measured on device, innerHeight
+         797 against an 844pt screen. Nothing can be drawn in that strip, so the
+         menu can never reach the bottom edge; it was ~47pt of dead bar.
 
-         `default` avoids that but reserves an opaque band the app can never
-         draw into, which is the strip above the clock. Neither setting gives
-         both edges.
+         `default` reserves a band at the top instead, and the viewport then
+         does reach the bottom of the screen. That band is painted from
+         theme-color — which is why this was unusable while two media-scoped
+         tags let the PHONE's appearance pick the colour and paint it black over
+         a light app. With one tag carrying the app's own colour, the band is
+         the app's own background and the seam is invisible, so `default` now
+         costs nothing at the top and buys the whole bottom edge.
 
-         So: take the full-bleed top, and let the nav float — margins and a
-         radius — so the space beneath it reads as the margin of a floating bar
-         rather than a gap under a full-width one. That is what the app did
-         before a cascade-layer fix accidentally squared the nav off, and what
-         both design references do. --page-edge paints the strip in the app
-         background so it continues the page. -->
+         The one visible trade is the splash: its photo starts below the band
+         rather than under the clock. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />

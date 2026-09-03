@@ -38,15 +38,11 @@
      screen, the indicator sits outside it and env() is describing a screen we
      were not given, so reserving space for it is pure dead bar. */
   --safe-bottom: env(safe-area-inset-bottom);
-  /* Measured in main.tsx: how much screen falls off the bottom. 0 unless a
-     home-screen launch says otherwise, so the browser keeps the floating look. */
-  --edge-lost: 0px;
 
-  /* Bottom nav geometry, in one place because it has to answer to --edge-lost.
-     With no lost strip the bar is a floating rounded card with a margin; with
-     one, that margin would sit ON TOP of an unreachable strip and read as a gap
-     under the menu, so it goes flush and square-bottomed and the strip carries
-     on in the same colour. */
+  /* Bottom nav geometry, in one place because installed and in-browser want
+     different bars. These are the BROWSER values: a floating rounded card,
+     which is right when the bar sits above a toolbar rather than a screen
+     edge. See :root.standalone for the installed bar. */
   --nav-inset: 0.75rem;
   --nav-gap: 0.5rem;
   --nav-radius: 26px;
@@ -108,28 +104,37 @@
   --input-bg: rgba(255, 255, 255, 0.1);
 }
 
-/* Deliberately placed AFTER every theme and surface block, not next to the base
+/* Installed to the home screen: the bar belongs to the bottom EDGE of the
+   screen the way a native tab bar does — full width, square-bottomed, its own
+   fill running under the home indicator rather than a margin under a card.
+   A shallow top pad and the indicator band below it is the native proportion. */
+:root.standalone {
+  --nav-inset: 0px;
+  --nav-gap: 0px;
+  --nav-radius: 26px 26px 0 0;
+  --nav-border: 1px 0 0 0;
+  --nav-pt: 0.375rem;
+  /* The indicator band IS the bottom padding where there is one. On a phone
+     with no indicator the inset is 0, and labels 4pt off the screen edge look
+     like a mistake, so a floor keeps a little air under them. */
+  --nav-pb: max(0.375rem, var(--safe-bottom));
+}
+
+/* Only under black-translucent, where the strip below the viewport cannot be
+   drawn into: the bottom inset describes a screen we were not given, so it is
+   dropped, and the strip is painted in the bar's fill so the bar appears to
+   run off the bottom of the screen instead of stopping above a gap.
+
+   Deliberately AFTER every theme and surface block, not next to the base
    tokens: it has the same specificity as :root[data-theme='dark'], so up there
-   the dark palette's --page-edge simply won on source order and the strip stayed
-   page-coloured under a bar-coloured nav. --edge-fill is the solid theme value
-   even in glass mode, because nothing sits behind the strip to refract. */
+   the dark palette's --page-edge simply won on source order and the strip
+   stayed page-coloured under a bar-coloured nav. --edge-fill is the solid theme
+   value even in glass mode, because nothing sits behind the strip to refract. */
 :root.viewport-short {
   --safe-bottom: 0px;
   --page-edge: var(--edge-fill);
-  --nav-inset: 0px;
-  /* Whatever the device didn't give us already reads as space below the bar, so
-     only add margin up to the target — on any phone that loses more than 8pt
-     this is simply 0, and the visible gap is the same everywhere. */
-  --nav-gap: max(0px, calc(0.5rem - var(--edge-lost)));
-  --nav-radius: 26px 26px 0 0;
-  --nav-border: 1px 0 0 0;
-  /* The strip IS the bar's bottom padding — it is the same fill, it sits under
-     the labels, and it is the one part of the bar we cannot move. So the bar
-     adds none of its own, and the labels go as low as the viewport allows.
-     A native tab bar is the same shape: a shallow top pad, then the whole
-     home-indicator band underneath. Top pad trims with it so the bar's card
-     edge drops too, rather than growing a taller bar around the same row. */
-  --nav-pt: 0.375rem;
+  /* No floor here: the strip below already supplies the air, and adding to it
+     is what made the bar read as a gap in the first place. */
   --nav-pb: 0px;
 }
 

@@ -42,35 +42,58 @@ const server = createServer(async (req, res) => {
 await new Promise(r => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
-// screen height, and the inset each of these actually loses off the bottom.
+// Two ways an installed app loses height, and they are not interchangeable.
+//
+// black-translucent: the viewport starts at the top of the SCREEN and is short
+// by the top inset, so `lostBelow` falls off the bottom where nothing can be
+// drawn, and env(safe-area-inset-bottom) describes a screen we were not given.
+//
+// default: the viewport starts BELOW an opaque band, and reaches the bottom of
+// the screen — so nothing is lost below and the bottom inset is real. This is
+// what the app ships; the translucent rows stay because the layout still has to
+// be correct on an older install that was added to the home screen under it.
 const DEVICES = [
-  { name: 'iphone-15-pro-dynamic-island', w: 393, h: 852, lost: 47 },
-  { name: 'iphone-13-mini-notch', w: 375, h: 812, lost: 44 },
-  { name: 'iphone-se-flat-top', w: 375, h: 667, lost: 20 },
-  { name: 'android-no-loss', w: 412, h: 915, lost: 0 },
+  { name: 'iphone-15-pro-dynamic-island', w: 393, h: 852, top: 47, bottom: 34 },
+  { name: 'iphone-13-mini-notch', w: 375, h: 812, top: 44, bottom: 34 },
+  { name: 'iphone-se-flat-top', w: 375, h: 667, top: 20, bottom: 0 },
 ];
+const CASES = DEVICES.flatMap(d => [
+  { ...d, mode: 'default', lostBelow: 0, safeBottom: d.bottom },
+  { ...d, mode: 'translucent', lostBelow: d.top, safeBottom: 0 },
+]).concat({
+  name: 'browser-tab',
+  w: 412,
+  h: 915,
+  mode: 'browser',
+  lostBelow: 0,
+  safeBottom: 0,
+});
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 for (const theme of ['light', 'dark']) {
-  for (const d of DEVICES) {
+  for (const d of CASES) {
     const page = await browser.newPage({ viewport: { width: d.w, height: d.h } });
+    // `default` puts its band ABOVE the viewport, so the frame is offset down by
+    // it and loses nothing below; black-translucent starts at the screen top and
+    // loses the same height off the bottom.
+    const offset = d.mode === 'default' ? d.top : 0;
     await page.setContent(`<!doctype html><html><body style="margin:0">
-      <iframe id="f" src="${base}/nav.html" style="border:0;width:${d.w}px;height:${d.h - d.lost}px;display:block"></iframe>
+      <iframe id="f" src="${base}/nav.html" style="border:0;width:${d.w}px;height:${d.h - offset - d.lostBelow}px;display:block;margin-top:${offset}px"></iframe>
     </body></html>`);
     const frame = page.frames()[1] ?? page.frames()[0];
     await frame.waitForSelector('nav');
     await frame.evaluate(
-      ({ lost, theme }) => {
+      ({ mode, safeBottom, theme }) => {
         const root = document.documentElement;
         root.setAttribute('data-theme', theme);
         root.setAttribute('data-surface', 'normal');
-        if (lost > 0) {
-          root.classList.add('viewport-short');
-          root.style.setProperty('--edge-lost', `${lost}px`);
-        }
+        // env() cannot be set from script, so the inset is injected directly.
+        root.style.setProperty('--safe-bottom', `${safeBottom}px`);
+        if (mode !== 'browser') root.classList.add('standalone');
+        if (mode === 'translucent') root.classList.add('viewport-short');
       },
-      { lost: d.lost, theme },
+      { mode: d.mode, safeBottom: d.safeBottom, theme },
     );
     // The OS paints the leftover strip from the page's body background.
     const edge = await frame.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -96,14 +119,14 @@ for (const theme of ['light', 'dark']) {
         borderWidths: `${cs.borderTopWidth} ${cs.borderRightWidth} ${cs.borderBottomWidth} ${cs.borderLeftWidth}`,
         navFill: cs.backgroundColor,
       };
-    }, d.lost);
+    }, d.lostBelow);
     console.log(
-      `${theme.padEnd(5)} ${d.name.padEnd(30)} lost=${String(d.lost).padStart(2)}  ` +
+      `${theme.padEnd(5)} ${d.mode.padEnd(11)} ${d.name.padEnd(30)} lostBelow=${String(d.lostBelow).padStart(2)}  ` +
         `barHeight=${String(box.furniture).padStart(3)}  labelToEdge=${String(box.labelToScreenEdge).padStart(2)}  ` +
         `tap=${box.tabHeight}  left=${box.navLeft}  r=${box.radius}  ` +
         `border=${box.borderWidths}  fill=${box.navFill}  strip=${edge}`,
     );
-    await page.screenshot({ path: `/tmp/nav-${theme}-${d.name}.png` });
+    await page.screenshot({ path: `/tmp/nav-${theme}-${d.mode}-${d.name}.png` });
     await page.close();
   }
 }
