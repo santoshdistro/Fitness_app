@@ -48,12 +48,12 @@
       auth check. Those three together are the couple of seconds the app used to
       spend on a blank screen and then a 24px spinner.
 
-      The ground is #0f1119 to match `background_color` in the manifest, which is
+      The ground is #0a0a0a to match `background_color` in the manifest, which is
       what iOS and Android paint for a standalone launch. Matching it means the
-      OS launch screen and this hand over with no flash between them. The ground
-      stays dark in both themes — it is the launch colour, not the app's — but
-      the mark takes the accent of the theme you actually run, so the splash
-      hands over to an app that looks like it.
+      OS launch screen and this hand over with no flash between them, and it is
+      the icon's ground too, so home screen, launch and splash are one black.
+      The mark itself is white in both themes; what changes is the accent behind
+      it, so the splash hands over to an app that looks like itself.
     -->
     <style>
       /* The field is the app's own aurora backdrop — the four brand radials that
@@ -65,23 +65,16 @@
          yet — a white band under a dark photo reads as broken — so it matches
          the splash instead, and reverts when the splash is removed. */
       body:has(#splash) {
-        background: #0f1119;
-      }
-      :root[data-theme='dark'] body:has(#splash) {
         background: #0a0a0a;
       }
 
-      /* The splash accent follows the theme the app will actually open in, so
-         the handover is to something that looks like itself. */
+      /* The glow and photo tint follow the theme the app will actually open in;
+         the mark stays white in both. */
       #splash {
-        --splash-a: #a49dff;
-        --splash-b: #6c63ff;
         --splash-glow: rgba(108, 99, 255, 0.45);
         --splash-tint: rgba(108, 99, 255, 0.3);
       }
       :root[data-theme='dark'] #splash {
-        --splash-a: #e2f79a;
-        --splash-b: #cbee4f;
         --splash-glow: rgba(203, 238, 79, 0.34);
         --splash-tint: rgba(150, 190, 90, 0.22);
       }
@@ -94,7 +87,7 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        background-color: #0f1119;
+        background-color: #0a0a0a;
         background-image:
           radial-gradient(52% 38% at 12% 8%, rgba(125, 117, 255, 0.45), transparent 66%),
           radial-gradient(48% 34% at 90% 14%, rgba(14, 165, 233, 0.3), transparent 66%),
@@ -161,7 +154,7 @@
         height: auto;
         /* Optical centering — dead-centre reads low on a tall phone screen. */
         margin-bottom: 6vh;
-        filter: drop-shadow(0 16px 38px rgba(12, 10, 40, 0.7));
+        filter: drop-shadow(0 16px 38px rgba(0, 0, 0, 0.75));
         /* The mark wipes downward as it appears, so it forms the way the shape
            reads — wide at the shoulders first, converging to the point. */
         animation: splash-mark-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -266,22 +259,23 @@
       />
       <div class="splash-wash"></div>
       <div class="splash-pulse"></div>
+      <!-- Same geometry as scripts/build-icons.mjs — keep the two in step. White
+           rather than the accent: the mark is the mark everywhere, and the lime
+           stays reserved for things you press. The colour on this screen comes
+           from the pulse behind it. -->
       <svg class="splash-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="var(--splash-a)" />
-            <stop offset="1" stop-color="var(--splash-b)" />
-          </linearGradient>
+          <clipPath id="splash-cut-top"><polygon points="0,0 100,0 100,40 0,56" /></clipPath>
+          <clipPath id="splash-cut-bot"><polygon points="0,59 100,43 100,100 0,100" /></clipPath>
         </defs>
-        <!-- Same path as scripts/build-icons.mjs — keep the two in step. -->
-        <path
-          d="M 24 29 L 50 71 L 76 29 L 60 29 L 50 60 L 40 29 Z"
-          fill="url(#splash-g)"
-          stroke="url(#splash-g)"
-          stroke-width="6"
-          stroke-linejoin="round"
-          stroke-linecap="round"
-        />
+        <g fill="#ffffff">
+          <g clip-path="url(#splash-cut-top)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(-3 -2.5)" />
+          </g>
+          <g clip-path="url(#splash-cut-bot)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(3 2.5)" />
+          </g>
+        </g>
       </svg>
       <p class="splash-hint">Taking longer than usual — check your connection.</p>
     </div>
