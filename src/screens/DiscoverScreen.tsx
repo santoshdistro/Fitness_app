@@ -15,11 +15,12 @@ import { useTabSwipe } from '../hooks/useTabSwipe';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { DateNavigator } from '../components/DateNavigator';
 import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
+import { CopyMealsSheet } from '../components/CopyMealsSheet';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { useSettings } from '../hooks/useSettings';
 import { gToUnit, unitToG } from '../utils/units';
-import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
+import { isToday, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -329,40 +330,34 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
     setTab('nutrition'); // show the result right away
   }
 
-  async function copyYesterdaysMeals() {
-    if (!session?.user) return;
+  // Copies exactly the rows the sheet handed back — see CopyMealsSheet, which
+  // owns choosing the day and the items. `moveTo` re-files them all under one
+  // meal; null keeps each item where it was.
+  async function copySelectedMeals(chosen: FoodLog[], moveTo: MealCategory | null) {
+    if (!session?.user || chosen.length === 0) return;
     setCopying(true);
-    const yesterday = addDays(selectedDate, -1);
-    const { data } = await supabase
-      .from('food_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('meal_timestamp', startOfDateIso(yesterday))
-      .lt('meal_timestamp', endOfDateIso(yesterday));
-
-    const previousMeals = (data as FoodLog[]) ?? [];
-    if (previousMeals.length > 0) {
-      const meal_timestamp = timestampForDay();
-      await insertFoodLog(
-        previousMeals.map(meal => ({
-          user_id: session.user!.id,
-          meal_name: meal.meal_name,
-          meal_category: meal.meal_category,
-          ...(meal_timestamp ? { meal_timestamp } : {}),
-          calories: meal.calories,
-          protein_g: meal.protein_g,
-          carbs_g: meal.carbs_g,
-          fat_g: meal.fat_g,
-          fiber_g: meal.fiber_g,
-          sodium_mg: meal.sodium_mg,
-          amount: meal.amount,
-          unit: meal.unit,
-        })),
-      );
-      await refreshNutrition();
-    }
+    const meal_timestamp = timestampForDay();
+    await insertFoodLog(
+      chosen.map(meal => ({
+        user_id: session.user!.id,
+        meal_name: meal.meal_name,
+        meal_category: moveTo ?? meal.meal_category,
+        ...(meal_timestamp ? { meal_timestamp } : {}),
+        calories: meal.calories,
+        protein_g: meal.protein_g,
+        carbs_g: meal.carbs_g,
+        fat_g: meal.fat_g,
+        fiber_g: meal.fiber_g,
+        sodium_mg: meal.sodium_mg,
+        amount: meal.amount,
+        unit: meal.unit,
+      })),
+    );
+    await refreshNutrition();
     setCopying(false);
   }
+
+  const [copyOpen, setCopyOpen] = useState(false);
 
   // Portion edit from the diary — updates the existing row in place.
   async function applyMealChange(multiplier: number, cat: MealCategory, amount: number | null) {
@@ -451,7 +446,7 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
           dayIsToday={dayIsToday}
           mealCount={dayTotals.mealCount}
           copying={copying}
-          copyYesterdaysMeals={copyYesterdaysMeals}
+          onOpenCopy={() => setCopyOpen(true)}
           deleteMeal={deleteMeal}
           onEditMeal={meal => setEditingMeal({ meal, mode: 'edit' })}
           onQuickAddCalories={onQuickAddCalories}
@@ -470,6 +465,13 @@ export function DiscoverScreen({ onQuickAddCalories }: Props) {
         <MacrosTab totals={dayTotals} meals={meals} />
       )}
       </div>
+
+      <CopyMealsSheet
+        open={copyOpen}
+        onClose={() => setCopyOpen(false)}
+        targetDate={selectedDate}
+        onCopy={copySelectedMeals}
+      />
 
       <MealEditSheet
         meal={editingMeal?.meal ?? null}
@@ -507,7 +509,7 @@ type AddMealProps = {
   dayIsToday: boolean;
   mealCount: number;
   copying: boolean;
-  copyYesterdaysMeals: () => void;
+  onOpenCopy: () => void;
   deleteMeal: (id: string) => void;
   onEditMeal: (meal: FoodLog) => void;
   onQuickAddCalories: () => void;
@@ -713,27 +715,42 @@ function AddMealTab(p: AddMealProps) {
       <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
         <div className="mb-1 flex items-center justify-between">
           <p className="text-sm font-semibold text-[var(--text)]">Logged this day</p>
-          <button
-            type="button"
-            onClick={p.onQuickAddCalories}
-            className="text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
-          >
-            + Quick add
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Also offered on a day that already has meals: picking single
+                items is most useful when you are topping a day up, not only
+                when starting it from nothing. */}
+            {p.mealCount > 0 ? (
+              <button
+                type="button"
+                onClick={p.onOpenCopy}
+                className="flex items-center gap-1 text-xs font-semibold"
+                style={{ color: 'var(--accent)' }}
+              >
+                <Copy size={12} /> Copy
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={p.onQuickAddCalories}
+              className="text-xs font-semibold"
+              style={{ color: 'var(--accent)' }}
+            >
+              + Quick add
+            </button>
+          </div>
         </div>
 
         {p.mealCount === 0 ? (
           <>
             <button
               type="button"
-              onClick={p.copyYesterdaysMeals}
+              onClick={p.onOpenCopy}
               disabled={p.copying}
               className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
               style={{ color: 'var(--accent)' }}
             >
               <Copy size={13} />
-              {p.copying ? 'Copying…' : "Copy the previous day's meals"}
+              {p.copying ? 'Copying…' : 'Copy meals from another day'}
             </button>
             <div className="py-4 text-center">
               <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)]/10">
