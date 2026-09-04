@@ -158,6 +158,14 @@ export function buildInsights(input: InsightInput): Insight[] {
   const logged = rows.filter(r => r.kcal != null && r.kcal > 0);
   const weights = rows.filter(r => r.weight != null);
 
+  // Computed up front because the pace finding needs it: losing quickly while
+  // under-eating protein is a different situation from losing quickly while
+  // hitting it, and the advice should say so rather than treating them alike.
+  const proteinDays = logged.filter(r => r.protein != null);
+  const avgProtein = proteinDays.length ? mean(proteinDays.map(r => r.protein as number)) : null;
+  const proteinShort =
+    proteinTarget != null && avgProtein != null && proteinTarget - avgProtein > proteinTarget * 0.12;
+
   // ---- Are you moving at the pace the goal needs? -------------------------
   const weightPoints = weights.map(r => ({
     x: new Date(`${r.date}T00:00:00`).getTime() / 86400000,
@@ -189,13 +197,25 @@ export function buildInsights(input: InsightInput): Insight[] {
             'The deficit is smaller than intended. Tighten intake or add activity — the calorie insight below says which is easier from here.',
         });
       } else if (ratio > 1.6) {
+        // Ahead of the plan is not the same as too fast. Whether a rate is
+        // actually risky depends on bodyweight, not on the number that happened
+        // to be typed into the goal: 0.5 kg/week is 0.66%/week at 76kg, well
+        // inside the sustainable band, and warning about it because the target
+        // was set conservatively is scaremongering. So the "slow down" advice
+        // needs the ABSOLUTE rate to be high too.
+        const pctPerWeek = latest > 0 ? (actual / latest) * 100 : 0;
+        const genuinelyFast = pctPerWeek > 1;
         out.push({
           id: 'pace-fast',
-          priority: 80,
-          tone: 'watch',
-          title: 'Losing faster than planned',
-          detail: `Trend is −${actual.toFixed(2)} kg/week against a target of −${goalPerWeek.toFixed(2)}.`,
-          action: 'Fast loss costs muscle and adherence. Consider eating back 150–200 kcal/day.',
+          priority: genuinelyFast ? 80 : 45,
+          tone: genuinelyFast ? 'watch' : 'good',
+          title: genuinelyFast ? 'Losing faster than is useful' : 'Ahead of plan',
+          detail: `Trend is −${actual.toFixed(2)} kg/week (${pctPerWeek.toFixed(2)}% of bodyweight) against a target of −${goalPerWeek.toFixed(2)}.`,
+          action: genuinelyFast
+            ? 'Above about 1% of bodyweight a week, more of the loss comes from muscle. Eating back 150–200 kcal/day brings it into the useful band.'
+            : proteinShort
+              ? 'A sustainable rate — 0.5–1% of bodyweight a week is the band worth staying in. Since protein is short, that is the thing to fix, not the calories.'
+              : 'A sustainable rate. Nothing to change, other than the goal itself if you want it to match reality.',
         });
       } else {
         out.push({
@@ -211,9 +231,9 @@ export function buildInsights(input: InsightInput): Insight[] {
 
   // ---- Protein: the lever that decides what the weight loss is made of ----
   if (proteinTarget && logged.length >= 7) {
-    const withProtein = logged.filter(r => r.protein != null);
-    if (withProtein.length >= 7) {
-      const avg = mean(withProtein.map(r => r.protein as number));
+    const withProtein = proteinDays;
+    if (withProtein.length >= 7 && avgProtein != null) {
+      const avg = avgProtein;
       const gap = proteinTarget - avg;
       const missDays = withProtein.filter(r => (r.protein as number) < proteinTarget * 0.9).length;
       if (gap > proteinTarget * 0.12) {
