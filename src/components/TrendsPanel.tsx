@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTrends, type Series, type TrendRange } from '../hooks/useTrends';
 import { useSettings } from '../hooks/useSettings';
 import { useCalorieTargets } from '../hooks/useCalorieTargets';
@@ -5,6 +6,9 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import { kgToUnit } from '../utils/units';
 import { TrendChart } from './charts/TrendChart';
 import { CardioPanel } from './CardioPanel';
+import { InsightsPanel } from './InsightsPanel';
+import { buildInsights } from '../utils/insights';
+import { useProfile } from '../hooks/useProfile';
 import { WellnessCard } from './WellnessCard';
 import { SkeletonChart, SkeletonTiles } from './Skeleton';
 
@@ -111,7 +115,25 @@ export function TrendsPanel() {
   const { trends, loading } = useTrends(rangeToDays(rangeKey));
   const { settings } = useSettings();
   const targets = useCalorieTargets();
+  const { profile } = useProfile();
   const wUnit = settings.weightUnit;
+
+  // Recomputed only when the data or the goal moves, not on every render — the
+  // engine walks the whole window several times.
+  const insights = useMemo(
+    () =>
+      trends
+        ? buildInsights({
+            rows: trends.dayRows,
+            calorieTarget: targets.calorieTarget,
+            proteinTarget: targets.proteinTarget,
+            targetWeightKg: profile?.target_weight_kg ?? null,
+            weeklyRateKg: profile?.weekly_rate_kg ?? null,
+            goalType: profile?.goal_type ?? null,
+          })
+        : [],
+    [trends, targets.calorieTarget, targets.proteinTarget, profile],
+  );
 
   const rangePicker = (
     <div className="glass-card flex gap-1 p-1">
@@ -232,6 +254,8 @@ export function TrendsPanel() {
         </Section>
       ) : null}
 
+      <InsightsPanel insights={insights} days={trends.spanDays} />
+
       <AdherenceStrip days={trends.loggedDays} />
 
       <Section title="Calories" subtitle={trends.avgCalories != null ? `avg ${trends.avgCalories}/day` : undefined}>
@@ -266,6 +290,47 @@ export function TrendsPanel() {
         <TrendChart points={trends.volume} type="bar" unit="kg" color="#8b5cf6" />
         <p className="text-[10px] text-[var(--muted)]">Total kg lifted per session (weight × reps).</p>
       </Section>
+
+      {/* Body signals. Only appears once the watch is actually sending them —
+          three empty charts would be worse than no section at all. */}
+      {trends.hasBodySignals ? (
+        <div className="glass-card flex flex-col gap-3 p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm font-semibold text-[var(--text)]">Body signals</p>
+            <p className="text-[11px] text-[var(--muted)]">from your watch</p>
+          </div>
+          {trends.restingHr.length > 1 ? (
+            <>
+              <p className="text-xs font-semibold text-[var(--text)]">Resting heart rate</p>
+              <TrendChart points={trends.restingHr} type="line" unit=" bpm" color="#ef4444" height={92} />
+              <p className="text-[10px] text-[var(--muted)]">
+                Drifts down as fitness improves. A sustained rise is usually under-recovery, illness or
+                alcohol — <span className="font-semibold text-[var(--text)]">lower is better</span>.
+              </p>
+            </>
+          ) : null}
+          {trends.hrv.length > 1 ? (
+            <>
+              <p className="mt-1 text-xs font-semibold text-[var(--text)]">HRV</p>
+              <TrendChart points={trends.hrv} type="line" unit=" ms" color="#0ea5e9" height={92} />
+              <p className="text-[10px] text-[var(--muted)]">
+                Day-to-day readiness. Noisy on any single night, so read the direction over a week —{' '}
+                <span className="font-semibold text-[var(--text)]">higher is better</span>.
+              </p>
+            </>
+          ) : null}
+          {trends.vo2Max.length > 1 ? (
+            <>
+              <p className="mt-1 text-xs font-semibold text-[var(--text)]">Cardio fitness (VO₂ max)</p>
+              <TrendChart points={trends.vo2Max} type="line" unit="" color="#22c55e" decimals={1} height={92} />
+              <p className="text-[10px] text-[var(--muted)]">
+                The headline running number. Moves over 6–8 weeks, not day to day, so a flat month here is
+                normal.
+              </p>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {trends.cardioSummary ? (
         <CardioPanel

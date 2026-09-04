@@ -14,6 +14,14 @@ export type DailyLog = {
   potassium_mg: number | null;
   magnesium_mg: number | null;
   calcium_mg: number | null;
+  /** Body signals from the watch — see migration 0024. All null until the sync
+      Shortcut is updated to send them. */
+  resting_hr: number | null;
+  hrv_ms: number | null;
+  vo2_max: number | null;
+  respiratory_rate: number | null;
+  /** Signed °C deviation from your own baseline. */
+  wrist_temp_delta: number | null;
 };
 
 export type Measurement = {

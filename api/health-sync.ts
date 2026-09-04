@@ -3,7 +3,9 @@ import type { PushReq, PushRes } from './_push.js';
 
 // Apple Health bridge. An iOS Shortcut reads Health metrics and POSTs them here
 // with the user's sync token; we resolve the user and upsert into daily_logs.
-// Body: { token, date?, steps?, active_calories?, weight_kg?, sleep_hours?, water_ml? }
+// Body: { token, date?, steps?, active_calories?, weight_kg?, sleep_hours?,
+//         water_ml?, resting_hr?, hrv_ms?, vo2_max?, respiratory_rate?,
+//         wrist_temp_delta? }
 // date defaults to today in the values' own local day — the Shortcut passes it.
 
 function num(value: unknown): number | null {
@@ -76,11 +78,26 @@ export default async function handler(req: PushReq, res: PushRes): Promise<void>
   const weight = inRange(num(body.weight_kg), 20, 500);
   const sleep = inRange(num(body.sleep_hours), 0, 24);
   const water = inRange(num(body.water_ml), 0, 30000);
+  // Body signals from the watch. Ranges are physiological, not generous: the
+  // point of the guard is that a mis-built Shortcut sending a weekly average or
+  // a value in the wrong unit gets dropped rather than saved as a real reading.
+  const restingHr = inRange(num(body.resting_hr), 25, 150);
+  const hrv = inRange(num(body.hrv_ms), 1, 400);
+  const vo2 = inRange(num(body.vo2_max), 10, 90);
+  const respRate = inRange(num(body.respiratory_rate), 4, 40);
+  // Signed on purpose — this is a deviation from your own baseline, and a
+  // NEGATIVE reading is as meaningful as a positive one.
+  const wristTemp = inRange(num(body.wrist_temp_delta), -5, 5);
   if (steps != null) payload.steps = Math.round(steps);
   if (active != null) payload.active_calories_burned = Math.round(active);
   if (weight != null) payload.weight = Math.round(weight * 100) / 100;
   if (sleep != null) payload.sleep_hours = Math.round(sleep * 10) / 10;
   if (water != null) payload.water_ml = Math.round(water);
+  if (restingHr != null) payload.resting_hr = Math.round(restingHr);
+  if (hrv != null) payload.hrv_ms = Math.round(hrv);
+  if (vo2 != null) payload.vo2_max = Math.round(vo2 * 10) / 10;
+  if (respRate != null) payload.respiratory_rate = Math.round(respRate * 10) / 10;
+  if (wristTemp != null) payload.wrist_temp_delta = Math.round(wristTemp * 10) / 10;
 
   const fields = Object.keys(payload).filter(k => k !== 'user_id' && k !== 'log_date');
   if (fields.length === 0) {

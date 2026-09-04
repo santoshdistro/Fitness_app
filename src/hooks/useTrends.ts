@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { addDays, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
 import type { CardioLog, DailyLog, FoodLog, Measurement, WorkoutLog } from '../types/database';
+import type { DayRow } from '../utils/insights';
 
 export type Series = { label: string; value: number; date: string }[];
 
@@ -60,6 +61,13 @@ export type Trends = {
   loggedDays: { date: string; logged: boolean }[];
   /** Days actually covered, for labelling ("last 90 days" etc.). */
   spanDays: number;
+  /** One row per day in the window, oldest first — the insights engine's input. */
+  dayRows: DayRow[];
+  /** Watch metrics, empty until the sync Shortcut sends them. */
+  restingHr: Series;
+  hrv: Series;
+  vo2Max: Series;
+  hasBodySignals: boolean;
 };
 
 // Past this many days a bar per day stops being readable on a phone, so the
@@ -117,7 +125,12 @@ export function useTrends(range: TrendRange = 30) {
 
     Promise.all([
       since(
-        supabase.from('daily_logs').select('log_date, weight, steps, caffeine_mg').eq('user_id', userId),
+        supabase
+          .from('daily_logs')
+          .select(
+            'log_date, weight, steps, caffeine_mg, sleep_hours, resting_hr, hrv_ms, vo2_max, respiratory_rate, wrist_temp_delta',
+          )
+          .eq('user_id', userId),
         'log_date',
         start,
       )
@@ -152,7 +165,19 @@ export function useTrends(range: TrendRange = 30) {
     ]).then(([dailyRes, foodRes, workoutRes, cardioRes, measureRes]) => {
       if (cancelled) return;
       const dailies =
-        (dailyRes.data as Pick<DailyLog, 'log_date' | 'weight' | 'steps' | 'caffeine_mg'>[]) ?? [];
+        (dailyRes.data as Pick<
+          DailyLog,
+          | 'log_date'
+          | 'weight'
+          | 'steps'
+          | 'caffeine_mg'
+          | 'sleep_hours'
+          | 'resting_hr'
+          | 'hrv_ms'
+          | 'vo2_max'
+          | 'respiratory_rate'
+          | 'wrist_temp_delta'
+        >[]) ?? [];
       const meals = (foodRes.data as Pick<FoodLog, 'meal_timestamp' | 'calories' | 'protein_g'>[]) ?? [];
       const workouts = (workoutRes.data as Pick<WorkoutLog, 'session_timestamp' | 'exercise_data'>[]) ?? [];
 
@@ -332,6 +357,49 @@ export function useTrends(range: TrendRange = 30) {
         .map(([wk, count]) => ({ label: shortLabel(wk), value: count, date: wk }));
       const totalWorkouts = workouts.length;
 
+      // ---- Body signals from the watch, and the per-day rows the insights
+      // engine reads. Both are built from the same daily_logs rows already
+      // fetched, so this costs no extra queries.
+      const byDate = new Map(dailies.map(d => [d.log_date, d]));
+      const signal = (pick: (d: (typeof dailies)[number]) => number | null): Series =>
+        dailies
+          .filter(d => pick(d) != null)
+          .map(d => ({ label: shortLabel(d.log_date), value: pick(d) as number, date: d.log_date }));
+      const restingHr = signal(d => d.resting_hr ?? null);
+      const hrv = signal(d => d.hrv_ms ?? null);
+      const vo2Max = signal(d => d.vo2_max ?? null);
+      const hasBodySignals = restingHr.length > 0 || hrv.length > 0 || vo2Max.length > 0;
+
+      // Volume and "did you train" per day, so training load can be related to
+      // the rest without a second pass over the workouts.
+      const volumeByDate = new Map<string, number>();
+      for (const w of workouts) {
+        const date = w.session_timestamp.slice(0, 10);
+        const vol = (w.exercise_data ?? []).reduce(
+          (sum, set) => sum + (set.weight || 0) * (set.reps || 0),
+          0,
+        );
+        volumeByDate.set(date, (volumeByDate.get(date) ?? 0) + vol);
+      }
+
+      const dayRows: DayRow[] = Array.from({ length: spanDays }, (_, k) => {
+        const date = addDays(today, -(spanDays - 1 - k));
+        const d = byDate.get(date);
+        return {
+          date,
+          kcal: kcalMap.get(date) ?? null,
+          protein: proteinMap.get(date) ?? null,
+          steps: d?.steps ?? null,
+          sleep: d?.sleep_hours ?? null,
+          caffeine: d?.caffeine_mg ?? null,
+          weight: d?.weight ?? null,
+          restingHr: d?.resting_hr ?? null,
+          hrv: d?.hrv_ms ?? null,
+          trained: (volumeByDate.get(date) ?? 0) > 0,
+          volume: volumeByDate.get(date) ?? 0,
+        };
+      });
+
       setTrends({
         weight,
         weightMovingAvg,
@@ -345,6 +413,11 @@ export function useTrends(range: TrendRange = 30) {
         totalKm,
         cardioSessions,
         cardioSummary,
+        dayRows,
+        restingHr,
+        hrv,
+        vo2Max,
+        hasBodySignals,
         waist,
         bodyFat,
         workoutsPerWeek,
