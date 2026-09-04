@@ -163,7 +163,9 @@
         transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
       }
       #splash .splash-photo.is-in {
-        opacity: 0.7;
+        /* Held well back. The photo is atmosphere, not the subject — the mark
+           is, and at 0.7 the dumbbells were competing with it. */
+        opacity: 0.56;
       }
 
       /* Three jobs: a periwinkle duotone that pulls any photo into the brand
@@ -178,8 +180,8 @@
         inset: 0;
         background:
           linear-gradient(to top, #0a0a0a 0, rgba(10, 10, 10, 0.88) 44px, transparent 132px),
-          linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.44)),
-          radial-gradient(102% 72% at 50% 46%, transparent 24%, rgba(9, 10, 18, 0.86) 100%);
+          linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.52)),
+          radial-gradient(94% 66% at 50% 44%, transparent 20%, rgba(6, 7, 12, 0.9) 100%);
       }
 
       /* A pulse of the accent leaving the mark, once it has formed. Sized to the
@@ -266,15 +268,84 @@
 
       /* The one authored moment: the splash lifts away and the app arrives
          through it, rather than a cut or a plain dissolve. */
+      /* The handover: the mark breaks along the seam it is already cut on and
+         the two halves slide apart, and the app is behind them.
+
+         Keyframes rather than a transition because this fires exactly once per
+         launch and can never be interrupted or re-fired — the case where
+         keyframes are the right tool. They also run off the main thread, which
+         matters here more than anywhere: this plays at the moment React mounts
+         and the first screen's data starts arriving.
+
+         The halves separate ALONG the diagonal cut, not straight left/right —
+         they are two faces of one broken shape, so they shear past each other
+         the way the seam already implies. The 8% anticipation is what sells it
+         as a break: they close a hair before they let go. */
+      #splash .splash-facet {
+        transform-origin: 50% 50%;
+      }
+
+      #splash.is-done .splash-facet-a {
+        animation: splash-break-a 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      }
+
+      #splash.is-done .splash-facet-b {
+        animation: splash-break-b 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      }
+
+      @keyframes splash-break-a {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+          opacity: 1;
+        }
+        8% {
+          transform: translate(1.5%, 1%) rotate(0.4deg);
+          opacity: 1;
+        }
+        /* Opacity holds most of the way. A strong ease-out front-loads the
+           travel, so fading on the same curve had the halves gone by 167ms —
+           the break was over before the app behind it started showing. */
+        62% {
+          opacity: 0.82;
+        }
+        100% {
+          transform: translate(-46%, -14%) rotate(-7deg);
+          opacity: 0;
+        }
+      }
+
+      @keyframes splash-break-b {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+          opacity: 1;
+        }
+        8% {
+          transform: translate(-1.5%, -1%) rotate(-0.4deg);
+          opacity: 1;
+        }
+        /* Opacity holds most of the way. A strong ease-out front-loads the
+           travel, so fading on the same curve had the halves gone by 167ms —
+           the break was over before the app behind it started showing. */
+        62% {
+          opacity: 0.82;
+        }
+        100% {
+          transform: translate(46%, 14%) rotate(7deg);
+          opacity: 0;
+        }
+      }
+
+      /* The reveal trails the break by 160ms so the halves are seen to move
+         before the screen they are covering starts coming through. */
       #splash.is-done {
         opacity: 0;
         transform: scale(1.06);
         filter: blur(6px);
         pointer-events: none;
         transition:
-          opacity 460ms cubic-bezier(0.22, 1, 0.36, 1),
-          transform 460ms cubic-bezier(0.22, 1, 0.36, 1),
-          filter 460ms cubic-bezier(0.22, 1, 0.36, 1);
+          opacity 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms,
+          transform 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms,
+          filter 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms;
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -287,6 +358,10 @@
         #splash .splash-pulse {
           animation: none;
           opacity: 0;
+        }
+        #splash.is-done .splash-facet-a,
+        #splash.is-done .splash-facet-b {
+          animation: none;
         }
         #splash.is-done {
           transform: none;
@@ -318,10 +393,10 @@
           <clipPath id="splash-cut-bot"><polygon points="0,59 100,43 100,100 0,100" /></clipPath>
         </defs>
         <g fill="#ffffff">
-          <g clip-path="url(#splash-cut-top)">
+          <g class="splash-facet splash-facet-a" clip-path="url(#splash-cut-top)">
             <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(-3 -2.5)" />
           </g>
-          <g clip-path="url(#splash-cut-bot)">
+          <g class="splash-facet splash-facet-b" clip-path="url(#splash-cut-bot)">
             <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(3 2.5)" />
           </g>
         </g>

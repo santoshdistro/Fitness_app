@@ -53,7 +53,9 @@ function AppContent() {
     const wait = Math.max(0, SPLASH_MIN_MS - elapsed);
     const lift = setTimeout(() => {
       splash.classList.add('is-done');
-      setTimeout(() => splash.remove(), 520);
+      // 520ms break + 160ms reveal delay + 420ms reveal. Removing at 520 cut
+      // the reveal off mid-fade.
+      setTimeout(() => splash.remove(), 620);
     }, wait);
     return () => clearTimeout(lift);
   }, [initializing]);
