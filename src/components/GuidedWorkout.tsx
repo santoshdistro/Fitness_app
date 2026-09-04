@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronRight, Dumbbell, Pause, Play, RotateCcw, Timer, X } from 'lucide-react';
+import { Check, ChevronRight, Dumbbell, Pause, Play, RotateCcw, Timer, Undo2, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { exerciseImageUrl, exerciseDbImageUrl } from '../data/workoutPrograms';
@@ -178,6 +178,44 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
     }
   }
 
+  /**
+   * Step back one logged set and put its numbers back in the inputs, so a set
+   * entered with the wrong weight can be corrected rather than lived with.
+   * Undoing from the first set of an exercise lands on the LAST set of the
+   * previous one, which is where that entry actually came from.
+   */
+  function undoLastSet() {
+    if (logged.length === 0) return;
+    const last = logged[logged.length - 1];
+    setLogged(prev => prev.slice(0, -1));
+
+    // Rest belongs to the set that was just undone, so it goes with it.
+    setPhase('active');
+    setRestLeft(0);
+
+    const backOne = setNum > 1;
+    const target = backOne ? exIndex : Math.max(0, exIndex - 1);
+    if (!backOne) {
+      setExIndex(target);
+      setSetNum(exercises[target]?.sets ?? 1);
+    } else {
+      setSetNum(n => n - 1);
+    }
+
+    // Restore what was logged, so the correction starts from the wrong value
+    // rather than from a blank field.
+    if (last.durationMin != null) {
+      setMinutes(last.durationMin ? String(last.durationMin) : '');
+      setDistance(last.distanceKm ? String(last.distanceKm) : '');
+      setSpeed(last.speedKph ? String(last.speedKph) : '');
+      setIncline(last.inclinePct ? String(last.inclinePct) : '');
+    } else {
+      setReps(String(last.reps));
+      setWeight(String(last.weight));
+    }
+    setImgFailed(false);
+  }
+
   function completeSet() {
     if (!current) return;
     // Logging a set means you've chosen to continue — retire the resume banner.
@@ -292,6 +330,19 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
             >
               {saving ? 'Saving…' : 'Finish & save'}
             </button>
+            {/* The summary is exactly where a wrong last set gets noticed, and
+                it was the one screen with no way back to fix it. */}
+            {logged.length > 0 ? (
+              <button
+                type="button"
+                onClick={undoLastSet}
+                disabled={saving}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-2xl py-2.5 text-xs font-semibold disabled:opacity-50"
+                style={{ color: 'var(--accent)' }}
+              >
+                <Undo2 size={13} /> Back to the last set
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="anim-fade-rise">
@@ -311,10 +362,24 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <Dumbbell size={22} className="text-[var(--muted)]" />
                   </div>
                 )}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-                    Exercise {exIndex + 1} / {exercises.length}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+                      Exercise {exIndex + 1} / {exercises.length}
+                    </p>
+                    {/* Only once there is something to undo — an always-visible
+                        back button on the first set would do nothing. */}
+                    {logged.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={undoLastSet}
+                        className="tap-44 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{ background: 'var(--input-bg)', color: 'var(--accent)' }}
+                      >
+                        <Undo2 size={11} /> Back
+                      </button>
+                    ) : null}
+                  </div>
                   <p className="text-lg font-black leading-tight text-[var(--text)]">{current.name}</p>
                   <p className="text-xs text-[var(--muted)]">
                     {cardio
