@@ -150,7 +150,7 @@ export function AppShell() {
       {/* No z-index here on purpose: any positive value makes this a stacking
           context, which would trap full-screen overlays mounted inside a screen
           (the guided workout) beneath the nav and FAB. */}
-      <div ref={scrollRef} className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
+      <div ref={scrollRef} className="hide-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
         {/* Pull-to-refresh indicator */}
         {pull > 0 || refreshing ? (
           <div

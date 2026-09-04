@@ -68,6 +68,17 @@ function measureTopInset(): number {
   return height;
 }
 
+/**
+ * The tallest viewport seen since the screen last changed size. The reading
+ * moves around DURING a scroll — visualViewport reports mid-gesture states, and
+ * the keyboard shrinks it — and acting on every reading made the nav visibly
+ * walk up and down while swiping, because the class it sets changes the bar's
+ * padding. A viewport only ever grows here (iOS expands it once, after launch),
+ * so the high-water mark is the honest answer and it settles after one change.
+ */
+let tallestViewport = 0;
+let latchedScreen = 0;
+
 function trackViewportEdge(remeasureInset = false) {
   if (remeasureInset || insetTop < 0) insetTop = measureTopInset();
   // Standalone only. In a browser the viewport is short because of the toolbars,
@@ -75,14 +86,25 @@ function trackViewportEdge(remeasureInset = false) {
   const standalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as { standalone?: boolean }).standalone === true;
+  // Rotating is the one thing that legitimately makes the viewport smaller, so
+  // that is where the high-water mark resets rather than on any resize.
+  const screenHeight = window.screen.height;
+  if (screenHeight !== latchedScreen) {
+    latchedScreen = screenHeight;
+    tallestViewport = 0;
+  }
   // The larger of the two: innerHeight can still report the launch-time value
   // after iOS has already expanded the visual viewport underneath it, and
   // believing the smaller number is what strands the strip.
-  const height = Math.max(window.innerHeight, window.visualViewport?.height ?? 0);
+  tallestViewport = Math.max(
+    tallestViewport,
+    window.innerHeight,
+    window.visualViewport?.height ?? 0,
+  );
   // Clamped: some browsers report screen.height in the device's fixed
   // orientation, which in landscape makes this difference meaningless. A status
   // bar is never 120pt, so anything larger is a measurement we don't trust.
-  const lost = Math.round(window.screen.height - height);
+  const lost = Math.round(screenHeight - tallestViewport);
   // The top inset is what separates the two ways of losing height. Under
   // black-translucent the app is UNDER the status bar, so the inset is real and
   // the missing height fell off the bottom. Under `default` the viewport starts
