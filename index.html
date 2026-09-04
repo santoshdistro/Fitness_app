@@ -18,10 +18,9 @@
          black over a light app, however the app itself was set. That is also
          why changing the theme in-app never moved the band and relaunching did.
 
-         Under black-translucent this is what paints the strip iOS leaves below
-         the viewport — the one part of the bottom bar the page cannot draw. It
-         was measured doing exactly that: with the dark tag matched, that strip
-         went black under a light app while the body background stayed white.
+         This is what paints the status-bar band above the app under `default`.
+         Without a tag here iOS paints that band black — the whole reason
+         `default` looked broken when this tag had been moved into a script.
 
          The consequence, and it is a real limit rather than an oversight: on
          iOS this cannot follow the in-app theme toggle, because the value is
@@ -51,28 +50,30 @@
       }
     </script>
 
-    <!-- iOS "Add to Home Screen" behavior. Neither setting gives both edges,
-         and this is a decision, not a default.
+    <!-- iOS "Add to Home Screen" behavior.
 
-         `default` reserves an opaque band at the top and hands over a viewport
-         that reaches the bottom of the screen — a perfect bottom edge. But that
-         band is painted black on device whatever theme-color says, so a light
-         app runs under a black bar. Tried on device; rejected.
+         `default` with viewport-fit=cover, which is what this app ran on for
+         months with both edges right: the view is sized to the whole screen,
+         the safe-area insets do the work — the shell pads the top by
+         env(safe-area-inset-top), the nav pads the bottom for the home
+         indicator — and the status-bar band is painted from theme-color, so
+         with the light background there it is invisible against the page.
 
-         black-translucent puts the app UNDER the status bar, so the background
-         reaches the top edge and the clock sits over it. iOS pays for that by
-         handing the page a viewport shorter than the screen by exactly the top
-         inset, and that height falls off the BOTTOM — measured, innerHeight 797
-         against an 844pt screen. Nothing can be drawn in that strip.
+         black-translucent was tried instead and is the wrong tool. It is the
+         legacy full-screen mechanism: iOS lifts the web view under the status
+         bar WITHOUT resizing it, so the height stays "screen minus status bar"
+         and the remainder falls off the BOTTOM as a strip no CSS can reach —
+         measured on device, innerHeight 797 against an 844pt screen. The gap
+         under the menu was that strip.
 
-         So the strip is made to belong to the bar instead of sitting under it:
-         the nav goes flush and square-bottomed, adds no bottom padding of its
-         own, and the strip is painted to continue it (--page-edge, and see
-         :root.viewport-short). The bar reads as running off the bottom of the
-         screen, which is what a native tab bar does — about 18pt taller than
-         one, and that is the accepted cost of the full-bleed top. -->
+         A note for whoever hits this next, because it cost a lot of rounds:
+         `default` was blamed for painting a black band, and it does — but only
+         when there is no theme-color tag in the markup for it to read. The
+         build that "proved" it had none, because the tag had been moved to a
+         script that creates it, which lands after iOS has already read the
+         head. The band was never uncontrollable; the tag was missing. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
 
     <link rel="manifest" href="/manifest.webmanifest" />

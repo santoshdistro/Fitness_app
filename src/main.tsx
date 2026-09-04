@@ -29,11 +29,11 @@ try {
  * home indicator is then outside the viewport entirely, and padding reserved
  * for it is dead space.
  *
- * This IS the case the app ships in — see the status-bar meta in index.html.
- * The `default` branch below still matters, though: that setting is read when
- * the app is added to the home screen, so an install made under it keeps it
- * until the app is removed and re-added, and the layout has to be right there
- * too.
+ * The app does NOT ship this way — see the status-bar meta in index.html, which
+ * is `default` precisely because it does not do the above. This stays because
+ * the setting is read when the app is added to the home screen, so a copy
+ * installed while black-translucent was being tried keeps it until it is
+ * removed and re-added, and the layout has to be right on those too.
  *
  * Two things follow from a short viewport: the bottom inset does not apply
  * (--safe-bottom collapses to zero), and the strip below is unreachable by the
