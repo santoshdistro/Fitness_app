@@ -38,6 +38,13 @@
   --muscle-idle: #dfe3ea;
   --muscle-inert: #eef1f6;
   --muscle-stroke: #9aa4b2;
+  /* The worked-muscle ramp, per theme. Light keeps warm orange → deep red:
+     "harder work is redder" needs no explaining, and against white it darkens
+     as it climbs, which is the right direction there.
+     Written as literals, not color-mix on a token — see the note in DESIGN.md
+     about the build stripping the percentage out of the fallback. */
+  --muscle-cool: #fdba74;
+  --muscle-hot: #b91c1c;
   /* What the strip becomes when there IS one: the nav's own fill, so the bar
      appears to run to the bottom of the screen instead of stopping short of it. */
   --edge-fill: #ffffff;
@@ -92,6 +99,15 @@
      the figure stops reading as a body at all. */
   --muscle-inert: #232329;
   --muscle-stroke: #45454f;
+  /* Dark does NOT take the warm ramp. Two reasons, both seen on device: a deep
+     red is dimmer than a pale orange against black, so the same ramp runs
+     backwards there — a barely-worked muscle read louder than a hammered one —
+     and a warm scale is a second colour system on a palette that runs one
+     accent and nothing else, which is what made the map look like mud. So dark
+     climbs the accent instead, the way the logging strip already does.
+     #545e35 is the accent at 28% into the idle surface, precomputed. */
+  --muscle-cool: #545e35;
+  --muscle-hot: #cbee4f;
 }
 
 /* The kit's other three, kept for chart series only — telling two lines apart
