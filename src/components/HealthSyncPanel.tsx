@@ -196,7 +196,31 @@ export function HealthSyncPanel() {
       ) : null}
 
       <div className="glass-card flex flex-col gap-3 p-4">
-        <p className="text-sm font-semibold text-[var(--text)]">Build the Shortcut</p>
+        <p className="text-sm font-semibold text-[var(--text)]">Backfill your history</p>
+        <p className="text-[11px] leading-relaxed text-[var(--muted)]">
+          Everything already in Apple Health can be pushed in retrospectively — the same endpoint takes
+          many days in one request, so a few months is one call rather than a hundred.
+        </p>
+        <div className="rounded-xl bg-[var(--bg)] px-3 py-2 font-mono text-[10px] leading-relaxed text-[var(--text)]">
+          {'{'} "token": "…",
+          <br />
+          &nbsp;&nbsp;"days": [
+          <br />
+          &nbsp;&nbsp;&nbsp;&nbsp;{'{'} "date": "2026-08-01", "steps": 8214, "resting_hr": 56 {'}'},
+          <br />
+          &nbsp;&nbsp;&nbsp;&nbsp;{'{'} "date": "2026-08-02", "steps": 9102, "hrv_ms": 48 {'}'}
+          <br />
+          &nbsp;&nbsp;] {'}'}
+        </div>
+        <p className="text-[11px] leading-relaxed text-[var(--muted)]">
+          In Shortcuts: <span className="font-semibold text-[var(--text)]">Repeat</span> over the dates you
+          want, build a dictionary per day, add each to a list, then POST that list once as{' '}
+          <span className="font-mono">days</span>. Up to 400 days per request. Any day whose values are all
+          missing or out of range is skipped and named in the reply rather than failing the batch, and a
+          day sent twice keeps the last one.
+        </p>
+
+        <p className="mt-1 text-sm font-semibold text-[var(--text)]">Build the Shortcut</p>
         <ol className="flex flex-col gap-2.5 text-xs leading-relaxed text-[var(--muted)]">
           <li>
             <span className="font-semibold text-[var(--text)]">1.</span> Open the{' '}
