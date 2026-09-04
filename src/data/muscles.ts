@@ -128,11 +128,22 @@ export const MUSCLE_EXERCISES: Record<MuscleKey, string[]> = {
   calves: ['Standing calf raise', 'Seated calf raise', 'Calf press'],
 };
 
-// Heat colour from an intensity 0..1 (light orange -> deep red). 0 = idle.
+/** CSS gradient for a legend, so it cannot drift from what the figures draw. */
+export const MUSCLE_HEAT_GRADIENT =
+  'linear-gradient(90deg, var(--muscle-idle), var(--muscle-cool), var(--muscle-hot))';
+
+/**
+ * Heat colour for an intensity 0..1. Warm-to-hot is kept deliberately even
+ * though the dark theme runs a single lime accent everywhere else: here the
+ * colour carries a quantity, not a brand, and "harder work is redder" needs no
+ * explaining.
+ *
+ * Mixed by the browser rather than in JS so the stops can be theme tokens — the
+ * ramp has to run the opposite way on black (see --muscle-cool in index.css),
+ * and a value computed here would be frozen to whichever theme was loaded.
+ */
 export function muscleHeat(t: number): string {
-  if (t <= 0) return '#dfe3ea';
-  const from = [253, 186, 116]; // #fdba74 light orange
-  const to = [185, 28, 28]; // #b91c1c deep red
-  const c = from.map((v, i) => Math.round(v + (to[i] - v) * Math.min(1, t)));
-  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  if (t <= 0) return 'var(--muscle-idle)';
+  const pct = Math.round(Math.min(1, t) * 100);
+  return `color-mix(in srgb, var(--muscle-hot) ${pct}%, var(--muscle-cool))`;
 }

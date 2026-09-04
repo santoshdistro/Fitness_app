@@ -277,6 +277,13 @@ summary row, and it is the reason the type scale is built the way it is.
   in the existing media block.
 - **Do** state when a chart changes what it is measuring (per-day vs weekly
   average) rather than letting the bars silently change meaning.
+- **Do** baseline bars at zero. A bar's length *is* its value, so scaling from
+  the series minimum makes the smallest reading vanish and every gap look
+  total — two 2.0km and 2.2km runs drew as an empty slot beside a full-height
+  bar. Lines are the opposite: they claim to show shape, so zooming to the data
+  is right, and a weight chart baselined at zero would be a flat line.
+- **Do** check a colour scale gets *louder* as the quantity rises, measured
+  against the surface it sits on — and check it in both themes.
 
 ### Don't:
 - **Don't** render text below 10px, or use 10px for anything but uppercase labels
@@ -295,3 +302,10 @@ summary row, and it is the reason the type scale is built the way it is.
 - **Don't** add a second shadow tier or nest shadows inside cards.
 - **Don't** separate rows with visible rules where space or a tonal fill will do.
 - **Don't** introduce a new radius. Pill, 16px, and 24px are the whole vocabulary.
+- **Don't** reuse one heat ramp across both themes. On white, effort darkens
+  (`--muscle-cool` → `--muscle-hot`, orange → deep red) and grows louder as it
+  goes; reused on black that runs backwards, because a deep red is dimmer than
+  a pale orange there. The muscle map measured 10.9:1 for a barely-worked
+  muscle against 3.8:1 for a hammered one until dark got its own ramp climbing
+  from a dim ember to a bright red. Idle likewise belongs just *above* the card
+  and below every heat value, never brighter than the data.

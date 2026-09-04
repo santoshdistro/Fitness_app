@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { primaryMuscle, MUSCLE_LABEL, muscleHeat, type MuscleKey } from '../data/muscles';
+import { primaryMuscle, MUSCLE_LABEL, muscleHeat, MUSCLE_HEAT_GRADIENT, type MuscleKey } from '../data/muscles';
 import { exercisesForMuscle, type MuscleExercise } from '../data/muscleExercises';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
 import { addDays, startOfWeek, todayDateString } from '../utils/date';
@@ -82,7 +82,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
     <div className="glass-card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-[var(--text)]">Muscles worked</p>
-        <div className="flex rounded-full bg-[var(--bg)] p-0.5">
+        <div className="flex rounded-full bg-[var(--input-bg)] p-0.5">
           {([
             { key: 'today', label: 'Today' },
             { key: 'week', label: 'This week' },
@@ -110,11 +110,11 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
           type="button"
           onClick={() => stepView(-1)}
           aria-label="Earlier"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--bg)]"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--input-bg)]"
         >
           <ChevronLeft size={16} />
         </button>
-        <label className="relative flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--bg)] px-3 py-1 text-xs font-semibold text-[var(--text)]">
+        <label className="relative flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--input-bg)] px-3 py-1 text-xs font-semibold text-[var(--text)]">
           <CalendarDays size={13} className="text-[var(--accent)]" />
           {periodRangeLabel()}
           <input
@@ -131,7 +131,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
           onClick={() => stepView(1)}
           disabled={atPresent}
           aria-label="Later"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] disabled:opacity-30 active:bg-[var(--bg)]"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] disabled:opacity-30 active:bg-[var(--input-bg)]"
         >
           <ChevronRight size={16} />
         </button>
@@ -139,11 +139,16 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
 
       <MuscleMap intensity={data.intensity} onSelect={setSelected} large={large} />
 
-      {/* Legend */}
+      {/* Legend. The gradient comes from the same constants the figures fill
+          with, and the first stop is the idle token — the old bar opened on a
+          light-mode literal, so on the dark card it glowed at the "none" end. */}
       <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--muted)]">
-        <span>Less</span>
-        <span className="flex h-2 w-24 rounded-full" style={{ background: 'linear-gradient(90deg, #eef1f6, #fdba74, #b91c1c)' }} />
-        <span>More</span>
+        <span>Rested</span>
+        <span
+          className="flex h-1.5 w-28 rounded-full"
+          style={{ background: MUSCLE_HEAT_GRADIENT }}
+        />
+        <span>Worked hard</span>
       </div>
 
       {/* Ranked list */}
@@ -155,22 +160,40 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         </p>
       ) : (
         <div className="flex flex-col gap-1.5">
-          {ranked.map(m => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setSelected(m)}
-              className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2 text-left"
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(data.intensity[m] ?? 0) }} />
-              <span className="flex-1 text-xs font-semibold text-[var(--text)]">{MUSCLE_LABEL[m]}</span>
-              <span className="text-[11px] tabular-nums text-[var(--muted)]">
-                {Math.round(data.volumes[m] ?? 0).toLocaleString()}
-              </span>
-            </button>
-          ))}
+          {(() => {
+            const top = Math.max(...ranked.map(m => data.volumes[m] ?? 0), 1);
+            return ranked.map(m => {
+              const vol = data.volumes[m] ?? 0;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSelected(m)}
+                  className="relative flex items-center gap-2.5 overflow-hidden rounded-xl bg-[var(--input-bg)] px-3 py-2 text-left"
+                >
+                  {/* Volume as length, not just as a number to read. Sits behind
+                      the label at low opacity so the row stays legible. */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 rounded-xl"
+                    style={{
+                      width: `${Math.max(4, (vol / top) * 100)}%`,
+                      background: muscleHeat(data.intensity[m] ?? 0),
+                      opacity: 0.22,
+                    }}
+                  />
+                  <span className="relative flex-1 text-xs font-semibold text-[var(--text)]">
+                    {MUSCLE_LABEL[m]}
+                  </span>
+                  <span className="relative text-[11px] font-semibold tabular-nums text-[var(--muted)]">
+                    {Math.round(vol).toLocaleString()}
+                  </span>
+                </button>
+              );
+            });
+          })()}
           <p className="mt-1 text-[10px] text-[var(--muted)]">
-            Numbers are training volume (weight × reps). Tap a muscle for exercises.
+            Bars are training volume (weight × reps). Tap a muscle for exercises.
           </p>
         </div>
       )}

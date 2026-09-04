@@ -30,6 +30,21 @@
      viewport. Kept solid on purpose: --bg goes translucent in liquid-glass mode
      and there is nothing behind it here. */
   --page-edge: #f7f7fb;
+  /* Muscle map. A heat map only works if worked muscles carry more visual
+     weight than idle ones — these were light-mode literals, so on the dark
+     card an untrained muscle measured 14.3:1 against a hard-worked one's
+     2.8:1 and the whole thing read inside out. Idle now sits just ABOVE the
+     card and below every heat value, in both themes. */
+  --muscle-idle: #dfe3ea;
+  --muscle-inert: #eef1f6;
+  --muscle-stroke: #9aa4b2;
+  /* The ramp has to INVERT between themes. On white, effort darkens the muscle
+     (orange → deep red) and gets more prominent as it goes. Reused as-is on
+     black that runs backwards — a barely-worked muscle measured 10.9:1 against
+     a hammered one's 3.8:1 — so dark climbs from a dim ember to a bright red
+     instead. Both directions are monotonic: more work always reads louder. */
+  --muscle-cool: #fdba74;
+  --muscle-hot: #b91c1c;
   /* What the strip becomes when there IS one: the nav's own fill, so the bar
      appears to run to the bottom of the screen instead of stopping short of it. */
   --edge-fill: #ffffff;
@@ -79,6 +94,11 @@
   --accent-shadow: rgba(203, 238, 79, 0.42);
   --page-edge: #0a0a0a;
   --edge-fill: #141416;
+  --muscle-idle: #26262b;
+  --muscle-inert: #1c1c20;
+  --muscle-stroke: #3a3a42;
+  --muscle-cool: #7c3a12;
+  --muscle-hot: #ef4444;
 }
 
 /* The kit's other three, kept for chart series only — telling two lines apart
