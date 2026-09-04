@@ -179,7 +179,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
                     style={{
                       width: `${Math.max(4, (vol / top) * 100)}%`,
                       background: muscleHeat(data.intensity[m] ?? 0),
-                      opacity: 0.22,
+                      opacity: 0.2,
                     }}
                   />
                   <span className="relative flex-1 text-xs font-semibold text-[var(--text)]">

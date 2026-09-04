@@ -102,6 +102,15 @@ export function useTrends(range: TrendRange = 30) {
     // null range means "everything", so the queries drop their lower bound
     // rather than silently capping at a fixed window.
     const start = range == null ? null : addDays(today, -(range - 1));
+    // The adherence strip is a fixed 14 days, so the food query has to reach
+    // back at least that far whatever range is selected. It did not: on the
+    // 7-day range only 7 days of food were ever fetched, so the older half of
+    // the strip was blank by construction and the app reported "7 of 14 days"
+    // no matter how long the streak actually was. The wider window only adds
+    // map entries — every series below iterates the SELECTED range and reads
+    // from the map, so nothing else changes shape.
+    const adherenceStart = addDays(today, -(ADHERENCE_DAYS - 1));
+    const foodStart = start == null ? null : start < adherenceStart ? start : adherenceStart;
 
     const since = <T extends { gte: (col: string, v: string) => T }>(q: T, col: string, value: string | null) =>
       value == null ? q : q.gte(col, value);
@@ -117,7 +126,7 @@ export function useTrends(range: TrendRange = 30) {
       since(
         supabase.from('food_logs').select('meal_timestamp, calories, protein_g').eq('user_id', userId),
         'meal_timestamp',
-        start && startOfDateIso(start),
+        foodStart && startOfDateIso(foodStart),
       ),
       since(
         supabase.from('workout_logs').select('session_timestamp, exercise_data').eq('user_id', userId),
@@ -234,8 +243,8 @@ export function useTrends(range: TrendRange = 30) {
       const protein = series(proteinMap);
       const hasCaffeine = caffeineMap.size > 0;
 
-      // Fixed 14-day adherence strip — independent of the selected range, so it
-      // always answers "have I been logging lately?".
+      // Fixed 14-day adherence strip, genuinely independent of the selected
+      // range now that the query reaches back far enough to fill it.
       const loggedDays = Array.from({ length: ADHERENCE_DAYS }, (_, k) => {
         const date = addDays(today, -(ADHERENCE_DAYS - 1 - k));
         return { date, logged: (kcalMap.get(date) ?? 0) > 0 };

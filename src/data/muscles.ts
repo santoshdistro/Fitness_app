@@ -130,20 +130,27 @@ export const MUSCLE_EXERCISES: Record<MuscleKey, string[]> = {
 
 /** CSS gradient for a legend, so it cannot drift from what the figures draw. */
 export const MUSCLE_HEAT_GRADIENT =
-  'linear-gradient(90deg, var(--muscle-idle), var(--muscle-cool), var(--muscle-hot))';
+  'linear-gradient(90deg, var(--muscle-idle), color-mix(in srgb, var(--accent) 28%, var(--muscle-idle)), var(--accent))';
 
 /**
- * Heat colour for an intensity 0..1. Warm-to-hot is kept deliberately even
- * though the dark theme runs a single lime accent everywhere else: here the
- * colour carries a quantity, not a brand, and "harder work is redder" needs no
- * explaining.
+ * Heat colour for an intensity 0..1: the accent, mixed further into the idle
+ * surface the less a muscle was worked.
  *
- * Mixed by the browser rather than in JS so the stops can be theme tokens — the
- * ramp has to run the opposite way on black (see --muscle-cool in index.css),
- * and a value computed here would be frozen to whichever theme was loaded.
+ * This was a warm orange-to-red ramp, on the reasoning that "harder work is
+ * redder" needs no explaining. On the dark theme it read as mud — a second
+ * colour system fighting a palette that runs one accent and nothing else, and
+ * the reason the map looked wrong. The app already says "more of this" in
+ * exactly this way: the logging strip is accent-filled against --card-border.
+ * A single-hue intensity scale is the same idea a contribution graph uses, and
+ * it inherits the theme's accent rather than needing its own per-theme ramp.
+ *
+ * Mixed by the browser rather than in JS so it follows the live theme — a value
+ * computed here would freeze to whichever theme happened to be loaded.
  */
 export function muscleHeat(t: number): string {
   if (t <= 0) return 'var(--muscle-idle)';
-  const pct = Math.round(Math.min(1, t) * 100);
-  return `color-mix(in srgb, var(--muscle-hot) ${pct}%, var(--muscle-cool))`;
+  // Floored at 28% so the lightest-worked muscle still separates from an idle
+  // one; below that the two are indistinguishable at thumbnail size.
+  const pct = Math.round((0.28 + 0.72 * Math.min(1, t)) * 100);
+  return `color-mix(in srgb, var(--accent) ${pct}%, var(--muscle-idle))`;
 }
