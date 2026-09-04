@@ -1,7 +1,7 @@
 import { muscleHeat, type MuscleKey } from '../data/muscles';
 import { BACK_PARTS, BACK_VIEWBOX, FRONT_PARTS, FRONT_VIEWBOX, type BodyPart } from '../data/bodyPaths';
 
-const STROKE = '#9aa4b2';
+const STROKE = 'var(--muscle-stroke)';
 
 function Figure({
   parts,
@@ -26,7 +26,7 @@ function Figure({
             <path
               key={`${i}-${j}`}
               d={d}
-              fill={part.muscle ? muscleHeat(intensity[part.muscle] ?? 0) : '#eef1f6'}
+              fill={part.muscle ? muscleHeat(intensity[part.muscle] ?? 0) : 'var(--muscle-inert)'}
               stroke={STROKE}
               strokeWidth={1.4}
               vectorEffect="non-scaling-stroke"
@@ -51,7 +51,7 @@ export function MuscleMap({
   large?: boolean;
 }) {
   return (
-    <div className="flex justify-center gap-2">
+    <div className="muscle-map flex justify-center gap-2">
       <Figure parts={FRONT_PARTS} viewBox={FRONT_VIEWBOX} label="Front" intensity={intensity} onSelect={onSelect} large={large} />
       <Figure parts={BACK_PARTS} viewBox={BACK_VIEWBOX} label="Back" intensity={intensity} onSelect={onSelect} large={large} />
     </div>

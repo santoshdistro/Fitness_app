@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { generateWorkoutPlan } from '../../lib/aiClient';
 import { EQUIPMENT_OPTIONS } from '../../data/workoutPrograms';
+import { PHYSIQUE_GOALS, physiqueByValue } from '../../data/physiqueGoals';
 import type { WorkoutPlanResult } from '../../lib/aiClient';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
 
@@ -36,6 +37,7 @@ type PlanPrefs = {
   experience?: string;
   daysPerWeek?: string;
   notes?: string;
+  physique?: string;
 };
 
 function loadPrefs(): PlanPrefs {
@@ -61,6 +63,7 @@ export function WorkoutPlanForm({ onGenerated }: Props) {
   const [goal, setGoal] = useState(prefs.goal ?? GOAL_OPTIONS[0].value);
   const [experience, setExperience] = useState(prefs.experience ?? 'Beginner');
   const [daysPerWeek, setDaysPerWeek] = useState(prefs.daysPerWeek ?? '4');
+  const [physique, setPhysique] = useState(prefs.physique ?? 'balanced');
   const [notes, setNotes] = useState(prefs.notes ?? '');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,14 +87,21 @@ export function WorkoutPlanForm({ onGenerated }: Props) {
     try {
       localStorage.setItem(
         PREFS_KEY,
-        JSON.stringify({ equipment, goal, experience, daysPerWeek, notes } satisfies PlanPrefs),
+        JSON.stringify({ equipment, goal, experience, daysPerWeek, notes, physique } satisfies PlanPrefs),
       );
+      const physPrompt = physiqueByValue(physique)?.aiPrompt;
+      const fullNotes = [
+        notes.trim() || null,
+        physPrompt && physique !== 'balanced' ? `Target physique: ${physPrompt}.` : null,
+      ]
+        .filter(Boolean)
+        .join(' ');
       const plan = await generateWorkoutPlan(session.user.id, {
         equipment: EQUIPMENT_LABEL[equipment] ?? equipment,
         goal,
         experience,
         daysPerWeek: Number(daysPerWeek),
-        notes: notes.trim() || undefined,
+        notes: fullNotes || undefined,
       });
       onGenerated(plan);
     } catch (err) {
@@ -125,6 +135,22 @@ export function WorkoutPlanForm({ onGenerated }: Props) {
           {GOAL_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>
               {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-3">
+        <label className={labelClass} htmlFor="plan-physique">Target physique</label>
+        <select
+          id="plan-physique"
+          className={inputClass}
+          value={physique}
+          onChange={e => setPhysique(e.target.value)}
+        >
+          {PHYSIQUE_GOALS.map(p => (
+            <option key={p.value} value={p.value}>
+              {p.label} — {p.blurb}
             </option>
           ))}
         </select>

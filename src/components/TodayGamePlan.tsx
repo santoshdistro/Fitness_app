@@ -23,15 +23,15 @@ export function TodayGamePlan({ items }: { items: GamePlanItem[] }) {
           </p>
         </div>
         <div
-          className="flex h-11 w-11 flex-col items-center justify-center rounded-full text-white"
+          className="flex h-11 w-11 flex-col items-center justify-center rounded-full text-[var(--on-accent)]"
           style={{
             background: allDone
-              ? 'linear-gradient(135deg, #22c55e, #15803d)'
-              : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+              ? 'var(--success-gradient)'
+              : 'var(--accent-gradient)',
           }}
         >
           <span className="text-sm font-black leading-none">{doneCount}</span>
-          <span className="text-[8px] font-bold leading-none opacity-80">/ {items.length}</span>
+          <span className="text-[10px] font-bold leading-none opacity-80">/ {items.length}</span>
         </div>
       </div>
 

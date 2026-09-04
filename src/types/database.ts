@@ -10,6 +10,18 @@ export type DailyLog = {
   caffeine_mg: number | null;
   mood: number | null;
   energy: number | null;
+  sodium_mg: number | null;
+  potassium_mg: number | null;
+  magnesium_mg: number | null;
+  calcium_mg: number | null;
+  /** Body signals from the watch — see migration 0024. All null until the sync
+      Shortcut is updated to send them. */
+  resting_hr: number | null;
+  hrv_ms: number | null;
+  vo2_max: number | null;
+  respiratory_rate: number | null;
+  /** Signed °C deviation from your own baseline. */
+  wrist_temp_delta: number | null;
 };
 
 export type Measurement = {
@@ -33,6 +45,7 @@ export type MealCategory =
   | 'lunch'
   | 'dinner'
   | 'snack'
+  | 'evening_snack'
   | 'supplement'
   | 'other';
 
@@ -53,6 +66,9 @@ export type FoodLog = {
   trans_fat_g: number | null;
   poly_fat_g: number | null;
   mono_fat_g: number | null;
+  /** How much was logged and in what unit (g / ml / serving) — migration 0023. */
+  amount: number | null;
+  unit: string | null;
 };
 
 export type ProgressPhoto = {
@@ -70,6 +86,10 @@ export type BodyScan = {
   user_id: string;
   summary: string;
   focus_areas: string[];
+  strengths: string[] | null;
+  weak_points: string[] | null;
+  action_plan: string[] | null;
+  since_last: string | null;
   training_focus: string | null;
   nutrition_focus: string | null;
   created_at: string;
@@ -90,6 +110,14 @@ export type ExerciseSet = {
   exercise: string;
   reps: number;
   weight: number;
+  /** Cardio only — minutes of work for this entry. */
+  durationMin?: number;
+  /** Cardio only — distance covered (km). */
+  distanceKm?: number;
+  /** Treadmill/cardio — average speed (km/h). */
+  speedKph?: number;
+  /** Treadmill/cardio — incline (%). */
+  inclinePct?: number;
 };
 
 export type WorkoutLog = {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAiSpend, type FeatureSpend } from '../hooks/useAiSpend';
 import { formatUsd } from '../utils/aiPricing';
+import { SkeletonLines } from './Skeleton';
 
 const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   coach: 'Coach insights',
@@ -11,7 +12,18 @@ const FEATURE_LABEL: Record<FeatureSpend['feature'], string> = {
   nutrition_coach: 'Nutrition coach plans',
   diet_plan: '2-week diet plans',
   food_estimate: 'AI food estimates',
+  chat: 'AI coach chat',
 };
+
+// Readable name for any feature — including retired/legacy ones (e.g. a stray
+// "workout_review" logged before that feature was removed) that have no entry
+// above. Turns "workout_review" into "Workout review".
+function featureLabel(feature: string): string {
+  return (
+    FEATURE_LABEL[feature as FeatureSpend['feature']] ??
+    feature.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
+  );
+}
 
 type AnthropicState =
   | { status: 'loading' }
@@ -51,17 +63,17 @@ export function SpendPanel() {
     <div className="flex flex-col gap-4">
       {/* Hero: your spend this month */}
       <div
-        className="overflow-hidden p-5 text-center"
+        className="overflow-hidden p-5 text-center text-[var(--on-accent)]"
         style={{
           borderRadius: 'var(--radius-card)',
-          background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+          background: 'var(--accent-gradient)',
         }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--on-accent) 80%, transparent)' }}>
           Your AI spend this month
         </p>
-        <p className="text-4xl font-black tracking-tight text-white">{formatUsd(totalUsd)}</p>
-        <p className="mt-1 text-[11px] text-white/70">Adds up every AI call — this is what you've spent.</p>
+        <p className="text-4xl font-black tracking-tight" style={{ color: 'var(--on-accent)' }}>{formatUsd(totalUsd)}</p>
+        <p className="mt-1 text-[11px]" style={{ color: 'color-mix(in srgb, var(--on-accent) 70%, transparent)' }}>Adds up every AI call — this is what you've spent.</p>
       </div>
 
       {/* Per-feature breakdown */}
@@ -69,7 +81,7 @@ export function SpendPanel() {
         <p className="mb-2 text-sm font-semibold text-[var(--text)]">Breakdown</p>
         <div className="flex flex-col gap-2">
           {loading ? (
-            <p className="text-xs text-[var(--muted)]">Loading…</p>
+            <SkeletonLines lines={4} label="Loading spend breakdown" />
           ) : byFeature.length === 0 ? (
             <p className="text-xs text-[var(--muted)]">
               No AI features used yet this month. Use the coach, scans or plan generator and your
@@ -79,7 +91,7 @@ export function SpendPanel() {
             byFeature.map(row => (
               <div key={row.feature} className="flex items-center justify-between text-xs">
                 <span className="text-[var(--text)]">
-                  {FEATURE_LABEL[row.feature]}
+                  {featureLabel(row.feature)}
                   <span className="text-[var(--muted)]"> · {row.calls}×</span>
                 </span>
                 <span className="font-semibold text-[var(--text)]">{formatUsd(row.costUsd)}</span>

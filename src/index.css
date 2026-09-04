@@ -6,21 +6,302 @@
   --card-border: #eef0f6;
   --input-bg: #f7f7fb;
   --text: #14142b;
-  --muted: #8b8fa3;
+  /* Darkened from #8b8fa3 (~2.9:1) to ~4.6:1 on the light bg so the app's
+     pervasive small secondary text meets WCAG AA. */
+  --muted: #63697d;
   --accent: #6c63ff;
   --accent-dark: #4b3fe0;
+  /* Text and icons sitting ON the accent. White works over periwinkle, but the
+     neon dark theme's accent is a light colour — white on it is 1.4:1 — so this
+     is a token rather than a hardcoded text-white on every primary button. */
+  --on-accent: #ffffff;
+  /* The brand gradient had been spelled out inline in 56 places across 33
+     components. Deriving it from the accent tokens makes a rebrand a one-line
+     change, and keeps every primary surface in step automatically. */
+  --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  --success-gradient: linear-gradient(135deg, #22c55e, #15803d);
+  /* Written as literal rgba, not color-mix on --text/--accent: the build emits
+     a no-color-mix fallback that strips the percentage, which would turn the
+     bezel tray into a solid near-black slab and the accent shadow opaque. */
+  --tray: rgba(20, 20, 43, 0.04);
+  --accent-shadow: rgba(108, 99, 255, 0.7);
   --radius-card: 24px;
+  /* The colour iOS paints BEHIND the web view, i.e. the strip below a short
+     viewport. Kept solid on purpose: --bg goes translucent in liquid-glass mode
+     and there is nothing behind it here. */
+  --page-edge: #f7f7fb;
+  /* Muscle map. A heat map only works if worked muscles carry more visual
+     weight than idle ones — these were light-mode literals, so on the dark
+     card an untrained muscle measured 14.3:1 against a hard-worked one's
+     2.8:1 and the whole thing read inside out. Idle now sits just ABOVE the
+     card and below every heat value, in both themes. */
+  --muscle-idle: #dfe3ea;
+  --muscle-inert: #eef1f6;
+  --muscle-stroke: #9aa4b2;
+  /* The worked-muscle ramp, per theme. Light keeps warm orange → deep red:
+     "harder work is redder" needs no explaining, and against white it darkens
+     as it climbs, which is the right direction there.
+     Written as literals, not color-mix on a token — see the note in DESIGN.md
+     about the build stripping the percentage out of the fallback. */
+  --muscle-cool: #fdba74;
+  --muscle-hot: #b91c1c;
+  /* What the strip becomes when there IS one: the nav's own fill, so the bar
+     appears to run to the bottom of the screen instead of stopping short of it. */
+  --edge-fill: #ffffff;
+  /* Clearance for the home indicator. Normally the real inset — but see
+     trackViewportEdge in main.tsx: when iOS gives a viewport shorter than the
+     screen, the indicator sits outside it and env() is describing a screen we
+     were not given, so reserving space for it is pure dead bar. */
+  --safe-bottom: env(safe-area-inset-bottom);
+
+  /* Bottom nav geometry, in one place because installed and in-browser want
+     different bars. These are the BROWSER values: a floating rounded card,
+     which is right when the bar sits above a toolbar rather than a screen
+     edge. See :root.standalone for the installed bar. */
+  --nav-inset: 0.75rem;
+  --nav-gap: 0.5rem;
+  --nav-radius: 26px;
+  --nav-border: 1px;
+  --nav-pt: 0.5rem;
+  --nav-pb: max(0.5rem, var(--safe-bottom));
 }
 
+/* Dark is its own world, not a dimmed light theme, and every value here is
+   sampled from the two references rather than guessed. Light mode is untouched.
+
+   Two things carry the look. The ground is charcoal with surfaces stepping UP
+   from it (bg → card → input), which is where the depth comes from — pure black
+   with pure-black cards reads flat. And there is exactly ONE accent: both
+   references run lime and nothing else, and that restraint is most of why they
+   look expensive.
+
+   The lime sits between the two: the electric #abf200 glares at the size these
+   fills run, the kit's #c5fc6d goes chalky, #cbee4f is the reference's own. */
 :root[data-theme='dark'] {
-  --bg: #101018;
-  --card: #1a1a24;
-  --card-border: #262633;
-  --input-bg: #22222e;
-  --text: #f2f2f7;
-  --muted: #8b8fa3;
-  --accent: #7d75ff;
-  --accent-dark: #4b3fe0;
+  --bg: #0a0a0a;
+  --card: #141416;
+  --card-border: #232327;
+  --input-bg: #1b1b1e;
+  /* Neutral off-white, not the palette's pale green: this app runs a lot of
+     small text and a colour cast on all of it costs more than it adds. */
+  --text: #efeff1;
+  --muted: #939ba8;
+  --accent: #cbee4f;
+  --accent-dark: #a3cc2a;
+  /* Near-black on lime is 14.8:1; white would be 1.4:1 and illegible. */
+  --on-accent: #0a0c05;
+  --tray: rgba(203, 238, 79, 0.07);
+  --accent-shadow: rgba(203, 238, 79, 0.42);
+  --page-edge: #0a0a0a;
+  --edge-fill: #141416;
+  --muscle-idle: #26262b;
+  /* Bones and hands. Pushed too far down they take the anatomy with them and
+     the figure stops reading as a body at all. */
+  --muscle-inert: #232329;
+  --muscle-stroke: #45454f;
+  /* Dark does NOT take the warm ramp. Two reasons, both seen on device: a deep
+     red is dimmer than a pale orange against black, so the same ramp runs
+     backwards there — a barely-worked muscle read louder than a hammered one —
+     and a warm scale is a second colour system on a palette that runs one
+     accent and nothing else, which is what made the map look like mud. So dark
+     climbs the accent instead, the way the logging strip already does.
+     #545e35 is the accent at 28% into the idle surface, precomputed. */
+  --muscle-cool: #545e35;
+  --muscle-hot: #cbee4f;
+}
+
+/* The kit's other three, kept for chart series only — telling two lines apart
+   is a job the lime cannot do alone. Deliberately NOT used as button or card
+   fills: that is the difference between the reference's discipline and a
+   four-colour app. */
+:root[data-theme='dark'] {
+  --hue-yellow: #ede171;
+  --hue-coral: #ea7676;
+  --hue-teal: #77ebd8;
+}
+
+/* ---------- Liquid glass surface ---------- */
+:root[data-surface='glass'] {
+  --card: rgba(255, 255, 255, 0.36);
+  --card-border: rgba(255, 255, 255, 0.85);
+  --input-bg: rgba(255, 255, 255, 0.32);
+}
+
+:root[data-surface='glass'][data-theme='dark'] {
+  --card: rgba(40, 42, 64, 0.34);
+  --card-border: rgba(255, 255, 255, 0.28);
+  --input-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Installed to the home screen: the bar belongs to the bottom EDGE of the
+   screen the way a native tab bar does — full width, square-bottomed, its own
+   fill running under the home indicator rather than a margin under a card.
+   A shallow top pad and the indicator band below it is the native proportion. */
+:root.standalone {
+  --nav-inset: 0px;
+  --nav-gap: 0px;
+  --nav-radius: 26px 26px 0 0;
+  --nav-border: 1px 0 0 0;
+  --nav-pt: 0.25rem;
+  /* The home-indicator band is the bottom padding — trimmed by 12pt, which is
+     what the app did before all this and what stopped the bar reading as more
+     empty space than bar: the indicator itself only occupies the bottom ~13pt
+     of the 34pt inset, so the labels clear it with room to spare. The floor
+     covers a phone with no indicator at all, where the inset is 0 and labels
+     hard against the screen edge would look like a mistake. */
+  --nav-pb: max(0.375rem, calc(var(--safe-bottom) - 0.75rem));
+}
+
+/* Only under black-translucent, where the strip below the viewport cannot be
+   drawn into: the bottom inset describes a screen we were not given, so it is
+   dropped, and the strip is painted in the bar's fill so the bar appears to
+   run off the bottom of the screen instead of stopping above a gap.
+
+   Deliberately AFTER every theme and surface block, not next to the base
+   tokens: it has the same specificity as :root[data-theme='dark'], so up there
+   the dark palette's --page-edge simply won on source order and the strip
+   stayed page-coloured under a bar-coloured nav. --edge-fill is the solid theme
+   value even in glass mode, because nothing sits behind the strip to refract. */
+:root.viewport-short {
+  --safe-bottom: 0px;
+  --page-edge: var(--edge-fill);
+  /* No floor here: the strip below already supplies the air, and adding to it
+     is what made the bar read as a gap in the first place. */
+  --nav-pb: 0px;
+}
+
+/* A vivid, fixed backdrop so the frosted glass has rich colour to refract. */
+:root[data-surface='glass'] .app-bg {
+  background-color: transparent;
+  background-image:
+    radial-gradient(46% 40% at 8% 6%, rgba(108, 99, 255, 0.6), transparent 64%),
+    radial-gradient(44% 36% at 94% 12%, rgba(14, 165, 233, 0.55), transparent 64%),
+    radial-gradient(46% 40% at 82% 84%, rgba(45, 212, 191, 0.4), transparent 66%),
+    radial-gradient(52% 46% at 16% 96%, rgba(168, 85, 247, 0.46), transparent 68%),
+    linear-gradient(var(--bg), var(--bg));
+  background-attachment: fixed;
+}
+
+:root[data-surface='glass'][data-theme='dark'] .app-bg {
+  background-image:
+    radial-gradient(46% 40% at 8% 6%, rgba(125, 117, 255, 0.5), transparent 64%),
+    radial-gradient(44% 36% at 94% 12%, rgba(14, 165, 233, 0.42), transparent 64%),
+    radial-gradient(46% 40% at 82% 84%, rgba(45, 212, 191, 0.34), transparent 66%),
+    radial-gradient(52% 46% at 16% 96%, rgba(168, 85, 247, 0.4), transparent 68%),
+    linear-gradient(var(--bg), var(--bg));
+}
+
+/* A photo backdrop reads as a dark environment, so the whole surface goes
+   dark-glass + light text (whatever the light/dark theme) and inner tiles turn
+   translucent — everything sinks INTO the photo instead of floating on it. */
+:root[data-surface='glass'][data-backdrop='image'] {
+  --card: rgba(22, 24, 38, 0.4);
+  --card-border: rgba(255, 255, 255, 0.34);
+  --input-bg: rgba(255, 255, 255, 0.1);
+  --bg: rgba(255, 255, 255, 0.12);
+  --text: #f5f6fc;
+  --muted: rgba(232, 235, 248, 0.72);
+}
+
+:root[data-surface='glass'][data-backdrop='image'] .app-bg {
+  background-image:
+    linear-gradient(rgba(8, 10, 20, 0.45), rgba(8, 10, 20, 0.6)),
+    var(--backdrop-image),
+    linear-gradient(#101018, #101018);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Keep the very top (under the status bar) dark in photo mode — the body's
+   translucent token would otherwise show as a white strip up there. */
+:root[data-surface='glass'][data-backdrop='image'] body {
+  background: #0b0d16;
+}
+
+/* Belt-and-suspenders: explicitly paint the status-bar safe area dark in photo
+   mode so nothing white can show through it. Scoped to photo mode only, so the
+   normal/aurora/dark surfaces are unaffected. */
+:root[data-surface='glass'][data-backdrop='image'] .app-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: #0b0d16;
+  z-index: 60;
+  pointer-events: none;
+}
+
+:root[data-surface='glass'][data-backdrop='image'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset -1.5px -1.5px 2px rgba(255, 255, 255, 0.12),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16),
+    0 18px 40px -16px rgba(0, 0, 0, 0.6);
+}
+
+/* Frost + heavily saturate every surface built on .glass-card / .glass. */
+:root[data-surface='glass'] .glass-card,
+:root[data-surface='glass'] .glass {
+  -webkit-backdrop-filter: blur(28px) saturate(220%) brightness(1.1);
+  backdrop-filter: blur(28px) saturate(220%) brightness(1.1);
+}
+
+/* Cards: a diagonal specular sheen + a bright top rim = the "glass" read. */
+:root[data-surface='glass'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+    inset -1.5px -1.5px 2px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.45),
+    0 16px 40px -16px rgba(20, 20, 43, 0.5);
+}
+
+:root[data-surface='glass'][data-theme='dark'] .glass-card {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset -1.5px -1.5px 2px rgba(255, 255, 255, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    0 18px 40px -16px rgba(0, 0, 0, 0.62);
+}
+
+/* Shiny glass body-map figure. */
+:root[data-surface='glass'] .muscle-map {
+  position: relative;
+}
+
+/* Softer, glassy figure in glass mode — lighter outlines + a little vibrancy,
+   no glow behind it. Normal mode is untouched. */
+:root[data-surface='glass'] .muscle-map svg {
+  filter: saturate(1.12) brightness(1.04);
+}
+
+:root[data-surface='glass'] .muscle-map svg path {
+  stroke: rgba(255, 255, 255, 0.28);
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.35));
 }
 
 html,
@@ -31,7 +312,9 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Not --bg: this shows only where the shell can't reach — the strip iOS
+     leaves below the home indicator — and there it must match the nav. */
+  background: var(--page-edge);
   color: var(--text);
   font-family: -apple-system, 'SF Pro Display', Inter, 'Segoe UI', Roboto, sans-serif;
 }
@@ -40,20 +323,31 @@ body {
   background-color: var(--bg);
 }
 
-.glass-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-card);
-  box-shadow:
-    0 1px 2px rgba(20, 20, 43, 0.04),
-    0 12px 24px -8px rgba(20, 20, 43, 0.08);
-}
+/* These two live in @layer components on purpose. Tailwind puts its utilities
+   in @layer utilities, and an UNLAYERED rule beats every layered one whatever
+   the specificity — so while these sat outside a layer they silently ignored
+   any utility that touched the same property. `rounded-none` on the bottom nav
+   and `rounded-full` on the round icon buttons both lost, leaving the nav a
+   floating 24px-rounded card instead of a bar flush to the bottom edge.
+   Inside a layer, utilities win, which is what the markup already assumes.
+   The surface variants below stay unlayered: they must keep beating utilities
+   so liquid-glass mode still applies. */
+@layer components {
+  .glass-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 2px rgba(20, 20, 43, 0.04),
+      0 12px 24px -8px rgba(20, 20, 43, 0.08);
+  }
 
-.glass {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 1px 2px rgba(20, 20, 43, 0.05);
-  transition: transform 0.15s ease;
+  .glass {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 1px 2px rgba(20, 20, 43, 0.05);
+    transition: transform 0.15s ease;
+  }
 }
 
 .glass:active {
@@ -174,12 +468,76 @@ body {
   will-change: transform;
 }
 
+@keyframes sheetDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Sheet exit: slide the panel back down and dim the backdrop out, so sheets
+   don't pop out of existence. Backdrop fades faster than it opens. */
+.anim-sheet-down {
+  animation: sheetDown 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
+  will-change: transform;
+}
+
+.anim-backdrop-in {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+.anim-backdrop-out {
+  animation: fadeOut 0.2s ease-in both;
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* A little pop when a success checkmark appears (logged, saved, goal set). */
+.anim-check-pop {
+  animation: checkPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Press feedback on every button. Kept in @layer base so any element that sets
+   its own Tailwind transition-* / active:scale-* utility overrides this. */
+@layer base {
+  button:not([disabled]) {
+    transition: transform 0.14s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  button:not([disabled]):active {
+    transform: scale(0.97);
+  }
+}
+
 .anim-slide-next {
-  animation: slideFromRight 0.28s ease-out both;
+  animation: slideFromRight 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .anim-slide-prev {
-  animation: slideFromLeft 0.28s ease-out both;
+  animation: slideFromLeft 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .shimmer {
@@ -208,9 +566,175 @@ body {
   .anim-fade-in,
   .anim-drop-in,
   .anim-sheet-up,
+  .anim-sheet-down,
+  .anim-backdrop-out,
+  .anim-check-pop,
   .anim-slide-next,
   .anim-slide-prev,
   .shimmer {
     animation: none;
   }
+
+  .anim-backdrop-in {
+    animation: fadeIn 0.2s ease-out both;
+  }
+
+  /* No press-scale when motion is reduced. */
+  button:not([disabled]):active {
+    transform: none;
+  }
+}
+
+/* ---------- Skeletons ----------
+   The existing .shimmer paints a white gradient, which only reads on the tinted
+   coach card; on a white surface it is invisible. Skeletons instead tint the
+   block itself and sweep a highlight across it, so they work on every surface
+   and in both themes. */
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--card-border);
+  border-radius: 8px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+:root[data-theme='dark'] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+}
+
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- Premium surface details ----------
+   A faint fixed grain over everything. Fixed and pointer-events:none so it
+   never repaints with scrolling — grain attached to a scrolling container is a
+   known mobile frame-rate killer. */
+.grain {
+  position: fixed;
+  inset: 0;
+  /* Below the photo-mode status-bar guard, which owns z-index 60. */
+  z-index: 55;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-theme='dark'] .grain {
+  opacity: 0.05;
+}
+
+/* A photo backdrop brings its own texture; grain on top just muddies it. */
+:root[data-surface='glass'][data-backdrop='image'] .grain {
+  display: none;
+}
+
+/* Accent surfaces cast a shadow tinted with their own colour rather than a
+   neutral grey one — the difference between "a div with a shadow" and a lit
+   object. Reserved for primary actions and accent heroes. */
+.accent-lift {
+  box-shadow: 0 10px 26px -12px var(--accent-shadow);
+}
+
+/* Nested "double bezel": an outer tray holding an inner plate, with a hairline
+   top highlight on the inner surface. Reserved for hero metric surfaces — used
+   everywhere it would read as noise rather than craft. */
+.bezel {
+  padding: 5px;
+  border-radius: calc(var(--radius-card) + 5px);
+  background: var(--tray);
+  border: 1px solid var(--card-border);
+}
+
+.bezel > * {
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+:root[data-theme='dark'] .bezel > * {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+/* ---------- Per-section colour ----------
+   Each tab carries its own hue, shown in the bottom nav: the active tab's icon,
+   label and highlight take the section colour so switching rooms is legible at
+   a glance. Nothing else is tinted — an earlier version also washed the top of
+   the screen, which read as a coloured shadow and was dropped.
+
+   Primary actions keep the brand gradient everywhere, so the accent goes on
+   meaning "this is the thing to press" rather than "this is the Stats tab".
+   The hues are ones the app already associates with each area: emerald is the
+   nutrition hero, sky the cardio series, violet the training-volume bars. */
+:root {
+  --section: var(--accent);
+}
+:root[data-section='stats'] {
+  --section: #0ea5e9;
+}
+:root[data-section='discover'] {
+  --section: #f59e0b;
+}
+:root[data-section='handbook'] {
+  --section: #10b981;
+}
+:root[data-section='workouts'] {
+  --section: #8b5cf6;
+}
+
+/* Both references run ONE accent and nothing else — the discipline is most of
+   why they read as expensive. So the per-tab hues, which are the light theme's
+   sky/amber/emerald/violet, collapse to the lime in dark: the tint still marks
+   the section, without a second colour system arriving alongside the first.
+   The --hue-* tokens stay for chart series, where telling two lines apart is
+   the whole job. */
+:root[data-theme='dark'][data-section='stats'],
+:root[data-theme='dark'][data-section='discover'],
+:root[data-theme='dark'][data-section='handbook'],
+:root[data-theme='dark'][data-section='workouts'] {
+  --section: var(--accent);
+}
+
+/* Keyboard focus ring. :focus-visible means pointer/touch taps never show it,
+   so it adds no noise on the phone while keyboard and switch-control users get
+   a clear indicator. The outline follows each control's own border-radius. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Apple HIG asks for a 44px minimum touch target. Small icon buttons and chips
+   get one here without looking any chunkier: an invisible centred overlay
+   carries the extra hit area while the visible circle or pill keeps its
+   designed size. It only ever grows a control (min-width/height), so wide
+   chips keep their width and gain height alone. */
+.tap-44 {
+  position: relative;
+}
+.tap-44::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  transform: translate(-50%, -50%);
 }

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import { EXERCISE_DETAILS } from '../data/exerciseDetails';
 import { exerciseDbImageUrl } from '../data/workoutPrograms';
+import { cardioGuide } from '../data/cardioGuide';
+import { textGuide } from '../data/textGuides';
 
 type Props = {
   name: string;
@@ -12,6 +14,8 @@ type Props = {
 
 export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
   const detail = exerciseId ? EXERCISE_DETAILS[exerciseId] : undefined;
+  const cardio = !detail ? cardioGuide(name) : null;
+  const text = !detail && !cardio ? textGuide(name) : null;
   const [failed, setFailed] = useState(false);
 
   return (
@@ -32,6 +36,8 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               key={path}
               src={exerciseDbImageUrl(path)}
               alt={name}
+              loading="lazy"
+              decoding="async"
               onError={() => setFailed(true)}
               className="h-40 w-56 shrink-0 rounded-2xl object-cover"
             />
@@ -73,7 +79,47 @@ export function ExerciseDetail({ name, exerciseId, sets, reps }: Props) {
               {detail.instructions.map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-xs leading-relaxed text-[var(--text)]">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
+      ) : cardio ? (
+        <>
+          <p className="text-xs leading-relaxed text-[var(--text)]">{cardio.summary}</p>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-[var(--text)]">How to do it</p>
+            <ol className="flex flex-col gap-2.5">
+              {cardio.steps.map((step, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-xs leading-relaxed text-[var(--text)]">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
+      ) : text ? (
+        <>
+          <p className="text-xs leading-relaxed text-[var(--text)]">{text.summary}</p>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-[var(--text)]">How to do it</p>
+            <ol className="flex flex-col gap-2.5">
+              {text.steps.map((step, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[var(--on-accent)]"
                     style={{ background: 'var(--accent)' }}
                   >
                     {i + 1}

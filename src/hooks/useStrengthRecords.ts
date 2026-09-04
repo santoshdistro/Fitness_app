@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { canonicalExercise } from '../data/exerciseCanonical';
 import type { WorkoutLog } from '../types/database';
 
 export type ExerciseRecord = {
@@ -59,7 +60,7 @@ export function useStrengthRecords() {
       // Best 1RM per exercise within this session (for the progression line).
       const sessionBest = new Map<string, number>();
       for (const set of w.exercise_data ?? []) {
-        const name = set.exercise.trim();
+        const name = canonicalExercise(set.exercise);
         if (!name || !set.weight) continue;
         const oneRm = epley(set.weight, set.reps);
         sessionBest.set(name, Math.max(sessionBest.get(name) ?? 0, oneRm));

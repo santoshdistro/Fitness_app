@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { useFasting } from '../hooks/useFasting';
+import { FASTING_STAGES, stageIndexAt } from '../data/fastingStages';
 
 const PRESETS = [
   { hours: 16, label: '16:8' },
@@ -36,29 +37,38 @@ export function FastingPanel() {
     return (
       <div className="flex flex-col gap-4">
         <div
-          className="overflow-hidden p-6 text-center text-white"
+          className="overflow-hidden p-6 text-center text-[var(--on-accent)]"
           style={{
             borderRadius: 'var(--radius-card)',
             background: reached
-              ? 'linear-gradient(135deg, #22c55e, #15803d)'
-              : 'linear-gradient(135deg, #6c63ff, #4b3fe0)',
+              ? 'var(--success-gradient)'
+              : 'var(--accent-gradient)',
           }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">
             Fasting · target {active.targetHours}h
           </p>
           <p className="mt-1 text-5xl font-black tabular-nums">{fmt(elapsedMs)}</p>
-          <div className="mx-auto mt-3 h-2 max-w-xs overflow-hidden rounded-full bg-white/25">
-            <div className="h-full rounded-full bg-white" style={{ width: `${percent}%` }} />
+          <div
+            className="mx-auto mt-3 h-2 max-w-xs overflow-hidden rounded-full"
+            style={{ background: 'color-mix(in srgb, var(--on-accent) 25%, transparent)' }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${percent}%`, background: 'var(--on-accent)' }}
+            />
           </div>
-          <p className="mt-2 text-[11px] text-white/85">
-            {reached ? 'Target reached — well done! 🎉' : `${Math.round(percent)}% there`}
+          <p className="mt-2 text-[11px] opacity-85">
+            {reached
+              ? 'Target reached — well done! 🎉'
+              : `${fmt(targetMs - elapsedMs)} to your ${active.targetHours}h goal · ${Math.round(percent)}%`}
           </p>
         </div>
+        <Journey elapsedHours={elapsedMs / 3600000} />
         <button
           type="button"
           onClick={end}
-          className="rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
         >
           End fast &amp; log it
         </button>
@@ -90,7 +100,7 @@ export function FastingPanel() {
               className="rounded-full px-3 py-1.5 text-xs font-semibold"
               style={
                 target === p.hours
-                  ? { background: 'var(--accent)', color: '#fff' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { background: 'var(--bg)', color: 'var(--muted)' }
               }
             >
@@ -101,12 +111,61 @@ export function FastingPanel() {
         <button
           type="button"
           onClick={() => start(target)}
-          className="w-full rounded-2xl py-3.5 text-sm font-bold text-white bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] bg-[image:var(--accent-gradient)]"
         >
           Start {target}h fast
         </button>
       </div>
       <History history={history} />
+    </div>
+  );
+}
+
+// The stages a fast passes through, with the current one marked and the next
+// one previewed — it turns a bare countdown into something worth watching.
+function Journey({ elapsedHours }: { elapsedHours: number }) {
+  const current = stageIndexAt(elapsedHours);
+  const stage = FASTING_STAGES[current];
+  const next = FASTING_STAGES[current + 1];
+
+  return (
+    <div className="glass-card flex flex-col gap-3 p-5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">The journey</p>
+
+      <div className="flex gap-1">
+        {FASTING_STAGES.map((s, i) => {
+          const done = i <= current;
+          return (
+            <div key={s.fromHour} className="flex flex-1 flex-col items-center gap-1.5">
+              <div
+                className="h-1 w-full rounded-full"
+                style={{ background: done ? 'var(--accent)' : 'var(--card-border)' }}
+              />
+              <span
+                className="text-center text-[10px] font-bold leading-tight"
+                style={{ color: i === current ? 'var(--accent)' : 'var(--muted)' }}
+              >
+                {s.label}
+              </span>
+              <span className="text-[10px] text-[var(--muted)]">{s.fromHour}h</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-[var(--card-border)] pt-3">
+        <p className="text-xs leading-relaxed text-[var(--text)]">{stage.detail}</p>
+        {next ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
+            <span className="font-bold uppercase tracking-wide">Next</span> · {next.label} at {next.fromHour}h.{' '}
+            {next.detail}
+          </p>
+        ) : null}
+      </div>
+
+      <p className="text-[10px] leading-relaxed text-[var(--muted)]">
+        Rough guides only — real timings vary with your last meal, activity and sleep.
+      </p>
     </div>
   );
 }

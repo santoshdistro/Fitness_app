@@ -102,7 +102,7 @@ Client vars are `VITE_`-prefixed (shipped to the browser). Everything else is
 | Variable | Where | Purpose |
 |---|---|---|
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | client | Supabase client |
-| `VITE_USDA_API_KEY` | client | USDA food search (optional; `DEMO_KEY` works, rate-limited) |
+| `USDA_API_KEY` | server | USDA food-database search via `/api/usda-search` (optional; free key from fdc.nal.usda.gov) |
 | `ANTHROPIC_API_KEY` | server | all AI features |
 | `ANTHROPIC_ADMIN_KEY` | server | optional — real Anthropic billing on spend screen |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | server | `send-reminders` + `health-sync` (must be the **service_role** key, not anon) |

@@ -2,15 +2,145 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { applyTheme, applySurface, applyBackdrop, applyThemeColor } from './hooks/useSettings';
 
-// Apply the saved theme before first paint to avoid a light-mode flash.
+// Apply the saved theme + surface before first paint to avoid a flash. These are
+// the same helpers the settings hook runs, rather than a second copy of the
+// logic: the copy that used to live here had drifted, and tinted the iOS status
+// bar from a backdrop that the normal surface never displays.
 try {
-  const saved = localStorage.getItem('app_settings');
-  const theme = saved ? (JSON.parse(saved).theme as string) : 'light';
-  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  const parsed = JSON.parse(localStorage.getItem('app_settings') ?? '{}');
+  const theme = parsed.theme === 'dark' ? 'dark' : 'light';
+  const surface = parsed.surface === 'glass' ? 'glass' : 'normal';
+  applyTheme(theme);
+  applySurface(surface);
+  applyBackdrop(parsed.backdrop ?? '');
+  applyThemeColor(theme, parsed.backdrop ?? '', surface);
 } catch {
-  document.documentElement.setAttribute('data-theme', 'light');
+  applyTheme('light');
+  applySurface('normal');
 }
+
+/**
+ * iOS legacy full-screen mode hands a home-screen app a viewport SHORTER than
+ * the screen (measured: 797 on an 844pt phone) positioned at the top, so the
+ * remainder falls off the bottom — and still reports a 34px bottom safe-area
+ * inset describing the full screen, not the viewport it actually gave us. The
+ * home indicator is then outside the viewport entirely, and padding reserved
+ * for it is dead space.
+ *
+ * The app does NOT ship this way — see the status-bar meta in index.html, which
+ * is `default` precisely because it does not do the above. This stays because
+ * the setting is read when the app is added to the home screen, so a copy
+ * installed while black-translucent was being tried keeps it until it is
+ * removed and re-added, and the layout has to be right on those too.
+ *
+ * Two things follow from a short viewport: the bottom inset does not apply
+ * (--safe-bottom collapses to zero), and the strip below is unreachable by the
+ * page — nothing can be drawn there but the body background. So the nav goes
+ * flush to the bottom of what we DO have and the strip is painted to continue
+ * it, which is how a native tab bar's indicator area looks anyway.
+ *
+ * Crucially this is NOT a one-time measurement. iOS hands over the short
+ * viewport at launch and then expands it to the full screen once the app is
+ * interacted with — caught on device as the nav sitting 21pt off the bottom in
+ * one screenshot and 56pt in another, a minute apart. Measuring once locks in
+ * whichever state the app happened to launch in, so every signal that the
+ * viewport may have changed re-runs this, scrolling included.
+ */
+const MAX_PLAUSIBLE_INSET = 120;
+
+/**
+ * env(safe-area-inset-top) in pixels. Custom properties are not resolved by
+ * getComputedStyle, so the value has to be measured off a real box. Cached:
+ * this only changes with orientation, and the probe forces a layout — which
+ * is not something to do on every scroll frame.
+ */
+let insetTop = -1;
+
+function measureTopInset(): number {
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+  document.documentElement.appendChild(probe);
+  const height = probe.getBoundingClientRect().height;
+  probe.remove();
+  return height;
+}
+
+/**
+ * The tallest viewport seen since the screen last changed size. The reading
+ * moves around DURING a scroll — visualViewport reports mid-gesture states, and
+ * the keyboard shrinks it — and acting on every reading made the nav visibly
+ * walk up and down while swiping, because the class it sets changes the bar's
+ * padding. A viewport only ever grows here (iOS expands it once, after launch),
+ * so the high-water mark is the honest answer and it settles after one change.
+ */
+let tallestViewport = 0;
+let latchedScreen = 0;
+
+function trackViewportEdge(remeasureInset = false) {
+  if (remeasureInset || insetTop < 0) insetTop = measureTopInset();
+  // Standalone only. In a browser the viewport is short because of the toolbars,
+  // and there env() genuinely does describe an overlapping indicator.
+  const standalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as { standalone?: boolean }).standalone === true;
+  // Rotating is the one thing that legitimately makes the viewport smaller, so
+  // that is where the high-water mark resets rather than on any resize.
+  const screenHeight = window.screen.height;
+  if (screenHeight !== latchedScreen) {
+    latchedScreen = screenHeight;
+    tallestViewport = 0;
+  }
+  // The larger of the two: innerHeight can still report the launch-time value
+  // after iOS has already expanded the visual viewport underneath it, and
+  // believing the smaller number is what strands the strip.
+  tallestViewport = Math.max(
+    tallestViewport,
+    window.innerHeight,
+    window.visualViewport?.height ?? 0,
+  );
+  // Clamped: some browsers report screen.height in the device's fixed
+  // orientation, which in landscape makes this difference meaningless. A status
+  // bar is never 120pt, so anything larger is a measurement we don't trust.
+  const lost = Math.round(screenHeight - tallestViewport);
+  // The top inset is what separates the two ways of losing height. Under
+  // black-translucent the app is UNDER the status bar, so the inset is real and
+  // the missing height fell off the bottom. Under `default` the viewport starts
+  // BELOW the status bar — inset 0 — so the same subtraction is just the band
+  // above us, the viewport does reach the bottom of the screen, and the home
+  // indicator really is overlapping it. Reading only the difference cannot tell
+  // those apart, and getting it backwards either strands a strip or jams the
+  // labels under the indicator.
+  const short = standalone && lost > 1 && lost <= MAX_PLAUSIBLE_INSET && insetTop > 0;
+  const root = document.documentElement;
+  root.classList.toggle('standalone', standalone);
+  root.classList.toggle('viewport-short', short);
+}
+
+// Coalesced to one check per frame: the scroll listener is capturing, so it
+// fires for the app's own scroll containers as well as the window.
+let queued = false;
+function scheduleTrack() {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    trackViewportEdge();
+  });
+}
+
+trackViewportEdge();
+window.addEventListener('resize', () => trackViewportEdge(true));
+window.addEventListener('orientationchange', () => trackViewportEdge(true));
+window.addEventListener('pageshow', () => trackViewportEdge(true));
+window.visualViewport?.addEventListener('resize', scheduleTrack);
+window.addEventListener('scroll', scheduleTrack, true);
+// iOS settles the standalone viewport a beat after launch, without firing
+// anything we can listen for.
+setTimeout(() => trackViewportEdge(true), 300);
+setTimeout(() => trackViewportEdge(true), 1200);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

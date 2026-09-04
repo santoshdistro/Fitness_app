@@ -15,8 +15,10 @@ export function kgToUnit(kg: number, unit: WeightUnit): number {
 export function unitToKg(value: number, unit: WeightUnit): number {
   return unit === 'lb' ? value / LB_PER_KG : value;
 }
-/** Weight value as a display string (no unit suffix), rounded for the unit. */
-export function weightValue(kg: number | null | undefined, unit: WeightUnit, digits = 1): string {
+/** Weight value as a display string (no unit suffix). Up to 2 decimals so a
+ *  precise weigh-in like 10.55 isn't shown as 10.6; trailing zeros are dropped
+ *  (77.1 stays "77.1"). */
+export function weightValue(kg: number | null | undefined, unit: WeightUnit, digits = 2): string {
   if (kg == null) return '--';
   return String(round(kgToUnit(kg, unit), digits));
 }
@@ -42,6 +44,25 @@ export function cmToFtIn(cm: number): { ft: number; inches: number } {
 }
 export function ftInToCm(ft: number, inches: number): number {
   return Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
+}
+
+/* ---- Serving size parsing ---- */
+export type ParsedServing = { size: number; unit: 'g' | 'ml' };
+
+// Turn a label serving size ("200 ml", "30g", "1 serving", 45) into a number +
+// weight/volume unit. Returns null when there's no usable numeric size.
+export function parseServing(input: string | number | null | undefined): ParsedServing | null {
+  if (input == null) return null;
+  if (typeof input === 'number') return input > 0 ? { size: input, unit: 'g' } : null;
+  const m = String(input).match(/([\d.]+)\s*(mls?|milliliters?|l|liters?|litres?|kg|g|grams?)?/i);
+  if (!m) return null;
+  let size = parseFloat(m[1]);
+  if (!size || size <= 0) return null;
+  const raw = (m[2] ?? 'g').toLowerCase();
+  const unit: 'g' | 'ml' = /ml|milli|^l|liter|litre/.test(raw) ? 'ml' : 'g';
+  if (/^l|liter|litre/.test(raw)) size *= 1000; // litres → ml
+  if (raw === 'kg') size *= 1000; // kg → g
+  return { size: Math.round(size * 100) / 100, unit };
 }
 
 /* ---- Food amount (stored in grams) ---- */

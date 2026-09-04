@@ -10,6 +10,7 @@ export function useTabSwipe<T extends string>(
 ) {
   const startX = useRef(0);
   const startY = useRef(0);
+  const skip = useRef(false);
   const [dir, setDir] = useState(0);
 
   function change(next: T) {
@@ -28,11 +29,24 @@ export function useTabSwipe<T extends string>(
     onTouchStart: (e: TouchEvent) => {
       startX.current = e.touches[0].clientX;
       startY.current = e.touches[0].clientY;
+      // Don't hijack swipes that begin on a control or a horizontally-scrolling
+      // row (dropdowns, chip filters, date strips, carousels) — those own the
+      // gesture. Opt any element out with data-noswipe.
+      const target = e.target as HTMLElement | null;
+      skip.current = Boolean(
+        target?.closest('select, input, textarea, [role="slider"], [data-noswipe], .overflow-x-auto'),
+      );
     },
     onTouchEnd: (e: TouchEvent) => {
+      if (skip.current) {
+        skip.current = false;
+        return;
+      }
       const dx = e.changedTouches[0].clientX - startX.current;
       const dy = e.changedTouches[0].clientY - startY.current;
-      if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      // Require a clear, mostly-horizontal swipe so a slightly-diagonal scroll
+      // doesn't flip the page.
+      if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
         step(dx < 0 ? 1 : -1);
       }
     },

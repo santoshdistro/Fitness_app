@@ -3,8 +3,10 @@
   "short_name": "Fitness",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1119",
-  "theme_color": "#0f1119",
+  "_comment_background_color": "The OS launch screen. Stays dark to match the splash in index.html, so the handover from launch to app has no flash.",
+  "background_color": "#0a0a0a",
+  "_comment_theme_color": "The status-bar band iOS paints above the web view. It must match the app background behind it, not the splash — dark here put a black bar over a light grey app. The runtime theme-color meta tracks the light/dark setting, but an installed app takes this value, so it holds the light background.",
+  "theme_color": "#f7f7fb",
   "icons": [
     {
       "src": "/app-icon-192.png",

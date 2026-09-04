@@ -15,6 +15,17 @@ export function startOfTodayIso(): string {
   return now.toISOString();
 }
 
+/** True if two dates fall in the same calendar month. */
+export function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+/** True if the date is within the current calendar month. Used to keep in-app
+ * history lists to the current month (older entries stay in the database). */
+export function isThisMonth(date: Date): boolean {
+  return isSameMonth(date, new Date());
+}
+
 /** Shifts a `YYYY-MM-DD` date string by `days` (may be negative). */
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T00:00:00`);

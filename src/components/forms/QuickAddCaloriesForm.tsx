@@ -12,6 +12,7 @@ type Props = {
 export function QuickAddCaloriesForm({ onSaved }: Props) {
   const { session } = useAuth();
   const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
+  const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
@@ -27,7 +28,9 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
 
     const { error: saveError } = await supabase.from('food_logs').insert({
       user_id: session.user.id,
-      meal_name: 'Quick Add',
+      // Optional: a blank name still logs, it just falls back to the old label.
+      // Naming it is what makes the row mean anything a week later.
+      meal_name: name.trim() || 'Quick add',
       meal_category: category,
       calories: Number(calories),
       protein_g: protein ? Number(protein) : null,
@@ -64,6 +67,22 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
       </div>
 
       <div className="mb-3">
+        <label className={labelClass} htmlFor="quick-add-name">
+          Dish <span className="font-normal text-[var(--muted)]">(optional)</span>
+        </label>
+        <input
+          id="quick-add-name"
+          className={inputClass}
+          type="text"
+          enterKeyHint="next"
+          autoComplete="off"
+          placeholder="e.g. Mum's dal, protein shake"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+      </div>
+
+      <div className="mb-3">
         <label className={labelClass} htmlFor="quick-add-calories">
           Calories
         </label>
@@ -71,7 +90,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
           id="quick-add-calories"
           className={inputClass}
           type="number"
-          inputMode="numeric"
+          inputMode="decimal"
           min="0"
           value={calories}
           onChange={e => setCalories(e.target.value)}
@@ -88,7 +107,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-protein"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={protein}
             onChange={e => setProtein(e.target.value)}
@@ -102,7 +121,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-carbs"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={carbs}
             onChange={e => setCarbs(e.target.value)}
@@ -116,7 +135,7 @@ export function QuickAddCaloriesForm({ onSaved }: Props) {
             id="quick-add-fat"
             className={inputClass}
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
             value={fat}
             onChange={e => setFat(e.target.value)}

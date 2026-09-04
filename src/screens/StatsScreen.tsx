@@ -1,24 +1,33 @@
-import { useState } from 'react';
-import { Activity, Camera, Check, ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Activity, Camera, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentMeasurements } from '../hooks/useRecentMeasurements';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
+import type { MineralKey } from '../data/mineralGuide';
+import { estimateMineralsFromMeals } from '../data/foodMinerals';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 import { weightValue } from '../utils/units';
 import { useBodyScans, scanToResult } from '../hooks/useBodyScans';
 import { useAdaptiveTdee } from '../hooks/useAdaptiveTdee';
 import { BodyScanReadout } from '../components/BodyScanReadout';
+import { Sheet } from '../components/Sheet';
 import { BmiCard } from '../components/BmiCard';
+import { HydrationCard } from '../components/HydrationCard';
+import { computeHydrationTargets } from '../utils/calculations';
 import { AdaptiveTdeeCard } from '../components/AdaptiveTdeeCard';
 import { MetabolicAgeCard } from '../components/MetabolicAgeCard';
 import { TrendsPanel } from '../components/TrendsPanel';
-import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
+import { MeasurementTrendChart } from '../components/MeasurementTrendChart';
 import { MeasurementProgressCard } from '../components/MeasurementProgressCard';
+import { MilestonesCard } from '../components/MilestonesCard';
+import { DateNavigator } from '../components/DateNavigator';
 import { useTabSwipe } from '../hooks/useTabSwipe';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { CalorieGauge } from '../components/charts/CalorieGauge';
 import { WeightSparkline } from '../components/charts/WeightSparkline';
 import {
@@ -29,23 +38,17 @@ import {
   computeSuggestedMacros,
   computeTDEE,
 } from '../utils/calculations';
-import { addDays, endOfDateIso, isToday, startOfDateIso, todayDateString } from '../utils/date';
-import type { FoodLog, MealCategory } from '../types/database';
+import { isSameMonth, todayDateString } from '../utils/date';
+import { MonthPager } from '../components/MonthPager';
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
-const MEAL_CATEGORIES: { key: MealCategory; label: string }[] = [
-  { key: 'breakfast', label: 'Breakfast' },
-  { key: 'lunch', label: 'Lunch' },
-  { key: 'dinner', label: 'Dinner' },
-  { key: 'snack', label: 'Snacks' },
-  { key: 'supplement', label: 'Supplements' },
-  { key: 'other', label: 'Other' },
-];
-
-function formatMealTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
+const ACTIVITY_SHORT: Record<string, string> = {
+  sedentary: 'Sedentary',
+  light: 'Lightly active',
+  moderate: 'Moderately active',
+  very_active: 'Very active',
+};
 
 function formatScanDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -62,50 +65,107 @@ function formatShortDate(dateStr: string): string {
   });
 }
 
-function dateLabel(dateStr: string): string {
-  if (isToday(dateStr)) return 'Today';
-  if (dateStr === addDays(todayDateString(), -1)) return 'Yesterday';
-  return formatShortDate(dateStr);
-}
-
 type Props = {
-  onQuickAddCalories: () => void;
   onOpenProgressPhotos: () => void;
+  onLogElectrolytes: () => void;
 };
 
-export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props) {
-  const [tab, setTab] = useState<'stats' | 'trends'>('stats');
+export function StatsScreen({ onOpenProgressPhotos, onLogElectrolytes }: Props) {
+  const [tab, setTab] = usePersistentState<'stats' | 'trends'>('ui:statsTab', 'stats');
   const { handlers, change, animClass } = useTabSwipe(['stats', 'trends'] as const, tab, setTab);
   const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const { totals, meals } = useTodayNutrition(selectedDate);
+  const { logs: weightLogs, clearWeight, refresh: refreshWeightLogs } = useRecentDailyLogs(365);
+  const { measurements, deleteMeasurement } = useRecentMeasurements(200);
+  const { log: todayLog, refresh: refreshTodayLog } = useTodayLog();
   const { session } = useAuth();
-  const { totals, meals, deleteMeal, refresh: refreshMeals } = useTodayNutrition(selectedDate);
-  const { logs: weightLogs, clearWeight } = useRecentDailyLogs(14);
-  const { measurements, deleteMeasurement } = useRecentMeasurements(5);
-  const { log: todayLog } = useTodayLog();
-  const { profile } = useProfile();
+  const [refreshingWeight, setRefreshingWeight] = useState(false);
+
+  // One-tap "I ate this" from a mineral's best-foods list — adds the food's mg
+  // to today's running electrolyte total (daily_logs), no per-food DB columns
+  // needed. Sodium here stacks on top of dietary sodium already counted.
+  async function addMineralFromFood(key: MineralKey, mg: number) {
+    if (!session?.user) return;
+    const column = `${key}_mg` as 'sodium_mg' | 'potassium_mg' | 'magnesium_mg' | 'calcium_mg';
+    const current = (todayLog?.[column] as number | null) ?? 0;
+    await supabase.from('daily_logs').upsert(
+      {
+        user_id: session.user.id,
+        log_date: todayDateString(),
+        [column]: Math.round(current + mg),
+      },
+      { onConflict: 'user_id,log_date' },
+    );
+    await refreshTodayLog();
+  }
+  const { profile, saveProfile } = useProfile();
   const { scans: bodyScans, removeScan } = useBodyScans();
   const { data: adaptiveTdee } = useAdaptiveTdee();
-  const { settings } = useSettings();
+  const { settings, save: saveSettings } = useSettings();
   const wUnit = settings.weightUnit;
   const [openScanId, setOpenScanId] = useState<string | null>(null);
-  const [copying, setCopying] = useState(false);
-  const [addedMealIds, setAddedMealIds] = useState<Set<string>>(new Set());
-  const [editingMeal, setEditingMeal] = useState<{ meal: FoodLog; mode: MealEditMode } | null>(null);
-  const [savingMeal, setSavingMeal] = useState(false);
+  const openScan = bodyScans.find(s => s.id === openScanId) ?? null;
+  // Shared Upper/Lower/All group so the measurement chart and table stay in sync.
+  const [measureGroup, setMeasureGroup] = useState<'all' | 'upper' | 'lower'>('all');
 
   const measurement = measurements[0];
   const weightEntries = weightLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
   const weightValues = weightEntries.map(l => l.weight);
   const latestWeight = todayLog?.weight ?? weightValues[weightValues.length - 1];
 
+  // The calorie target & guide use a *frozen* weight so they stay stable through
+  // day-to-day weigh-ins and screen refreshes; the ↻ button pulls the latest
+  // weight in on demand (recalibrate). Persisted so it survives remounts.
+  const uid = session?.user?.id ?? 'anon';
+  const frozenKey = `calorieWeight:${uid}`;
+  const [frozenWeight, setFrozenWeightRaw] = useState<number | null>(() => {
+    try {
+      const v = localStorage.getItem(frozenKey);
+      return v ? Number(v) : null;
+    } catch {
+      return null;
+    }
+  });
+  const setFrozenWeight = useCallback(
+    (w: number | null) => {
+      setFrozenWeightRaw(w);
+      try {
+        if (w != null) localStorage.setItem(frozenKey, String(w));
+        else localStorage.removeItem(frozenKey);
+      } catch {
+        /* ignore */
+      }
+    },
+    [frozenKey],
+  );
+  const [recalibPending, setRecalibPending] = useState(false);
+  useEffect(() => {
+    if (frozenWeight == null && latestWeight != null) setFrozenWeight(latestWeight);
+  }, [frozenWeight, latestWeight, setFrozenWeight]);
+  useEffect(() => {
+    if (recalibPending && latestWeight != null) {
+      setFrozenWeight(latestWeight);
+      setRecalibPending(false);
+    }
+  }, [recalibPending, latestWeight, setFrozenWeight]);
+  const calorieWeight = frozenWeight ?? latestWeight;
+
+  // History lists default to the current month; the month pager steps back
+  // through earlier months (older data stays in the DB and the trend charts).
+  const [statsMonth, setStatsMonth] = useState(() => new Date());
+  const monthWeighIns = weightEntries.filter(e => isSameMonth(new Date(`${e.log_date}T00:00:00`), statsMonth));
+  const monthMeasurements = measurements.filter(m => isSameMonth(new Date(m.entry_timestamp), statsMonth));
+  // Keep the compact sparkline readable regardless of how much history is loaded.
+  const sparkValues = weightValues.slice(-24);
+
   const deficitKcal = profile?.calorie_deficit_kcal ?? 500;
-  const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && latestWeight);
+  const canComputeTarget = Boolean(profile?.gender && profile?.height && profile?.birth_date && calorieWeight);
   const tdee = canComputeTarget
     ? Math.round(
         computeTDEE(
           computeBMR({
             gender: profile!.gender!,
-            weightKg: latestWeight!,
+            weightKg: calorieWeight!,
             heightCm: profile!.height!,
             ageYears: ageFromBirthDate(profile!.birth_date!),
           }),
@@ -118,92 +178,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
     (tdee != null ? computeDailyCalorieTarget({ tdee, deficitKcal }) : REFERENCE_CALORIE_TARGET);
 
   const suggestedMacros = canComputeTarget
-    ? computeSuggestedMacros({ weightKg: latestWeight!, calorieTarget, deficitKcal })
+    ? computeSuggestedMacros({ weightKg: calorieWeight!, calorieTarget, deficitKcal })
     : null;
-
-  const macroGoals = [
-    {
-      label: 'Protein',
-      value: totals.protein_g,
-      target: profile?.protein_target_g ?? suggestedMacros?.proteinG,
-      unit: 'g',
-      suggested: profile?.protein_target_g == null && suggestedMacros != null,
-    },
-    { label: 'Fiber', value: totals.fiber_g, target: profile?.fiber_target_g, unit: 'g', suggested: false },
-    { label: 'Sodium', value: totals.sodium_mg, target: profile?.sodium_target_mg, unit: 'mg', suggested: false },
-  ].filter((goal): goal is typeof goal & { target: number } => goal.target != null);
-
-  const mealsByCategory = MEAL_CATEGORIES.map(category => ({
-    ...category,
-    meals: meals.filter(meal => meal.meal_category === category.key),
-  }));
-
-  async function copyYesterdaysMeals() {
-    if (!session?.user) return;
-    setCopying(true);
-    const yesterday = addDays(selectedDate, -1);
-    const { data } = await supabase
-      .from('food_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('meal_timestamp', startOfDateIso(yesterday))
-      .lt('meal_timestamp', endOfDateIso(yesterday));
-
-    const previousMeals = (data as FoodLog[]) ?? [];
-    if (previousMeals.length > 0) {
-      await supabase.from('food_logs').insert(
-        previousMeals.map(meal => ({
-          user_id: session.user!.id,
-          meal_name: meal.meal_name,
-          meal_category: meal.meal_category,
-          calories: meal.calories,
-          protein_g: meal.protein_g,
-          carbs_g: meal.carbs_g,
-          fat_g: meal.fat_g,
-          fiber_g: meal.fiber_g,
-          sodium_mg: meal.sodium_mg,
-        })),
-      );
-      await refreshMeals();
-    }
-    setCopying(false);
-  }
-
-  // Apply a portion adjustment from the edit sheet. In 'edit' mode it updates
-  // the existing row; in 'today' mode it logs a scaled copy into today.
-  async function applyMealChange(multiplier: number, category: MealCategory) {
-    if (!session?.user || !editingMeal) return;
-    const { meal, mode } = editingMeal;
-    const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
-    const scaled = {
-      calories: s(meal.calories),
-      protein_g: s(meal.protein_g),
-      carbs_g: s(meal.carbs_g),
-      fat_g: s(meal.fat_g),
-      fiber_g: s(meal.fiber_g),
-      sodium_mg: s(meal.sodium_mg),
-      saturated_fat_g: s(meal.saturated_fat_g),
-      trans_fat_g: s(meal.trans_fat_g),
-      poly_fat_g: s(meal.poly_fat_g),
-      mono_fat_g: s(meal.mono_fat_g),
-    };
-    setSavingMeal(true);
-    if (mode === 'edit') {
-      await supabase.from('food_logs').update({ ...scaled, meal_category: category }).eq('id', meal.id);
-      await refreshMeals();
-    } else {
-      await supabase.from('food_logs').insert({
-        user_id: session.user.id,
-        meal_name: meal.meal_name,
-        meal_category: category,
-        ...scaled,
-      });
-      setAddedMealIds(prev => new Set(prev).add(meal.id));
-      if (isToday(selectedDate)) await refreshMeals();
-    }
-    setSavingMeal(false);
-    setEditingMeal(null);
-  }
 
   return (
     <div className="min-h-full px-6 pt-4 pb-8">
@@ -239,27 +215,8 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
         </div>
       ) : (
         <>
-      <div className="anim-drop-in mt-4 flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => setSelectedDate(current => addDays(current, -1))}
-          aria-label="Previous day"
-          className="glass flex h-7 w-7 items-center justify-center rounded-full"
-        >
-          <ChevronLeft size={14} className="text-[var(--muted)]" />
-        </button>
-        <h1 className="w-28 text-center text-sm font-bold tracking-wide text-[var(--text)]">
-          {dateLabel(selectedDate)}
-        </h1>
-        <button
-          type="button"
-          onClick={() => setSelectedDate(current => addDays(current, 1))}
-          disabled={isToday(selectedDate)}
-          aria-label="Next day"
-          className="glass flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-30"
-        >
-          <ChevronRight size={14} className="text-[var(--muted)]" />
-        </button>
+      <div className="anim-drop-in mt-4">
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {/* BMI */}
@@ -273,12 +230,12 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
       {(() => {
         if (!profile?.birth_date || !profile?.gender || !profile?.height || latestWeight == null) return null;
         const actualAge = ageFromBirthDate(profile.birth_date);
-        const bmiVal = latestWeight / Math.pow(profile.height / 100, 2);
         const bodyFat = measurement?.calculated_body_fat ?? null;
         const metabolicAge = computeMetabolicAge({
           ageYears: actualAge,
           gender: profile.gender,
-          bmi: bmiVal,
+          weightKg: latestWeight,
+          heightCm: profile.height,
           bodyFatPercent: bodyFat,
           activity: profile.activity_level ?? null,
         });
@@ -289,6 +246,79 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               metabolicAge={metabolicAge}
               actualAge={actualAge}
               basis={bodyFat != null ? 'bodyFat' : 'bmi'}
+            />
+          </div>
+        );
+      })()}
+
+      {/* Smart hydration + electrolytes */}
+      {(() => {
+        const targets = computeHydrationTargets({
+          weightKg: latestWeight ?? null,
+          gender: profile?.gender ?? null,
+          proteinG: profile?.protein_target_g ?? suggestedMacros?.proteinG ?? null,
+          fiberG: profile?.fiber_target_g ?? null,
+          deficitKcal,
+          activity: profile?.activity_level ?? null,
+          activeKcal: todayLog?.active_calories_burned ?? null,
+        });
+        if (!targets) return null;
+        // Today's intake: water + logged electrolytes, plus dietary sodium from meals.
+        // Estimate potassium/magnesium/calcium from the foods logged today so
+        // logging a banana etc. fills the mineral tiles automatically.
+        const foodMin = estimateMineralsFromMeals(meals);
+        const intake = {
+          waterMl: todayLog?.water_ml ?? 0,
+          sodiumMg: (todayLog?.sodium_mg ?? 0) + Math.round(totals.sodium_mg ?? 0),
+          potassiumMg: (todayLog?.potassium_mg ?? 0) + foodMin.totals.potassium,
+          magnesiumMg: (todayLog?.magnesium_mg ?? 0) + foodMin.totals.magnesium,
+          calciumMg: (todayLog?.calcium_mg ?? 0) + foodMin.totals.calcium,
+          fiberG: Math.round(totals.fiber_g ?? 0),
+        };
+        // Attribution: per-mineral list of where today's amount came from, so
+        // tapping a mineral shows the meals / manual entries behind the number.
+        const sodiumFromMeals = meals
+          .filter(m => (m.sodium_mg ?? 0) > 0)
+          .map(m => ({ label: m.meal_name ?? 'Meal', mg: m.sodium_mg ?? 0 }))
+          .sort((a, b) => b.mg - a.mg);
+        const foodSource = (mineral: 'potassium' | 'magnesium' | 'calcium') =>
+          foodMin.byFood
+            .filter(f => f[mineral] > 0)
+            .map(f => ({ label: `${f.name} (est.)`, mg: f[mineral] }));
+        const sources = {
+          sodium: [
+            ...(todayLog?.sodium_mg ? [{ label: 'Added manually', mg: todayLog.sodium_mg }] : []),
+            ...sodiumFromMeals,
+          ].sort((a, b) => b.mg - a.mg),
+          potassium: [
+            ...(todayLog?.potassium_mg ? [{ label: 'Added manually', mg: todayLog.potassium_mg }] : []),
+            ...foodSource('potassium'),
+          ].sort((a, b) => b.mg - a.mg),
+          magnesium: [
+            ...(todayLog?.magnesium_mg ? [{ label: 'Added manually', mg: todayLog.magnesium_mg }] : []),
+            ...foodSource('magnesium'),
+          ].sort((a, b) => b.mg - a.mg),
+          calcium: [
+            ...(todayLog?.calcium_mg ? [{ label: 'Added manually', mg: todayLog.calcium_mg }] : []),
+            ...foodSource('calcium'),
+          ].sort((a, b) => b.mg - a.mg),
+        };
+        // Fibre comes straight from logged food — list the meals that provided it.
+        const fibreSources = meals
+          .filter(m => (m.fiber_g ?? 0) > 0)
+          .map(m => ({ label: m.meal_name ?? 'Meal', g: Math.round((m.fiber_g ?? 0) * 10) / 10 }))
+          .sort((a, b) => b.g - a.g);
+        return (
+          <div className="mt-4">
+            <HydrationCard
+              targets={targets}
+              intake={intake}
+              sources={sources}
+              fibreSources={fibreSources}
+              currentWaterGoalMl={settings.waterGoalMl}
+              onApplyWater={ml => saveSettings({ waterGoalMl: ml })}
+              onLogElectrolytes={onLogElectrolytes}
+              onAddMineralFromFood={addMineralFromFood}
             />
           </div>
         );
@@ -311,10 +341,26 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
               </p>
             </div>
           </div>
-          <p className="text-sm font-bold text-[var(--text)]">
-            {Math.round(totals.calories)}{' '}
-            <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
-          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setRefreshingWeight(true);
+                await Promise.all([refreshWeightLogs(), refreshTodayLog()]);
+                setRecalibPending(true); // apply the freshly-pulled weight to the target
+                setRefreshingWeight(false);
+              }}
+              aria-label="Recalculate with latest weight"
+              title="Recalculate with my latest weigh-in"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--bg)]"
+            >
+              <RefreshCw size={14} className={refreshingWeight ? 'animate-spin' : ''} />
+            </button>
+            <p className="text-sm font-bold text-[var(--text)]">
+              <AnimatedNumber value={totals.calories} />{' '}
+              <span className="text-xs font-semibold text-[var(--muted)]">kcal</span>
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -369,225 +415,28 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
                 </div>
               ))}
             </div>
-            <p className="mt-1.5 text-[9px] text-[var(--muted)]">
+            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
               Estimates from your BMR + activity. Losing faster than ~1 kg/week or eating below
               ~1500 kcal isn't usually recommended.
             </p>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Adaptive maintenance from real data */}
-      {adaptiveTdee ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.13s' }}>
-          <AdaptiveTdeeCard data={adaptiveTdee} formulaTdee={tdee} />
-        </div>
-      ) : null}
-
-
-      {/* Macro goals */}
-      {macroGoals.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-3 p-5" style={{ animationDelay: '0.12s' }}>
-          <p className="text-sm font-semibold text-[var(--text)]">Today's Goals</p>
-          {macroGoals.map(goal => {
-            const percent = Math.min(100, (goal.value / goal.target) * 100);
-            return (
-              <div key={goal.label}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text)]">
-                    {goal.label}
-                    {goal.suggested ? (
-                      <span className="ml-1 text-[9px] font-medium text-[var(--muted)]">(suggested)</span>
-                    ) : null}
-                  </span>
-                  <span className="text-[var(--muted)]">
-                    {Math.round(goal.value)} / {goal.target}
-                    {goal.unit}
-                  </span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg)]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${percent}%`, background: 'var(--accent)' }}
-                  />
-                </div>
+            {latestWeight != null && profile?.height && profile?.birth_date && profile?.gender ? (
+              <div className="mt-2 grid grid-cols-2 gap-x-3 border-t border-[var(--card-border)] pt-1.5 text-[10px] text-[var(--muted)]">
+                <span>* Weight {weightValue(calorieWeight ?? latestWeight, wUnit)}{wUnit}</span>
+                <span>Height {Math.round(profile.height)} cm</span>
+                <span>Age {ageFromBirthDate(profile.birth_date)} yr · {profile.gender}</span>
+                <span>{ACTIVITY_SHORT[profile.activity_level ?? 'light'] ?? 'Lightly active'}</span>
               </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {/* Diary */}
-      <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.14s' }}>
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-sm font-semibold text-[var(--text)]">Diary</p>
-          <button
-            type="button"
-            onClick={onQuickAddCalories}
-            className="text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
-          >
-            + Quick add
-          </button>
-        </div>
-
-        {totals.mealCount === 0 && isToday(selectedDate) ? (
-          <button
-            type="button"
-            onClick={copyYesterdaysMeals}
-            disabled={copying}
-            className="mb-2 flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
-            style={{ color: 'var(--accent)' }}
-          >
-            <Copy size={13} />
-            {copying ? 'Copying...' : "Copy yesterday's meals"}
-          </button>
-        ) : null}
-
-        {totals.mealCount === 0 ? (
-          <p className="text-xs text-[var(--muted)]">No meals logged for this day.</p>
-        ) : (
-          mealsByCategory.map(category =>
-            category.meals.length > 0 ? (
-              <div key={category.key} className="mb-3 last:mb-0">
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
-                    {category.label}
-                  </p>
-                  <p className="text-[10px] font-semibold text-[var(--muted)]">
-                    {Math.round(category.meals.reduce((sum, m) => sum + (m.calories ?? 0), 0))} kcal
-                  </p>
-                </div>
-                {category.meals.map(meal => (
-                  <div
-                    key={meal.id}
-                    className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setEditingMeal({ meal, mode: 'edit' })}
-                      className="min-w-0 flex-1 pr-2 text-left"
-                      aria-label={`Edit ${meal.meal_name}`}
-                    >
-                      <p className="text-sm font-medium text-[var(--text)]">{meal.meal_name}</p>
-                      <p className="text-[10px] text-[var(--muted)]">
-                        {formatMealTime(meal.meal_timestamp)} · {meal.calories ?? 0} kcal ·{' '}
-                        {meal.protein_g ?? 0}g protein · tap to edit
-                      </p>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-1">
-                      {!isToday(selectedDate) ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditingMeal({ meal, mode: 'today' })}
-                          disabled={addedMealIds.has(meal.id)}
-                          aria-label={`Add ${meal.meal_name} to today`}
-                          className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-bold disabled:opacity-70"
-                          style={
-                            addedMealIds.has(meal.id)
-                              ? { background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#16a34a' }
-                              : { background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }
-                          }
-                        >
-                          {addedMealIds.has(meal.id) ? (
-                            <>
-                              <Check size={12} /> Added
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={12} /> Today
-                            </>
-                          )}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => deleteMeal(meal.id)}
-                        aria-label={`Delete ${meal.meal_name}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null,
-          )
-        )}
-      </div>
-
-      {/* Weight */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex flex-col gap-2 p-5"
-        style={{
-          animationDelay: '0.18s',
-          background: 'linear-gradient(160deg, rgba(108,99,255,0.1), rgba(108,99,255,0.02))',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
-            <Activity size={16} style={{ color: 'var(--accent)' }} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text)]">Weight</p>
-            <p className="text-[10px] font-medium text-[var(--muted)]">
-              {weightValues.length >= 2
-                ? `${weightValue(weightValues[0], wUnit)}${wUnit} -> ${weightValue(latestWeight, wUnit)}${wUnit} over last ${weightValues.length} entries`
-                : 'Log your weight to start a trend'}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex h-16 items-end justify-between">
-          <p className="text-5xl font-black tracking-tighter text-[var(--text)]">
-            {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
-            {latestWeight != null ? (
-              <span className="text-lg font-bold text-[var(--muted)]"> {wUnit}</span>
             ) : null}
-          </p>
-          {weightValues.length >= 2 ? <WeightSparkline values={weightValues} /> : null}
-        </div>
+          </div>
+        ) : null}
       </div>
-
-      {/* Weight history */}
-      {weightEntries.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Weigh-ins</p>
-          {weightEntries
-            .slice()
-            .reverse()
-            .map(entry => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
-              >
-                <p className="text-sm text-[var(--text)]">
-                  {formatShortDate(entry.log_date)} ·{' '}
-                  <span className="font-semibold">
-                    {weightValue(entry.weight, wUnit)}
-                    {wUnit}
-                  </span>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => clearWeight(entry.id)}
-                  aria-label="Delete weight entry"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-red-500/70"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-        </div>
-      ) : null}
 
       {/* Progress photos */}
       <button
         type="button"
         onClick={onOpenProgressPhotos}
         className="glass-card anim-fade-rise mt-4 flex w-full items-center gap-3 p-4 text-left"
-        style={{ animationDelay: '0.24s' }}
+        style={{ animationDelay: '0.14s' }}
       >
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]/10">
           <Camera size={16} style={{ color: 'var(--accent)' }} />
@@ -603,107 +452,150 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
 
       {/* Physique scan history */}
       {bodyScans.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.25s' }}>
+        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.16s' }}>
           <p className="mb-1 text-sm font-semibold text-[var(--text)]">Physique scans</p>
           <p className="mb-3 text-[10px] text-[var(--muted)]">
             {bodyScans.length} scan{bodyScans.length === 1 ? '' : 's'} · directional AI coaching, not
             a medical assessment
           </p>
 
-          {/* Latest, expanded */}
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
-              {formatScanDate(bodyScans[0].created_at)} · latest
-            </p>
-            <button
-              type="button"
-              onClick={() => removeScan(bodyScans[0].id)}
-              aria-label="Delete scan"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-          <BodyScanReadout result={scanToResult(bodyScans[0])} />
-
-          {/* Earlier scans — tap to expand */}
-          {bodyScans.length > 1 ? (
-            <div className="mt-4 border-t border-[var(--card-border)] pt-3">
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
-                Earlier
-              </p>
-              {bodyScans.slice(1).map(scan => {
-                const open = openScanId === scan.id;
-                return (
-                  <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOpenScanId(open ? null : scan.id)}
-                        className="flex flex-1 items-center justify-between text-left"
-                      >
-                        <span className="text-xs text-[var(--text)]">{formatScanDate(scan.created_at)}</span>
-                        <ChevronRight
-                          size={14}
-                          className="text-[var(--muted)] transition-transform"
-                          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeScan(scan.id)}
-                        aria-label="Delete scan"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                    {open ? (
-                      <div className="mt-2">
-                        <BodyScanReadout result={scanToResult(scan)} />
-                      </div>
-                    ) : (
-                      <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</p>
-                    )}
-                  </div>
-                );
-              })}
+          {/* Scans — tap a row to open the full coaching read in a large sheet
+             (latest first). Show ~2, the rest scroll so the section stays short. */}
+          <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 156 }}>
+          {bodyScans.map((scan, i) => (
+            <div key={scan.id} className="border-b border-[var(--card-border)] py-2 last:border-b-0">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenScanId(scan.id)}
+                  className="flex min-w-0 flex-1 flex-col text-left"
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-[var(--text)]">
+                      {formatScanDate(scan.created_at)}
+                      {i === 0 ? <span className="text-[var(--muted)]"> · latest</span> : null}
+                    </span>
+                    <ChevronRight size={14} className="shrink-0 text-[var(--muted)]" />
+                  </span>
+                  <span className="mt-0.5 line-clamp-1 text-[11px] text-[var(--muted)]">{scan.summary}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeScan(scan.id)}
+                  aria-label="Delete scan"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-red-500/70"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
-          ) : null}
+          ))}
+          </div>
         </div>
       ) : null}
 
-      {/* Body fat */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
-        style={{
-          animationDelay: '0.26s',
-          background: 'linear-gradient(160deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02))',
-        }}
+      {/* Full physique-scan readout in a roomy sheet */}
+      <Sheet
+        open={openScan != null}
+        onClose={() => setOpenScanId(null)}
+        title={openScan ? `Physique scan · ${formatScanDate(openScan.created_at)}` : 'Physique scan'}
       >
-        <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
-          <Activity size={16} className="text-purple-600" />
+        {openScan ? <BodyScanReadout result={scanToResult(openScan)} /> : null}
+      </Sheet>
+
+      {/* Weight (compact) — grouped with body measurements */}
+      <div className="glass-card anim-fade-rise mt-4 p-4" style={{ animationDelay: '0.18s' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)]/10">
+              <Activity size={14} style={{ color: 'var(--accent)' }} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[var(--text)]">Weight</p>
+              <p className="text-[10px] text-[var(--muted)]">
+                {weightValues.length >= 2 ? `${weightValues.length} entries` : 'Log to start a trend'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {sparkValues.length >= 2 ? (
+              <WeightSparkline values={sparkValues} width={90} height={30} />
+            ) : null}
+            <p className="text-2xl font-black tracking-tight text-[var(--text)]">
+              {latestWeight != null ? weightValue(latestWeight, wUnit) : '--'}
+              {latestWeight != null ? (
+                <span className="text-sm font-bold text-[var(--muted)]"> {wUnit}</span>
+              ) : null}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
-          <p className="text-[10px] text-[var(--muted)]">
-            {measurement?.calculated_body_fat != null
-              ? `${measurement.calculated_body_fat.toFixed(1)}% - U.S. Navy method`
-              : 'No measurements logged yet'}
-          </p>
+
+        <div className="mt-3 border-t border-[var(--card-border)] pt-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Weigh-ins
+            </p>
+            <MonthPager anchor={statsMonth} onChange={setStatsMonth} />
+          </div>
+          {monthWeighIns.length === 0 ? (
+            <p className="py-1.5 text-[11px] text-[var(--muted)]">No weigh-ins this month.</p>
+          ) : (
+            <div className="hide-scrollbar overflow-y-auto" style={{ maxHeight: 92 }}>
+              {monthWeighIns
+                .slice()
+                .reverse()
+                .map(entry => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between border-b border-[var(--card-border)] py-2 last:border-b-0"
+                  >
+                    <p className="text-xs text-[var(--text)]">
+                      {formatShortDate(entry.log_date)} ·{' '}
+                      <span className="font-semibold">
+                        {weightValue(entry.weight, wUnit)}
+                        {wUnit}
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => clearWeight(entry.id)}
+                      aria-label="Delete weight entry"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-red-500/70"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Per-site progress trends */}
-      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.28s' }}>
-        <MeasurementProgressCard />
+      {/* Per-site progress chart — week/month/year, above the measurements table */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.19s' }}>
+        <MeasurementTrendChart group={measureGroup} onGroupChange={setMeasureGroup} />
       </div>
 
-      {/* Measurement history */}
-      {measurements.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.3s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Recent Measurements</p>
-          {measurements.map(entry => (
+      {/* Per-site progress trends — group stays in sync with the chart above */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
+        <MeasurementProgressCard group={measureGroup} />
+      </div>
+
+      {/* Milestones — flags shown on the trend charts above */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.21s' }}>
+        <MilestonesCard />
+      </div>
+
+      {/* Measurement history — month-paged (older also lives in the chart above) */}
+      <div className="glass-card anim-fade-rise mt-4 flex flex-col gap-1 p-5" style={{ animationDelay: '0.22s' }}>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--text)]">Measurements</p>
+          <MonthPager anchor={statsMonth} onChange={setStatsMonth} />
+        </div>
+        {monthMeasurements.length === 0 ? (
+          <p className="py-1 text-xs text-[var(--muted)]">No measurements this month.</p>
+        ) : (
+          monthMeasurements.map(entry => (
             <div
               key={entry.id}
               className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
@@ -729,20 +621,46 @@ export function StatsScreen({ onQuickAddCalories, onOpenProgressPhotos }: Props)
                 <Trash2 size={15} />
               </button>
             </div>
-          ))}
+          ))
+        )}
+      </div>
+
+      {/* Body fat — sits with the body-composition group */}
+      <div
+        className="glass-card anim-fade-rise mt-4 flex items-center gap-3 p-4"
+        style={{
+          animationDelay: '0.24s',
+          background: 'linear-gradient(160deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02))',
+        }}
+      >
+        <div className="glass flex h-8 w-8 items-center justify-center rounded-full">
+          <Activity size={16} className="text-purple-600" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-[var(--text)]">Body Fat</p>
+          <p className="text-[10px] text-[var(--muted)]">
+            {measurement?.calculated_body_fat != null
+              ? `${measurement.calculated_body_fat.toFixed(1)}% - U.S. Navy method`
+              : 'No measurements logged yet'}
+          </p>
+        </div>
+      </div>
+
+      {/* Adaptive maintenance from real data — last, it's the most advanced read */}
+      {adaptiveTdee ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.26s' }}>
+          <AdaptiveTdeeCard
+            data={adaptiveTdee}
+            formulaTdee={tdee}
+            currentTarget={calorieTarget}
+            deficitKcal={deficitKcal}
+            onApplyTarget={kcal => void saveProfile({ calorie_target_override: kcal })}
+          />
         </div>
       ) : null}
         </>
       )}
       </div>
-
-      <MealEditSheet
-        meal={editingMeal?.meal ?? null}
-        mode={editingMeal?.mode ?? 'edit'}
-        saving={savingMeal}
-        onClose={() => setEditingMeal(null)}
-        onConfirm={applyMealChange}
-      />
     </div>
   );
 }
@@ -754,7 +672,7 @@ function MacroTile({ label, value, target }: { label: string; value: string; tar
         {value}
         {target ? <span className="font-medium text-[var(--muted)]"> / {target}</span> : null}
       </p>
-      <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
 }

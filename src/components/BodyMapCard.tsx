@@ -1,21 +1,62 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Plus } from 'lucide-react';
 import { useMuscleActivity, type MusclePeriod } from '../hooks/useMuscleActivity';
-import { exercisesForMuscle, MUSCLE_LABEL, muscleHeat, type MuscleExercise, type MuscleKey } from '../data/muscles';
+import { primaryMuscle, MUSCLE_LABEL, muscleHeat, MUSCLE_HEAT_GRADIENT, type MuscleKey } from '../data/muscles';
+import { exercisesForMuscle, type MuscleExercise } from '../data/muscleExercises';
 import { useWorkoutPlan } from '../hooks/useWorkoutPlan';
-import { todayDateString } from '../utils/date';
+import { addDays, startOfWeek, todayDateString } from '../utils/date';
 import { MuscleMap } from './MuscleMap';
 import { ExerciseDetail } from './ExerciseDetail';
 import { Sheet } from './Sheet';
+import { SkeletonLines } from './Skeleton';
 
 export function BodyMapCard({ large }: { large?: boolean } = {}) {
   const [period, setPeriod] = useState<MusclePeriod>('week');
-  const { data, loading } = useMuscleActivity(period);
+  const [viewAnchor, setViewAnchor] = useState(todayDateString());
+  const { data, loading } = useMuscleActivity(period, viewAnchor);
   const { addExercise } = useWorkoutPlan();
   const [selected, setSelected] = useState<MuscleKey | null>(null);
   const [selectedEx, setSelectedEx] = useState<MuscleExercise | null>(null);
   const [planDate, setPlanDate] = useState(todayDateString());
   const [added, setAdded] = useState(false);
+  const [openMuscle, setOpenMuscle] = useState<string | null>(null);
+
+  // Group "workouts done" by muscle, using the SAME volumes as the muscles-worked
+  // list above so the two stay in sync — each muscle's total is its training
+  // volume, and expanding shows every exercise that trained it.
+  const doneGroups = useMemo(() => {
+    const ranked = (Object.keys(data.volumes) as MuscleKey[]).sort(
+      (a, b) => (data.volumes[b] ?? 0) - (data.volumes[a] ?? 0),
+    );
+    return ranked
+      .map(m => ({
+        key: m as string,
+        label: MUSCLE_LABEL[m],
+        volume: data.volumes[m] ?? 0,
+        exercises: data.exercises.filter(ex => primaryMuscle(ex.name) === m),
+      }))
+      .filter(g => g.exercises.length > 0);
+  }, [data]);
+
+  const today = todayDateString();
+  // Already viewing the current day / week? (then forward is disabled)
+  const atPresent =
+    period === 'today' ? viewAnchor >= today : startOfWeek(viewAnchor) >= startOfWeek(today);
+
+  function stepView(dir: -1 | 1) {
+    setViewAnchor(a => addDays(a, dir * (period === 'today' ? 1 : 7)));
+  }
+
+  function fmtShort(d: string): string {
+    return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  // Label for the window being viewed — a day, or a Mon–Sun range.
+  function periodRangeLabel(): string {
+    if (period === 'today') return viewAnchor === today ? 'Today' : fmtShort(viewAnchor);
+    const ws = startOfWeek(viewAnchor);
+    return `${fmtShort(ws)} – ${fmtShort(addDays(ws, 6))}`;
+  }
 
   function closeSheet() {
     setSelected(null);
@@ -41,10 +82,10 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
     <div className="glass-card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-[var(--text)]">Muscles worked</p>
-        <div className="flex rounded-full bg-[var(--bg)] p-0.5">
+        <div className="flex rounded-full bg-[var(--input-bg)] p-0.5">
           {([
             { key: 'today', label: 'Today' },
-            { key: 'week', label: '7 days' },
+            { key: 'week', label: 'This week' },
           ] as const).map(o => (
             <button
               key={o.key}
@@ -53,7 +94,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
               className="rounded-full px-3 py-1 text-[10px] font-bold"
               style={
                 period === o.key
-                  ? { background: 'var(--accent)', color: '#fff' }
+                  ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                   : { color: 'var(--muted)' }
               }
             >
@@ -63,40 +104,96 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         </div>
       </div>
 
+      {/* Date navigation — page back through days / weeks */}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => stepView(-1)}
+          aria-label="Earlier"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--input-bg)]"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <label className="relative flex cursor-pointer items-center gap-1.5 rounded-full bg-[var(--input-bg)] px-3 py-1 text-xs font-semibold text-[var(--text)]">
+          <CalendarDays size={13} className="text-[var(--accent)]" />
+          {periodRangeLabel()}
+          <input
+            type="date"
+            value={viewAnchor}
+            max={today}
+            onChange={e => e.target.value && setViewAnchor(e.target.value)}
+            aria-label="Jump to date"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => stepView(1)}
+          disabled={atPresent}
+          aria-label="Later"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] disabled:opacity-30 active:bg-[var(--input-bg)]"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
       <MuscleMap intensity={data.intensity} onSelect={setSelected} large={large} />
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-2 text-[9px] text-[var(--muted)]">
-        <span>Less</span>
-        <span className="flex h-2 w-24 rounded-full" style={{ background: 'linear-gradient(90deg, #eef1f6, #fdba74, #b91c1c)' }} />
-        <span>More</span>
+      {/* Legend. The gradient comes from the same constants the figures fill
+          with, and the first stop is the idle token — the old bar opened on a
+          light-mode literal, so on the dark card it glowed at the "none" end. */}
+      <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--muted)]">
+        <span>Rested</span>
+        <span
+          className="flex h-1.5 w-28 rounded-full"
+          style={{ background: MUSCLE_HEAT_GRADIENT }}
+        />
+        <span>Worked hard</span>
       </div>
 
       {/* Ranked list */}
       {loading ? (
-        <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonLines lines={4} label="Loading muscle ranking" />
       ) : ranked.length === 0 ? (
         <p className="text-center text-xs text-[var(--muted)]">
           Log a workout and the muscles you trained light up here.
         </p>
       ) : (
         <div className="flex flex-col gap-1.5">
-          {ranked.map(m => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setSelected(m)}
-              className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2 text-left"
-            >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(data.intensity[m] ?? 0) }} />
-              <span className="flex-1 text-xs font-semibold text-[var(--text)]">{MUSCLE_LABEL[m]}</span>
-              <span className="text-[11px] tabular-nums text-[var(--muted)]">
-                {Math.round(data.volumes[m] ?? 0).toLocaleString()}
-              </span>
-            </button>
-          ))}
-          <p className="mt-1 text-[9px] text-[var(--muted)]">
-            Numbers are training volume (weight × reps). Tap a muscle for exercises.
+          {(() => {
+            const top = Math.max(...ranked.map(m => data.volumes[m] ?? 0), 1);
+            return ranked.map(m => {
+              const vol = data.volumes[m] ?? 0;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setSelected(m)}
+                  className="relative flex items-center gap-2.5 overflow-hidden rounded-xl bg-[var(--input-bg)] px-3 py-2 text-left"
+                >
+                  {/* Volume as length, not just as a number to read. Sits behind
+                      the label at low opacity so the row stays legible. */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 rounded-xl"
+                    style={{
+                      width: `${Math.max(4, (vol / top) * 100)}%`,
+                      background: muscleHeat(data.intensity[m] ?? 0),
+                      opacity: 0.2,
+                    }}
+                  />
+                  <span className="relative flex-1 text-xs font-semibold text-[var(--text)]">
+                    {MUSCLE_LABEL[m]}
+                  </span>
+                  <span className="relative text-[11px] font-semibold tabular-nums text-[var(--muted)]">
+                    {Math.round(vol).toLocaleString()}
+                  </span>
+                </button>
+              );
+            });
+          })()}
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
+            Bars are training volume (weight × reps). Tap a muscle for exercises.
           </p>
         </div>
       )}
@@ -105,10 +202,10 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
     {/* Workouts done, ranked high -> low by volume */}
     <div className="glass-card flex flex-col gap-1.5 p-5">
       <p className="text-sm font-semibold text-[var(--text)]">
-        Workouts done · {period === 'today' ? 'today' : 'last 7 days'}
+        Workouts done · {periodRangeLabel()}
       </p>
       {loading ? (
-        <p className="text-center text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonLines lines={3} label="Loading workouts" />
       ) : data.exercises.length === 0 ? (
         <p className="text-xs text-[var(--muted)]">
           No workouts logged in this window. Log a session and every exercise ranks here — hardest
@@ -116,37 +213,93 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
         </p>
       ) : (
         <>
-          {data.exercises.map(ex => {
-            const top = data.exercises[0].volume || 1;
-            const frac = ex.volume / top;
-            const t = Math.pow(frac, 0.6);
+          {doneGroups.map(g => {
+            const groupTop = doneGroups[0].volume || 1;
+            const gFrac = g.volume / groupTop;
+            const gT = Math.pow(gFrac, 0.6);
+            const open = openMuscle === g.key;
+            const exTop = Math.max(1, ...g.exercises.map(e => e.volume));
             return (
-              <div key={ex.name} className="relative overflow-hidden rounded-xl bg-[var(--bg)]">
-                <div
-                  className="absolute inset-y-0 left-0"
-                  style={{
-                    width: `${Math.max(8, frac * 100)}%`,
-                    background: `color-mix(in srgb, ${muscleHeat(t)} 24%, transparent)`,
-                  }}
-                />
-                <div className="relative flex items-center gap-2.5 px-3 py-2">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(t) }} />
-                  <span className="flex-1 truncate text-xs font-semibold capitalize text-[var(--text)]">
-                    {ex.name}
-                  </span>
-                  <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
-                    ×{ex.sets} · {ex.reps} reps
-                  </span>
-                </div>
+              <div key={g.key} className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => setOpenMuscle(open ? null : g.key)}
+                  className="relative overflow-hidden rounded-xl bg-[var(--bg)] text-left"
+                >
+                  <div
+                    className="absolute inset-y-0 left-0"
+                    style={{ width: `${Math.max(8, gFrac * 100)}%`, background: `color-mix(in srgb, ${muscleHeat(gT)} 24%, transparent)` }}
+                  />
+                  <div className="relative flex items-center gap-2.5 px-3 py-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: muscleHeat(gT) }} />
+                    <span className="flex-1 text-xs font-bold text-[var(--text)]">
+                      {g.label}
+                      <span className="ml-1 font-medium text-[var(--muted)]">· {g.exercises.length}</span>
+                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+                      {Math.round(g.volume).toLocaleString()}
+                    </span>
+                    <ChevronRight
+                      size={13}
+                      className="shrink-0 text-[var(--muted)] transition-transform"
+                      style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+                    />
+                  </div>
+                </button>
+                {open ? (
+                  <div className="flex flex-col gap-1 pl-3">
+                    {g.exercises
+                      .slice()
+                      .sort((a, b) => b.volume - a.volume)
+                      .map(ex => {
+                        const frac = ex.volume / exTop;
+                        const t = Math.pow(frac, 0.6);
+                        return (
+                          <div key={ex.name} className="relative overflow-hidden rounded-lg bg-[var(--bg)]">
+                            <div
+                              className="absolute inset-y-0 left-0"
+                              style={{ width: `${Math.max(8, frac * 100)}%`, background: `color-mix(in srgb, ${muscleHeat(t)} 20%, transparent)` }}
+                            />
+                            <div className="relative flex items-center gap-2 px-3 py-1.5">
+                              <span className="flex-1 truncate text-[11px] capitalize text-[var(--text)]">{ex.name}</span>
+                              <span className="shrink-0 text-[10px] tabular-nums text-[var(--muted)]">
+                                ×{ex.sets} · {ex.reps} reps
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : null}
               </div>
             );
           })}
-          <p className="mt-1 text-[9px] text-[var(--muted)]">
-            Bar length = training volume (weight × reps). Hardest-hit on top. ×sets · total reps.
+          <p className="mt-1 text-[10px] text-[var(--muted)]">
+            Grouped by muscle · bar = training volume (weight × reps). Tap a muscle to see its
+            exercises. ×sets · total reps.
           </p>
         </>
       )}
     </div>
+
+    {/* Cardio — time/distance work that isn't muscle-mapped */}
+    {data.cardio.length > 0 ? (
+      <div className="glass-card flex flex-col gap-1.5 p-5">
+        <p className="text-sm font-semibold text-[var(--text)]">Cardio · {periodRangeLabel()}</p>
+        {data.cardio.map(c => (
+          <div key={c.name} className="flex items-center gap-2.5 rounded-xl bg-[var(--bg)] px-3 py-2">
+            <span className="flex-1 text-xs font-semibold capitalize text-[var(--text)]">{c.name}</span>
+            <span className="shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+              {c.durationMin > 0 ? `${Math.round(c.durationMin)} min` : `${c.sets}×`}
+              {c.distanceKm > 0 ? ` · ${Math.round(c.distanceKm * 10) / 10} km` : ''}
+            </span>
+          </div>
+        ))}
+        <p className="mt-1 text-[10px] text-[var(--muted)]">
+          Cardio is tracked by time &amp; distance, so it's shown here rather than on the muscle map.
+        </p>
+      </div>
+    ) : null}
 
       <Sheet
         open={selected != null}
@@ -199,8 +352,11 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
                 setAdded(true);
               }}
               disabled={added}
-              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-70"
-              style={{ background: added ? '#22c55e' : 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold disabled:opacity-70"
+              style={{
+                background: added ? '#22c55e' : 'var(--accent-gradient)',
+                color: added ? '#ffffff' : 'var(--on-accent)',
+              }}
             >
               {added ? (
                 <>
@@ -218,7 +374,7 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
           <div className="flex flex-col gap-3">
             <div className="glass-card flex items-center justify-between p-4">
               <span className="text-xs text-[var(--muted)]">
-                {period === 'today' ? 'Today' : 'Last 7 days'} volume
+                {period === 'today' ? 'Today' : 'This week'} volume
               </span>
               <span className="text-sm font-bold text-[var(--text)]">
                 {Math.round(data.volumes[selected] ?? 0).toLocaleString()}

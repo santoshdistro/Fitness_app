@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays, endOfDateIso, startOfDateIso, todayDateString } from '../utils/date';
+import { endOfDateIso, startOfDateIso, startOfWeek, todayDateString } from '../utils/date';
 import type { DailyLog, FoodLog } from '../types/database';
 
 export type WeeklyReview = {
@@ -16,6 +16,12 @@ export type WeeklyReview = {
   /** Days (of those logged) within ±15% of the calorie target. */
   calorieOnTargetDays: number | null;
   weightChangeKg: number | null;
+  /** Mean of this week's weigh-ins (kg) — the settled figure for the week. */
+  avgWeightKg: number | null;
+  /** Calories eaten so far this week (Monday → today). */
+  weekCalories: number;
+  /** Days elapsed in the current week, including today. */
+  daysElapsed: number;
 };
 
 type Args = { calorieTarget?: number | null; proteinTarget?: number | null };
@@ -35,7 +41,9 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
     }
     setLoading(true);
     const today = todayDateString();
-    const start = addDays(today, -6);
+    // The current calendar week so far (Monday → today), matching the app's
+    // Monday-start week used by the weekly overview — not a rolling 7 days.
+    const start = startOfWeek(today);
 
     const [foodRes, dailyRes] = await Promise.all([
       supabase
@@ -68,6 +76,16 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
 
     const days = [...perDay.values()];
     const daysLogged = days.length;
+    const weekCalories = Math.round(days.reduce((s, d) => s + d.calories, 0));
+    // How far into the week we are, so a budget can be framed against the days
+    // actually spent rather than the whole seven.
+    const daysElapsed = Math.min(
+      7,
+      Math.round(
+        (new Date(`${todayDateString()}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) /
+          86400000,
+      ) + 1,
+    );
     const avgCalories =
       daysLogged > 0 ? Math.round(days.reduce((s, d) => s + d.calories, 0) / daysLogged) : null;
     const avgProtein =
@@ -101,6 +119,10 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       weights.length >= 2
         ? Math.round((weights[weights.length - 1].weight - weights[0].weight) * 10) / 10
         : null;
+    const avgWeightKg =
+      weights.length > 0
+        ? Math.round((weights.reduce((s, d) => s + d.weight, 0) / weights.length) * 10) / 10
+        : null;
 
     setReview({
       daysLogged,
@@ -110,7 +132,10 @@ export function useWeeklyReview({ calorieTarget, proteinTarget }: Args) {
       avgActiveKcal,
       proteinHitDays,
       calorieOnTargetDays,
+      weekCalories,
+      daysElapsed,
       weightChangeKg,
+      avgWeightKg,
     });
     setLoading(false);
   }, [session?.user, calorieTarget, proteinTarget]);

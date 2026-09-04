@@ -139,6 +139,10 @@ export type GoalProgress = {
   targetWeight: number;
   /** kg moved in the goal direction so far (never negative — 0 if going backwards). */
   achievedKg: number;
+  /** Signed progress toward the goal: positive = right direction, negative = moved away. */
+  netChangeKg: number;
+  /** Raw scale movement since start: positive = weight went up, negative = down. */
+  weightDeltaKg: number;
   /** kg still to go to reach target (0 once hit). */
   remainingKg: number;
   /** 0–100 share of the journey completed. */
@@ -176,7 +180,9 @@ export function computeGoalProgress(params: {
   if (totalJourney < 0.05) return null; // start already at target — nothing to chart
 
   const sign = goalType === 'lose' ? 1 : -1;
-  const achievedKg = Math.max(0, sign * (startWeight - currentWeight));
+  const netChangeKg = sign * (startWeight - currentWeight);
+  const achievedKg = Math.max(0, netChangeKg);
+  const weightDeltaKg = currentWeight - startWeight;
   const remainingKg = Math.max(0, sign * (currentWeight - targetWeight));
   const reached = remainingKg < 0.05;
   const percent = Math.max(0, Math.min(100, (achievedKg / totalJourney) * 100));
@@ -196,6 +202,8 @@ export function computeGoalProgress(params: {
     currentWeight,
     targetWeight,
     achievedKg: Math.round(achievedKg * 10) / 10,
+    netChangeKg: Math.round(netChangeKg * 10) / 10,
+    weightDeltaKg: Math.round(weightDeltaKg * 10) / 10,
     remainingKg: Math.round(remainingKg * 10) / 10,
     percent,
     reached,
@@ -227,27 +235,122 @@ export type MacroTargets = {
  * active reads younger, higher body fat / BMI + sedentary reads older. Uses
  * body-fat % when available, otherwise BMI.
  */
+/**
+ * Metabolic age the way body-composition scales (Tanita / InBody) and online
+ * calculators frame it: your resting metabolism vs. a healthy reference for
+ * your height. Resting metabolism is driven by lean (fat-free) mass, so when
+ * body fat is known we compare your lean mass to a healthy reference and add a
+ * small penalty for excess fat — more muscle / leaner reads younger, less
+ * muscle / more fat reads older. Without body fat we fall back to BMI, which is
+ * what most weight-only calculators use. Motivational, not a medical metric.
+ */
 export function computeMetabolicAge(params: {
   ageYears: number;
   gender: Gender;
-  bmi: number | null;
+  weightKg: number | null;
+  heightCm: number | null;
   bodyFatPercent: number | null;
   activity: ActivityLevel | null;
 }): number | null {
-  const { ageYears, gender, bmi, bodyFatPercent, activity } = params;
-  if (!ageYears) return null;
+  const { ageYears, gender, weightKg, heightCm, bodyFatPercent, activity } = params;
+  if (!ageYears || !weightKg || !heightCm) return null;
 
+  const heightM = heightCm / 100;
   let adj = 0;
+
   if (bodyFatPercent != null) {
-    const ref = gender === 'female' ? 23 : 15; // healthy reference body fat %
-    adj += ((bodyFatPercent - ref) / 5) * 3; // ~3 yrs per 5% off reference
-  } else if (bmi != null) {
-    adj += ((bmi - 22) / 3) * 2; // ~2 yrs per 3 BMI points off 22
+    const refBF = gender === 'female' ? 23 : 15; // healthy reference body fat %
+    // Body fat is the main signal: more fat reads older, leaner reads younger.
+    adj += (bodyFatPercent - refBF) * 0.5;
+
+    // Muscularity judged by fat-free mass index (lean kg per height²), NOT
+    // absolute lean kg — otherwise simply being heavy/over-fat would wrongly
+    // read as "muscular" and cancel the fat penalty. Clamped so it nudges, not
+    // dominates.
+    const leanKg = weightKg * (1 - bodyFatPercent / 100);
+    const ffmi = leanKg / (heightM * heightM);
+    const refFFMI = gender === 'female' ? 15 : 18;
+    const ffmiDelta = Math.max(-5, Math.min(8, ffmi - refFFMI));
+    adj += -ffmiDelta * 1.0; // ~1 yr younger per FFMI point above average
+  } else {
+    const bmi = weightKg / (heightM * heightM);
+    adj += (bmi - 22) * 0.7; // ~0.7 yrs per BMI point over 22
   }
+
   adj +=
     activity === 'very_active' ? -2 : activity === 'moderate' ? -1 : activity === 'sedentary' ? 2 : 0;
 
-  return Math.max(16, Math.round(ageYears + adj));
+  // Keep it within a believable band rather than producing alarming extremes.
+  const bounded = Math.max(ageYears - 12, Math.min(ageYears + 18, ageYears + adj));
+  return Math.max(15, Math.round(bounded));
+}
+
+export type HydrationTargets = {
+  waterMl: number;
+  sodiumMg: number;
+  potassiumMg: number;
+  magnesiumMg: number;
+  calciumMg: number;
+  fiberG: number;
+  note: string;
+};
+
+/**
+ * Smart hydration + electrolyte targets that scale with the things that
+ * actually drive them: bodyweight, protein (urea load), fibre (gut transit),
+ * activity (sweat), and whether you're cutting (more water/sodium loss) or
+ * gaining. General wellness guidance, not medical advice.
+ */
+export function computeHydrationTargets(params: {
+  weightKg: number | null;
+  gender: Gender | null;
+  proteinG: number | null;
+  fiberG: number | null;
+  deficitKcal: number | null;
+  activity: ActivityLevel | null;
+  /** Today's active calories burned — adds sweat replacement to the water goal. */
+  activeKcal?: number | null;
+}): HydrationTargets | null {
+  const { weightKg, gender, proteinG, fiberG, deficitKcal, activity, activeKcal } = params;
+  if (!weightKg) return null;
+  const cutting = (deficitKcal ?? 0) > 0;
+  const gaining = (deficitKcal ?? 0) < 0;
+
+  const actWater =
+    activity === 'very_active' ? 750 : activity === 'moderate' ? 500 : activity === 'light' ? 250 : 0;
+  // Replace fluid lost to today's training sweat (~1 ml per active kcal, capped).
+  const sweatWater = Math.min(1000, Math.max(0, activeKcal ?? 0));
+  // ~35 ml/kg base, +water to process protein & fibre, +sweat, +cutting diuresis.
+  const rawWater =
+    35 * weightKg + (proteinG ?? 0) * 3 + (fiberG ?? 0) * 15 + actWater + sweatWater + (cutting ? 300 : 0);
+  const waterMl = Math.round(Math.min(4500, Math.max(2000, rawWater)) / 100) * 100;
+
+  const actElyte =
+    activity === 'very_active' ? 600 : activity === 'moderate' ? 350 : activity === 'light' ? 150 : 0;
+  const sodiumMg = Math.round(Math.min(3500, 2000 + actElyte + (cutting ? 400 : 0)) / 100) * 100;
+  const potassiumMg =
+    Math.round(
+      Math.min(4700, 3500 + ((fiberG ?? 0) > 25 ? 300 : 0) + (activity === 'very_active' ? 400 : 0)) / 100,
+    ) * 100;
+  let magnesiumMg = gender === 'female' ? 310 : 400;
+  if (cutting || activity === 'very_active') magnesiumMg += 40;
+  magnesiumMg = Math.round(magnesiumMg / 10) * 10;
+
+  // Calcium ~1000 mg/day baseline (bones + muscle function); a touch more when
+  // training hard or cutting, when more is lost in sweat / mobilised.
+  let calciumMg = 1000;
+  if (cutting || activity === 'very_active') calciumMg += 200;
+
+  // Fibre target: use the person's own target if set, else a sensible ~30 g/day.
+  const fiberTarget = fiberG && fiberG > 0 ? Math.round(fiberG) : 30;
+
+  const note = cutting
+    ? 'On a cut you lose water and sodium quickly — keep sodium, potassium & magnesium up to avoid cramps and fatigue, and match water to your protein & fibre.'
+    : gaining
+      ? 'Building: extra carbs hold water so hydration is easier, but higher protein & fibre still need enough water and magnesium to digest well.'
+      : 'Match water to your protein & fibre, and keep electrolytes balanced so what you drink is actually absorbed.';
+
+  return { waterMl, sodiumMg, potassiumMg, magnesiumMg, calciumMg, fiberG: fiberTarget, note };
 }
 
 export function computeSuggestedMacros(params: {

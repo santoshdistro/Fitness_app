@@ -1,5 +1,6 @@
-// Open Food Facts: free, open, no API key, CORS-enabled. Barcode -> product.
-// Nutriments are per 100g. Called directly from the browser at runtime.
+// Open Food Facts: free, open, no API key. Barcode -> product and free-text
+// search. Routed through our /api/food-db proxy so OFF gets a proper User-Agent
+// (it rate-limits / blocks anonymous browser requests). Nutriments are per 100g.
 
 import type { FoodSearchResult } from './usdaFoodApi';
 
@@ -13,6 +14,11 @@ export type BarcodeProduct = {
     fat_g: number;
     fiber_g: number;
     sodium_mg: number;
+    sugar_g: number;
+    sat_fat_g: number;
+    mono_fat_g: number;
+    poly_fat_g: number;
+    trans_fat_g: number;
   };
   servingSize: string | null;
 };
@@ -44,18 +50,11 @@ type OffSearchProduct = {
 // Free-text search of the global Open Food Facts catalogue (great for branded &
 // regional products the US-only USDA set misses). Values are per 100g.
 export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResult[]> {
-  const url =
-    'https://world.openfoodfacts.org/cgi/search.pl?' +
-    new URLSearchParams({
-      search_terms: query,
-      search_simple: '1',
-      action: 'process',
-      json: '1',
-      page_size: '20',
-      fields: 'code,product_name,brands,serving_size,nutriments',
-    }).toString();
-
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch('/api/food-db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ search: query }),
+  });
   if (!res.ok) throw new Error('Open Food Facts search failed.');
   const data = (await res.json()) as { products?: OffSearchProduct[] };
 
@@ -91,11 +90,11 @@ export async function searchOpenFoodFacts(query: string): Promise<FoodSearchResu
 }
 
 export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | null> {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(
-    barcode,
-  )}.json?fields=product_name,brands,serving_size,nutriments`;
-
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch('/api/food-db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: barcode }),
+  });
   if (!res.ok) throw new Error('Could not reach the barcode database.');
 
   const data = (await res.json()) as OffResponse;
@@ -121,6 +120,11 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeProduct | n
       fat_g: num(n['fat_100g']),
       fiber_g: num(n['fiber_100g']),
       sodium_mg: Number.isFinite(sodiumG) ? Math.round(sodiumG * 1000) : 0,
+      sugar_g: num(n['sugars_100g']),
+      sat_fat_g: num(n['saturated-fat_100g']),
+      mono_fat_g: num(n['monounsaturated-fat_100g']),
+      poly_fat_g: num(n['polyunsaturated-fat_100g']),
+      trans_fat_g: num(n['trans-fat_100g']),
     },
   };
 }

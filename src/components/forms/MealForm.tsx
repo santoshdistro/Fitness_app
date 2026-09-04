@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Search, Sparkles } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { insertFoodLog } from '../../lib/foodLog';
 import { useAuth } from '../../contexts/AuthContext';
 import { searchFoods, type FoodSearchResult } from '../../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../../lib/openFoodFacts';
 import { searchIndianFoods } from '../../data/indianFoods';
 import { estimateFood } from '../../lib/aiClient';
-import { useFoodSuggestions, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
+import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult, type FoodSuggestion } from '../../hooks/useFoodSuggestions';
 import { useSettings } from '../../hooks/useSettings';
-import { gToUnit, unitToG } from '../../utils/units';
+import { gToUnit, unitToG, parseServing } from '../../utils/units';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../../utils/mealCategory';
 import type { MealCategory } from '../../types/database';
 import { errorTextClass, inputClass, labelClass, submitButtonClass } from './formStyles';
@@ -22,39 +22,162 @@ export type MealInitial = {
   fat?: string;
   fiber?: string;
   sodium?: string;
+  sugar?: string;
+  satFat?: string;
+  monoFat?: string;
+  polyFat?: string;
+  transFat?: string;
   servingNote?: string;
+  /** The macros above are per 100 g/ml (e.g. from a barcode label). */
+  per100?: boolean;
+  /** Grams or millilitres in one labelled serving, when known. */
+  servingSize?: number;
+  /** Unit of that serving. */
+  servingUnit?: 'g' | 'ml';
 };
+
+/** Macros per one gram (or ml) — the canonical base everything scales from. */
+type Base = { calories: number; protein: number; carbs: number; fat: number; fiber: number; sodium: number };
+
+type AmountUnit = 'g' | 'ml' | 'serving';
+
+type FoodBase = {
+  perGram: Base;
+  /** Grams/ml in one serving, if known (enables the "serving" unit). */
+  servingGrams: number | null;
+  /** Liquid product — enables the "ml" unit. */
+  isLiquid: boolean;
+  /** We know a real gram relationship (enables g / ml entry). */
+  weighable: boolean;
+};
+
+// Detailed sub-nutrients (sugar + fat breakdown) for the selected/base food,
+// kept per base unit so we can scale them by the same ratio as the macros.
+type DetailBase = {
+  baseCalories: number;
+  sugar: number;
+  satFat: number;
+  monoFat: number;
+  polyFat: number;
+  transFat: number;
+};
+
+function n(v?: string): number {
+  return Number(v) || 0;
+}
+
+function divBase(b: Base, d: number): Base {
+  const f = d || 1;
+  return {
+    calories: b.calories / f,
+    protein: b.protein / f,
+    carbs: b.carbs / f,
+    fat: b.fat / f,
+    fiber: b.fiber / f,
+    sodium: b.sodium / f,
+  };
+}
+
+function detailFromInitial(initial?: MealInitial): DetailBase | null {
+  if (!initial?.calories) return null;
+  if (!initial.sugar && !initial.satFat && !initial.monoFat && !initial.polyFat && !initial.transFat)
+    return null;
+  return {
+    baseCalories: n(initial.calories),
+    sugar: n(initial.sugar),
+    satFat: n(initial.satFat),
+    monoFat: n(initial.monoFat),
+    polyFat: n(initial.polyFat),
+    transFat: n(initial.transFat),
+  };
+}
+
+function detailFromResult(result: FoodSearchResult): DetailBase {
+  return {
+    baseCalories: result.calories,
+    sugar: result.sugar,
+    satFat: result.satFat,
+    monoFat: result.monoFat,
+    polyFat: result.polyFat,
+    transFat: result.transFat,
+  };
+}
+
+// Build the canonical per-gram base from an initial payload (barcode, food scan,
+// AI estimate). per100 payloads are divided by 100; otherwise the macros are one
+// serving (grams unknown → treated per 100 for scaling, editable below).
+function baseFromInitial(initial?: MealInitial): FoodBase | null {
+  if (!initial?.calories) return null;
+  const vals: Base = {
+    calories: n(initial.calories),
+    protein: n(initial.protein),
+    carbs: n(initial.carbs),
+    fat: n(initial.fat),
+    fiber: n(initial.fiber),
+    sodium: n(initial.sodium),
+  };
+  const isLiquid = initial.servingUnit === 'ml';
+  if (initial.per100) {
+    return {
+      perGram: divBase(vals, 100),
+      servingGrams: initial.servingSize ?? null,
+      isLiquid,
+      weighable: true,
+    };
+  }
+  const sg = initial.servingSize ?? null;
+  return {
+    perGram: divBase(vals, sg ?? 100),
+    servingGrams: sg,
+    isLiquid,
+    weighable: sg != null,
+  };
+}
 
 type Props = {
   onSaved: () => void;
   initial?: MealInitial;
 };
 
-type PerGramMacros = {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  sodium: number;
-};
+// Which amount units are offered for a food, and the sensible default.
+function unitsFor(food: FoodBase): { units: AmountUnit[]; defaultUnit: AmountUnit } {
+  const units: AmountUnit[] = [];
+  if (food.weighable && food.isLiquid) units.push('ml');
+  if (food.weighable) units.push('g');
+  if (food.servingGrams != null) units.push('serving');
+  if (units.length === 0) units.push('serving');
+  const defaultUnit: AmountUnit = food.servingGrams != null ? 'serving' : units[0];
+  return { units, defaultUnit };
+}
 
-/** The per-single-portion macros, used to scale by a quantity multiplier. */
-function baseFromInitial(initial?: MealInitial): PerGramMacros | null {
-  if (!initial?.calories) return null;
+// Grams represented by an amount in a unit (pure — no component state).
+function gramsOfBase(amountVal: string, u: AmountUnit, f: FoodBase, foodUnit: 'g' | 'oz'): number {
+  const a = Number(amountVal) || 0;
+  if (u === 'serving') return a * (f.servingGrams ?? 100);
+  if (u === 'ml') return a; // density ~1 g/ml
+  return unitToG(a, foodUnit);
+}
+
+function macroStrings(f: FoodBase, grams: number) {
   return {
-    calories: Number(initial.calories) || 0,
-    protein: Number(initial.protein) || 0,
-    carbs: Number(initial.carbs) || 0,
-    fat: Number(initial.fat) || 0,
-    fiber: Number(initial.fiber) || 0,
-    sodium: Number(initial.sodium) || 0,
+    calories: String(Math.round(f.perGram.calories * grams)),
+    protein: String(Math.round(f.perGram.protein * grams)),
+    carbs: String(Math.round(f.perGram.carbs * grams)),
+    fat: String(Math.round(f.perGram.fat * grams)),
+    fiber: String(Math.round(f.perGram.fiber * grams)),
+    sodium: String(Math.round(f.perGram.sodium * grams)),
   };
+}
+
+function defaultAmountFor(f: FoodBase, u: AmountUnit, foodUnit: 'g' | 'oz'): string {
+  if (u === 'serving') return '1';
+  if (u === 'ml') return String(f.servingGrams ?? 100);
+  return String(Math.round(gToUnit(100, foodUnit) * 10) / 10);
 }
 
 export function MealForm({ onSaved, initial }: Props) {
   const { session } = useAuth();
-  const { recent, frequent } = useFoodSuggestions();
+  const { recent, frequent, all: myFoods } = useFoodSuggestions();
   const { settings } = useSettings();
   const foodUnit = settings.foodUnit;
 
@@ -65,29 +188,91 @@ export function MealForm({ onSaved, initial }: Props) {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const [servingNote, setServingNote] = useState<string | null>(initial?.servingNote ?? null);
-  const [perGram, setPerGram] = useState<PerGramMacros | null>(null);
-  const [grams, setGrams] = useState('100');
-  // Per-portion base (a single serving / scanned plate) + a quantity multiplier.
-  const [perServing, setPerServing] = useState<PerGramMacros | null>(() => baseFromInitial(initial));
-  const [servings, setServings] = useState('1');
+  const [detailBase, setDetailBase] = useState<DetailBase | null>(() => detailFromInitial(initial));
+
+  // Canonical per-gram base + the chosen amount and unit, seeded from `initial`
+  // so the macros shown match the default amount (e.g. one 200ml serving), not
+  // the raw per-100 values.
+  const initialFood = baseFromInitial(initial);
+  const initialUnits = initialFood ? unitsFor(initialFood) : null;
+  const initialAmount =
+    initialFood && initialUnits ? defaultAmountFor(initialFood, initialUnits.defaultUnit, foodUnit) : '1';
+  const initialMacros =
+    initialFood && initialUnits
+      ? macroStrings(initialFood, gramsOfBase(initialAmount, initialUnits.defaultUnit, initialFood, foodUnit))
+      : null;
+
+  const [food, setFood] = useState<FoodBase | null>(initialFood);
+  const [units, setUnits] = useState<AmountUnit[]>(initialUnits?.units ?? ['serving']);
+  const [unit, setUnit] = useState<AmountUnit>(initialUnits?.defaultUnit ?? 'serving');
+  const [amount, setAmount] = useState(initialAmount);
 
   const [mealName, setMealName] = useState(initial?.mealName ?? '');
   const [category, setCategory] = useState<MealCategory>(initial?.category ?? defaultMealCategoryForNow());
-  const [calories, setCalories] = useState(initial?.calories ?? '');
-  const [protein, setProtein] = useState(initial?.protein ?? '');
-  const [carbs, setCarbs] = useState(initial?.carbs ?? '');
-  const [fat, setFat] = useState(initial?.fat ?? '');
-  const [fiber, setFiber] = useState(initial?.fiber ?? '');
-  const [sodium, setSodium] = useState(initial?.sodium ?? '');
+  const [calories, setCalories] = useState(initialMacros?.calories ?? initial?.calories ?? '');
+  const [protein, setProtein] = useState(initialMacros?.protein ?? initial?.protein ?? '');
+  const [carbs, setCarbs] = useState(initialMacros?.carbs ?? initial?.carbs ?? '');
+  const [fat, setFat] = useState(initialMacros?.fat ?? initial?.fat ?? '');
+  const [fiber, setFiber] = useState(initialMacros?.fiber ?? initial?.fiber ?? '');
+  const [sodium, setSodium] = useState(initialMacros?.sodium ?? initial?.sodium ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const myMatches = query.trim() ? searchMyFoods(myFoods, query.trim()).map(suggestionToSearchResult) : [];
+
+  // Push the macro inputs from a per-gram base × grams.
+  function writeMacros(f: FoodBase, grams: number) {
+    const m = macroStrings(f, grams);
+    setCalories(m.calories);
+    setProtein(m.protein);
+    setCarbs(m.carbs);
+    setFat(m.fat);
+    setFiber(m.fiber);
+    setSodium(m.sodium);
+  }
+
+  // Adopt a food base: set units, default unit/amount, and initial macros.
+  function applyFood(f: FoodBase, note: string | null) {
+    const { units: u, defaultUnit } = unitsFor(f);
+    const startAmount = defaultAmountFor(f, defaultUnit, foodUnit);
+    setFood(f);
+    setUnits(u);
+    setUnit(defaultUnit);
+    setAmount(startAmount);
+    writeMacros(f, gramsOfBase(startAmount, defaultUnit, f, foodUnit));
+    setServingNote(note);
+  }
+
+  function onAmountChange(value: string) {
+    setAmount(value);
+    if (food) writeMacros(food, gramsOfBase(value, unit, food, foodUnit));
+  }
+
+  function onUnitChange(nextUnit: AmountUnit) {
+    if (!food) return;
+    // Keep the same real portion when switching units.
+    const grams = gramsOfBase(amount, unit, food, foodUnit);
+    let nextAmount: string;
+    if (nextUnit === 'serving') nextAmount = String(Math.round((grams / (food.servingGrams ?? 100)) * 100) / 100);
+    else if (nextUnit === 'ml') nextAmount = String(Math.round(grams * 10) / 10);
+    else nextAmount = String(Math.round(gToUnit(grams, foodUnit) * 10) / 10);
+    setUnit(nextUnit);
+    setAmount(nextAmount);
+    writeMacros(food, grams);
+  }
+
+  function onServingGramsChange(value: string) {
+    if (!food) return;
+    const sg = Number(value) || null;
+    const next = { ...food, servingGrams: sg, weighable: food.weighable || sg != null };
+    setFood(next);
+    if (unit === 'serving') writeMacros(next, gramsOfBase(amount, 'serving', next, foodUnit));
+  }
 
   async function handleSearch() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
-    // Query the global (Open Food Facts) and US (USDA) databases together, so
-    // one failing or being sparse doesn't block the other.
     const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
@@ -114,23 +299,19 @@ export function MealForm({ onSaved, initial }: Props) {
       setMealName(r.name);
       setResults([]);
       setQuery('');
-      setPerGram(null);
-      setPerServing({
-        calories: r.calories,
-        protein: r.protein_g,
-        carbs: r.carbs_g,
-        fat: r.fat_g,
-        fiber: r.fiber_g,
-        sodium: r.sodium_mg,
-      });
-      setServings('1');
-      setCalories(String(r.calories));
-      setProtein(String(r.protein_g));
-      setCarbs(String(r.carbs_g));
-      setFat(String(r.fat_g));
-      setFiber(String(r.fiber_g));
-      setSodium(String(r.sodium_mg));
-      setServingNote(`AI estimate (${r.confidence} confidence) · adjust quantity below`);
+      setDetailBase(null);
+      applyFood(
+        {
+          perGram: divBase(
+            { calories: r.calories, protein: r.protein_g, carbs: r.carbs_g, fat: r.fat_g, fiber: r.fiber_g, sodium: r.sodium_mg },
+            100,
+          ),
+          servingGrams: null,
+          isLiquid: false,
+          weighable: false,
+        },
+        `AI estimate (${r.confidence} confidence) · set how many portions below`,
+      );
     } catch {
       setSearchError('Could not estimate that. Try adding a portion, e.g. "aloo methi 1 bowl".');
     } finally {
@@ -142,87 +323,76 @@ export function MealForm({ onSaved, initial }: Props) {
     setMealName(result.description);
     setResults([]);
     setQuery('');
+    setDetailBase(detailFromResult(result));
+
+    const vals: Base = {
+      calories: result.calories,
+      protein: result.protein,
+      carbs: result.carbs,
+      fat: result.fat,
+      fiber: result.fiber,
+      sodium: result.sodium,
+    };
+    const parsed = parseServing(
+      result.servingSizeUnit === 'serving' ? undefined : result.servingSize,
+    );
+    const unitLiquid = result.servingSizeUnit
+      ? /ml|l/i.test(result.servingSizeUnit)
+      : parsed?.unit === 'ml';
 
     if (result.isPerServing) {
-      setPerGram(null);
-      setPerServing({
-        calories: result.calories,
-        protein: result.protein,
-        carbs: result.carbs,
-        fat: result.fat,
-        fiber: result.fiber,
-        sodium: result.sodium,
-      });
-      setServings('1');
-      setCalories(String(result.calories));
-      setProtein(String(result.protein));
-      setCarbs(String(result.carbs));
-      setFat(String(result.fat));
-      setFiber(String(result.fiber));
-      setSodium(String(result.sodium));
-      setServingNote(
-        result.servingSize ? `Per serving (${result.servingSize}${result.servingSizeUnit ?? ''})` : 'Per serving',
-      );
+      if (parsed) {
+        applyFood(
+          { perGram: divBase(vals, parsed.size), servingGrams: parsed.size, isLiquid: unitLiquid, weighable: true },
+          `Per serving (${parsed.size}${parsed.unit})`,
+        );
+      } else {
+        // Serving of unknown weight — treat the values as one portion.
+        applyFood(
+          { perGram: divBase(vals, 100), servingGrams: null, isLiquid: false, weighable: false },
+          'Per serving · set how many portions',
+        );
+      }
       return;
     }
 
-    setPerServing(null);
-    setPerGram({
-      calories: result.calories / 100,
-      protein: result.protein / 100,
-      carbs: result.carbs / 100,
-      fat: result.fat / 100,
-      fiber: result.fiber / 100,
-      sodium: result.sodium / 100,
-    });
-    setGrams(String(Math.round(gToUnit(100, foodUnit) * 10) / 10));
-    setCalories(String(result.calories));
-    setProtein(String(result.protein));
-    setCarbs(String(result.carbs));
-    setFat(String(result.fat));
-    setFiber(String(result.fiber));
-    setSodium(String(result.sodium));
-    setServingNote('Per 100g');
+    // Values are per 100 g/ml.
+    applyFood(
+      {
+        perGram: divBase(vals, 100),
+        servingGrams: parsed?.size ?? null,
+        isLiquid: parsed?.unit === 'ml',
+        weighable: true,
+      },
+      parsed ? `Per 100${parsed.unit === 'ml' ? 'ml' : 'g'} · 1 serving = ${parsed.size}${parsed.unit}` : 'Per 100g',
+    );
   }
 
   function selectSuggestion(suggestion: FoodSuggestion) {
     setMealName(suggestion.mealName);
     setCategory(suggestion.category);
-    setPerGram(null);
-    setPerServing(null);
-    setServingNote(null);
+    setDetailBase(null);
     setResults([]);
     setQuery('');
-    setCalories(suggestion.calories != null ? String(suggestion.calories) : '');
-    setProtein(suggestion.protein_g != null ? String(suggestion.protein_g) : '');
-    setCarbs(suggestion.carbs_g != null ? String(suggestion.carbs_g) : '');
-    setFat(suggestion.fat_g != null ? String(suggestion.fat_g) : '');
-    setFiber(suggestion.fiber_g != null ? String(suggestion.fiber_g) : '');
-    setSodium(suggestion.sodium_mg != null ? String(suggestion.sodium_mg) : '');
-  }
-
-  function handleGramsChange(value: string) {
-    setGrams(value);
-    if (!perGram) return;
-    const gramsNum = unitToG(Number(value) || 0, foodUnit);
-    setCalories(String(Math.round(perGram.calories * gramsNum)));
-    setProtein(String(Math.round(perGram.protein * gramsNum)));
-    setCarbs(String(Math.round(perGram.carbs * gramsNum)));
-    setFat(String(Math.round(perGram.fat * gramsNum)));
-    setFiber(String(Math.round(perGram.fiber * gramsNum)));
-    setSodium(String(Math.round(perGram.sodium * gramsNum)));
-  }
-
-  function handleServingsChange(value: string) {
-    setServings(value);
-    if (!perServing) return;
-    const q = Number(value) || 0;
-    setCalories(String(Math.round(perServing.calories * q)));
-    setProtein(String(Math.round(perServing.protein * q)));
-    setCarbs(String(Math.round(perServing.carbs * q)));
-    setFat(String(Math.round(perServing.fat * q)));
-    setFiber(String(Math.round(perServing.fiber * q)));
-    setSodium(String(Math.round(perServing.sodium * q)));
+    applyFood(
+      {
+        perGram: divBase(
+          {
+            calories: suggestion.calories ?? 0,
+            protein: suggestion.protein_g ?? 0,
+            carbs: suggestion.carbs_g ?? 0,
+            fat: suggestion.fat_g ?? 0,
+            fiber: suggestion.fiber_g ?? 0,
+            sodium: suggestion.sodium_mg ?? 0,
+          },
+          100,
+        ),
+        servingGrams: null,
+        isLiquid: false,
+        weighable: false,
+      },
+      'Saved food · set how many portions you had',
+    );
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -231,7 +401,12 @@ export function MealForm({ onSaved, initial }: Props) {
     setSaving(true);
     setError(null);
 
-    const { error: saveError } = await supabase.from('food_logs').insert({
+    const finalCalories = calories ? Number(calories) : 0;
+    const ratio =
+      detailBase && detailBase.baseCalories > 0 ? finalCalories / detailBase.baseCalories : null;
+    const scale = (v: number) => (ratio != null ? Math.round(v * ratio * 10) / 10 : null);
+
+    const { error: saveError } = await insertFoodLog({
       user_id: session.user.id,
       meal_name: mealName,
       meal_category: category,
@@ -241,6 +416,13 @@ export function MealForm({ onSaved, initial }: Props) {
       fat_g: fat ? Number(fat) : null,
       fiber_g: fiber ? Number(fiber) : null,
       sodium_mg: sodium ? Number(sodium) : null,
+      sugar_g: detailBase ? scale(detailBase.sugar) : null,
+      saturated_fat_g: detailBase ? scale(detailBase.satFat) : null,
+      mono_fat_g: detailBase ? scale(detailBase.monoFat) : null,
+      poly_fat_g: detailBase ? scale(detailBase.polyFat) : null,
+      trans_fat_g: detailBase ? scale(detailBase.transFat) : null,
+      amount: amount ? Number(amount) : null,
+      unit,
     });
 
     setSaving(false);
@@ -250,6 +432,8 @@ export function MealForm({ onSaved, initial }: Props) {
     }
     onSaved();
   }
+
+  const unitLabel = (u: AmountUnit) => (u === 'serving' ? 'serving' : u);
 
   return (
     <div>
@@ -319,10 +503,16 @@ export function MealForm({ onSaved, initial }: Props) {
             onClick={handleAiEstimate}
             disabled={searching || estimating || !query.trim()}
             aria-label="Estimate with AI"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
           >
             {estimating ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--on-accent) 40%, transparent)',
+                  borderTopColor: 'var(--on-accent)',
+                }}
+              />
             ) : (
               <Sparkles size={18} />
             )}
@@ -332,6 +522,30 @@ export function MealForm({ onSaved, initial }: Props) {
           🔍 searches the food database · ✨ estimates any dish with AI (great for home-cooked &
           regional foods).
         </p>
+
+        {myMatches.length > 0 ? (
+          <div className="mt-2">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+              Your foods
+            </p>
+            <ul className="glass-card max-h-40 overflow-y-auto !rounded-2xl">
+              {myMatches.map(result => (
+                <li key={result.fdcId}>
+                  <button
+                    type="button"
+                    onClick={() => selectResult(result)}
+                    className="flex w-full flex-col items-start border-b border-[var(--card-border)] px-4 py-2.5 text-left last:border-b-0"
+                  >
+                    <span className="text-sm text-[var(--text)]">{result.description}</span>
+                    <span className="text-[10px] text-[var(--muted)]">
+                      Saved · {result.calories} kcal per serving
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {searchError ? <p className={`mt-2 ${errorTextClass}`}>{searchError}</p> : null}
 
@@ -389,59 +603,79 @@ export function MealForm({ onSaved, initial }: Props) {
           </select>
         </div>
 
-        {servingNote ? (
-          <p className="mb-3 text-xs text-[var(--muted)]">{servingNote}</p>
-        ) : null}
+        {servingNote ? <p className="mb-2 text-xs text-[var(--muted)]">{servingNote}</p> : null}
 
-        {perGram ? (
+        {/* Amount + unit — macros below update automatically */}
+        {food ? (
           <div className="mb-3">
-            <label className={labelClass} htmlFor="grams-input">
-              Amount ({foodUnit})
+            <label className={labelClass} htmlFor="amount-input">
+              Amount
             </label>
-            <input
-              id="grams-input"
-              className={inputClass}
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              value={grams}
-              onChange={e => handleGramsChange(e.target.value)}
-            />
-          </div>
-        ) : perServing ? (
-          <div className="mb-3">
-            <label className={labelClass} htmlFor="servings-input">
-              Quantity / portions
-            </label>
-            <input
-              id="servings-input"
-              className={inputClass}
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
-              value={servings}
-              onChange={e => handleServingsChange(e.target.value)}
-            />
-            <p className="mt-1 text-[11px] text-[var(--muted)]">
-              e.g. 2 for two scoops / pieces, 0.5 for half. For a per-100g food, use
-              0.3 for 30g.
-            </p>
+            <div className="flex gap-2">
+              <input
+                id="amount-input"
+                className={inputClass}
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                value={amount}
+                onChange={e => onAmountChange(e.target.value)}
+              />
+              {units.length > 1 ? (
+                <div className="flex shrink-0 rounded-2xl bg-[var(--bg)] p-1">
+                  {units.map(u => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => onUnitChange(u)}
+                      className="rounded-xl px-3 text-xs font-bold"
+                      style={
+                        unit === u
+                          ? { background: 'var(--accent)', color: 'var(--on-accent)' }
+                          : { color: 'var(--muted)' }
+                      }
+                    >
+                      {u === 'g' ? foodUnit : unitLabel(u)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className="flex shrink-0 items-center px-2 text-xs font-semibold text-[var(--muted)]">
+                  {unit === 'g' ? foodUnit : `${unitLabel(unit)}${Number(amount) === 1 ? '' : 's'}`}
+                </span>
+              )}
+            </div>
+            {unit === 'serving' ? (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                <span>1 serving =</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="1"
+                  step="any"
+                  value={food.servingGrams ?? ''}
+                  onChange={e => onServingGramsChange(e.target.value)}
+                  className="w-16 rounded-lg border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1 text-xs text-[var(--text)]"
+                />
+                <span>{food.isLiquid ? 'ml' : 'g'} · use 2 for two, 0.5 for half.</span>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass} htmlFor="calories-input">
-              Calories
+              Calories (kcal)
             </label>
             <input
               id="calories-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={calories}
               onChange={e => setCalories(e.target.value)}
               required
@@ -455,8 +689,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="protein-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={protein}
               onChange={e => setProtein(e.target.value)}
               required
@@ -470,8 +705,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="carbs-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={carbs}
               onChange={e => setCarbs(e.target.value)}
             />
@@ -484,8 +720,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="fat-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={fat}
               onChange={e => setFat(e.target.value)}
             />
@@ -498,8 +735,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="fiber-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={fiber}
               onChange={e => setFiber(e.target.value)}
             />
@@ -512,8 +750,9 @@ export function MealForm({ onSaved, initial }: Props) {
               id="sodium-input"
               className={inputClass}
               type="number"
-              inputMode="numeric"
+              inputMode="decimal"
               min="0"
+              step="any"
               value={sodium}
               onChange={e => setSodium(e.target.value)}
             />

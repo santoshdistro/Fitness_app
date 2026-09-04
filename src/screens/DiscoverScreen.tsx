@@ -1,20 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeftRight, Copy, Plus, Search, Sparkles, Trash2, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { insertFoodLog } from '../lib/foodLog';
 import { useTodayNutrition } from '../hooks/useTodayNutrition';
 import { useProfile } from '../hooks/useProfile';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { searchFoods, type FoodSearchResult } from '../lib/usdaFoodApi';
 import { searchOpenFoodFacts } from '../lib/openFoodFacts';
 import { searchIndianFoods } from '../data/indianFoods';
+import { useFoodSuggestions, searchMyFoods, suggestionToSearchResult } from '../hooks/useFoodSuggestions';
 import { estimateFood } from '../lib/aiClient';
 import { useTabSwipe } from '../hooks/useTabSwipe';
+import { usePersistentState } from '../hooks/usePersistentState';
+import { DateNavigator } from '../components/DateNavigator';
+import { MealEditSheet, type MealEditMode } from '../components/MealEditSheet';
+import { CopyMealsSheet } from '../components/CopyMealsSheet';
 import { MEAL_CATEGORY_OPTIONS, defaultMealCategoryForNow } from '../utils/mealCategory';
 import type { NutritionTotals } from '../hooks/useTodayNutrition';
 import { useSettings } from '../hooks/useSettings';
 import { gToUnit, unitToG } from '../utils/units';
-import { todayDateString } from '../utils/date';
+import { isToday, todayDateString } from '../utils/date';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -42,9 +48,28 @@ type Macros = {
 type Item = Macros & {
   key: string;
   name: string;
-  grams: number;
-  per: Macros;
+  grams: number; // the amount: grams when unit==='g', number of servings when 'serving'
+  per: Macros; // macros per 1 of the current unit (per gram, or per serving)
+  unit: 'g' | 'serving';
+  gramsPerServing: number; // grams in one serving — powers the g ⇄ serving toggle (defaults to 100 when unknown, editable)
 };
+
+// Scale every macro of a per-unit base by a factor (used when switching units).
+function scalePer(per: Macros, f: number): Macros {
+  return {
+    calories: per.calories * f,
+    protein: per.protein * f,
+    carbs: per.carbs * f,
+    fat: per.fat * f,
+    fiber: per.fiber * f,
+    sodium: per.sodium * f,
+    sugar: per.sugar * f,
+    satFat: per.satFat * f,
+    transFat: per.transFat * f,
+    polyFat: per.polyFat * f,
+    monoFat: per.monoFat * f,
+  };
+}
 
 type Tab = 'add' | 'nutrition' | 'macros';
 
@@ -66,19 +91,25 @@ function scaled(per: Macros, grams: number): Macros {
 
 const REFERENCE_CALORIE_TARGET = 2000;
 
-export function DiscoverScreen() {
+type Props = {
+  onQuickAddCalories: () => void;
+};
+
+export function DiscoverScreen({ onQuickAddCalories }: Props) {
   const { session } = useAuth();
-  const [tab, setTab] = useState<Tab>('add');
+  const [tab, setTab] = usePersistentState<Tab>('ui:diaryTab', 'add');
   const { handlers, change, animClass } = useTabSwipe(
     ['add', 'nutrition', 'macros'] as const,
     tab,
     setTab,
   );
-  const today = todayDateString();
-  const { totals: dayTotals, meals, refresh: refreshNutrition } = useTodayNutrition(today);
+  const [selectedDate, setSelectedDate] = useState(todayDateString());
+  const dayIsToday = isToday(selectedDate);
+  const { totals: dayTotals, meals, deleteMeal, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { logs: recentLogs } = useRecentDailyLogs(14);
   const { settings } = useSettings();
+  const { all: myFoods } = useFoodSuggestions();
   const foodUnit = settings.foodUnit;
 
   const [category, setCategory] = useState<MealCategory>(defaultMealCategoryForNow());
@@ -89,6 +120,9 @@ export function DiscoverScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [saving, setSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<{ meal: FoodLog; mode: MealEditMode } | null>(null);
+  const [savingMeal, setSavingMeal] = useState(false);
 
   // Personalised targets (mirrors the Stats screen).
   const weightEntries = recentLogs.filter((l): l is typeof l & { weight: number } => l.weight != null);
@@ -143,12 +177,14 @@ export function DiscoverScreen() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
+    const mine = searchMyFoods(myFoods, query.trim()).map(suggestionToSearchResult);
     const indian = searchIndianFoods(query.trim());
     const [off, usda] = await Promise.allSettled([
       searchOpenFoodFacts(query.trim()),
       searchFoods(query.trim()),
     ]);
     const merged = [
+      ...mine,
       ...indian,
       ...(off.status === 'fulfilled' ? off.value : []),
       ...(usda.status === 'fulfilled' ? usda.value : []),
@@ -192,8 +228,17 @@ export function DiscoverScreen() {
   }
 
   function addResult(r: FoodSearchResult) {
-    const grams = r.isPerServing && r.servingSize ? r.servingSize : 100;
+    // Serving-based foods (e.g. your saved foods, branded "per serving") scale by
+    // a portion count; everything else scales by grams (per-100g basis).
+    const unit: 'g' | 'serving' = r.isPerServing && r.servingSizeUnit === 'serving' ? 'serving' : 'g';
     const base = r.isPerServing && r.servingSize ? r.servingSize : 100;
+    // Default the amount to what was last logged (defaultAmount) when known,
+    // else one serving / 100g.
+    const grams = r.defaultAmount ?? base;
+    // Grams in one serving — real weight when the food carries one, else a 100g
+    // default so the toggle is always available (the basis is editable per row).
+    const gramsPerServing =
+      r.servingSize && r.servingSizeUnit !== 'serving' ? r.servingSize : 100;
     const per: Macros = {
       calories: r.calories / base,
       protein: r.protein / base,
@@ -209,7 +254,7 @@ export function DiscoverScreen() {
     };
     setItems(prev => [
       ...prev,
-      { key: `${r.fdcId}-${Date.now()}`, name: r.description, grams, per, ...scaled(per, grams) },
+      { key: `${r.fdcId}-${Date.now()}`, name: r.description, grams, per, unit, gramsPerServing, ...scaled(per, grams) },
     ]);
     setResults([]);
     setQuery('');
@@ -219,18 +264,51 @@ export function DiscoverScreen() {
     setItems(prev => prev.map(i => (i.key === key ? { ...i, grams, ...scaled(i.per, grams) } : i)));
   }
 
+  // Set the grams-per-serving basis for a row (only meaningful in serving mode,
+  // where `per` is per-serving and independent of the basis). It anchors the
+  // conversion so switching to grams gives the right weight and calories.
+  function updateBasis(key: string, gramsPerServing: number) {
+    setItems(prev => prev.map(i => (i.key === key ? { ...i, gramsPerServing } : i)));
+  }
+
+  // Flip a row between grams and servings, keeping the same real portion.
+  function toggleUnit(key: string) {
+    setItems(prev =>
+      prev.map(i => {
+        if (i.key !== key || !i.gramsPerServing) return i;
+        if (i.unit === 'g') {
+          const per = scalePer(i.per, i.gramsPerServing); // per serving = per gram × grams/serving
+          const grams = i.grams / i.gramsPerServing; // grams -> servings
+          return { ...i, unit: 'serving', per, grams, ...scaled(per, grams) };
+        }
+        const per = scalePer(i.per, 1 / i.gramsPerServing); // per gram
+        const grams = i.grams * i.gramsPerServing; // servings -> grams
+        return { ...i, unit: 'g', per, grams, ...scaled(per, grams) };
+      }),
+    );
+  }
+
   function removeItem(key: string) {
     setItems(prev => prev.filter(i => i.key !== key));
+  }
+
+  // When logging onto a past day, stamp the entries at noon of that day so they
+  // land in the right bucket; today's entries keep the exact time.
+  function timestampForDay(): string | undefined {
+    if (dayIsToday) return undefined;
+    return new Date(`${selectedDate}T12:00:00`).toISOString();
   }
 
   async function logMeal() {
     if (!session?.user || items.length === 0) return;
     setSaving(true);
-    await supabase.from('food_logs').insert(
+    const meal_timestamp = timestampForDay();
+    await insertFoodLog(
       items.map(i => ({
         user_id: session.user!.id,
         meal_name: i.name,
         meal_category: category,
+        ...(meal_timestamp ? { meal_timestamp } : {}),
         calories: i.calories,
         protein_g: i.protein,
         carbs_g: i.carbs,
@@ -242,6 +320,8 @@ export function DiscoverScreen() {
         trans_fat_g: i.transFat,
         poly_fat_g: i.polyFat,
         mono_fat_g: i.monoFat,
+        amount: i.grams,
+        unit: i.unit,
       })),
     );
     setSaving(false);
@@ -250,16 +330,76 @@ export function DiscoverScreen() {
     setTab('nutrition'); // show the result right away
   }
 
+  // Copies exactly the rows the sheet handed back — see CopyMealsSheet, which
+  // owns choosing the day and the items. `moveTo` re-files them all under one
+  // meal; null keeps each item where it was.
+  async function copySelectedMeals(chosen: FoodLog[], moveTo: MealCategory | null) {
+    if (!session?.user || chosen.length === 0) return;
+    setCopying(true);
+    const meal_timestamp = timestampForDay();
+    await insertFoodLog(
+      chosen.map(meal => ({
+        user_id: session.user!.id,
+        meal_name: meal.meal_name,
+        meal_category: moveTo ?? meal.meal_category,
+        ...(meal_timestamp ? { meal_timestamp } : {}),
+        calories: meal.calories,
+        protein_g: meal.protein_g,
+        carbs_g: meal.carbs_g,
+        fat_g: meal.fat_g,
+        fiber_g: meal.fiber_g,
+        sodium_mg: meal.sodium_mg,
+        amount: meal.amount,
+        unit: meal.unit,
+      })),
+    );
+    await refreshNutrition();
+    setCopying(false);
+  }
+
+  const [copyOpen, setCopyOpen] = useState(false);
+
+  // Portion edit from the diary — updates the existing row in place.
+  async function applyMealChange(multiplier: number, cat: MealCategory, amount: number | null) {
+    if (!session?.user || !editingMeal) return;
+    const { meal } = editingMeal;
+    const s = (v: number | null | undefined) => Math.round((v ?? 0) * multiplier);
+    setSavingMeal(true);
+    await supabase
+      .from('food_logs')
+      .update({
+        calories: s(meal.calories),
+        protein_g: s(meal.protein_g),
+        carbs_g: s(meal.carbs_g),
+        fat_g: s(meal.fat_g),
+        fiber_g: s(meal.fiber_g),
+        sodium_mg: s(meal.sodium_mg),
+        saturated_fat_g: s(meal.saturated_fat_g),
+        trans_fat_g: s(meal.trans_fat_g),
+        poly_fat_g: s(meal.poly_fat_g),
+        mono_fat_g: s(meal.mono_fat_g),
+        meal_category: cat,
+        // Only touch amount when the entry already had one (so the column
+        // exists) — keeps pre-migration entries and DBs working.
+        ...(meal.amount != null && amount != null ? { amount } : {}),
+      })
+      .eq('id', meal.id);
+    await refreshNutrition();
+    setSavingMeal(false);
+    setEditingMeal(null);
+  }
+
   return (
     <div className="min-h-full px-6 pt-4 pb-28">
-      <div className="anim-drop-in mt-2 flex items-center justify-center">
-        <h1 className="text-sm font-bold tracking-wide text-[var(--text)]">Discover</h1>
+      <div className="anim-drop-in mt-2">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">Diary</p>
+        <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {/* Tabs */}
-      <div className="anim-fade-rise mt-4 flex gap-1 rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.04s' }}>
+      <div className="anim-fade-rise mt-3 flex gap-1 rounded-2xl bg-[var(--bg)] p-1" style={{ animationDelay: '0.04s' }}>
         {([
-          { key: 'add', label: 'Add meal' },
+          { key: 'add', label: 'Diary' },
           { key: 'nutrition', label: 'Nutrition' },
           { key: 'macros', label: 'Macros' },
         ] as const).map(t => (
@@ -270,7 +410,7 @@ export function DiscoverScreen() {
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-colors"
             style={
               tab === t.key
-                ? { background: 'var(--accent)', color: '#fff' }
+                ? { background: 'var(--accent)', color: 'var(--on-accent)' }
                 : { color: 'var(--muted)' }
             }
           >
@@ -295,12 +435,21 @@ export function DiscoverScreen() {
           addResult={addResult}
           items={items}
           updateGrams={updateGrams}
+          updateBasis={updateBasis}
+          toggleUnit={toggleUnit}
           removeItem={removeItem}
           totals={totals}
           saving={saving}
           logMeal={logMeal}
           loggedMeals={meals}
           foodUnit={foodUnit}
+          dayIsToday={dayIsToday}
+          mealCount={dayTotals.mealCount}
+          copying={copying}
+          onOpenCopy={() => setCopyOpen(true)}
+          deleteMeal={deleteMeal}
+          onEditMeal={meal => setEditingMeal({ meal, mode: 'edit' })}
+          onQuickAddCalories={onQuickAddCalories}
         />
       ) : tab === 'nutrition' ? (
         <NutritionTab
@@ -316,6 +465,21 @@ export function DiscoverScreen() {
         <MacrosTab totals={dayTotals} meals={meals} />
       )}
       </div>
+
+      <CopyMealsSheet
+        open={copyOpen}
+        onClose={() => setCopyOpen(false)}
+        targetDate={selectedDate}
+        onCopy={copySelectedMeals}
+      />
+
+      <MealEditSheet
+        meal={editingMeal?.meal ?? null}
+        mode={editingMeal?.mode ?? 'edit'}
+        saving={savingMeal}
+        onClose={() => setEditingMeal(null)}
+        onConfirm={applyMealChange}
+      />
     </div>
   );
 }
@@ -334,12 +498,21 @@ type AddMealProps = {
   addResult: (r: FoodSearchResult) => void;
   items: Item[];
   updateGrams: (key: string, grams: number) => void;
+  updateBasis: (key: string, gramsPerServing: number) => void;
+  toggleUnit: (key: string) => void;
   removeItem: (key: string) => void;
   totals: Macros;
   saving: boolean;
   logMeal: () => void;
   loggedMeals: FoodLog[];
   foodUnit: 'g' | 'oz';
+  dayIsToday: boolean;
+  mealCount: number;
+  copying: boolean;
+  onOpenCopy: () => void;
+  deleteMeal: (id: string) => void;
+  onEditMeal: (meal: FoodLog) => void;
+  onQuickAddCalories: () => void;
 };
 
 function AddMealTab(p: AddMealProps) {
@@ -391,10 +564,16 @@ function AddMealTab(p: AddMealProps) {
             onClick={p.handleAiEstimate}
             disabled={p.searching || p.estimating || !p.query.trim()}
             aria-label="Estimate with AI"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
           >
             {p.estimating ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--on-accent) 40%, transparent)',
+                  borderTopColor: 'var(--on-accent)',
+                }}
+              />
             ) : (
               <Sparkles size={18} />
             )}
@@ -439,20 +618,59 @@ function AddMealTab(p: AddMealProps) {
                 <p className="text-[10px] text-[var(--muted)]">
                   {i.calories} kcal · {i.protein}p / {i.carbs}c / {i.fat}f
                 </p>
+                {i.unit === 'serving' ? (
+                  <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--muted)]">
+                    <span>1 serving =</span>
+                    <input
+                      className="w-12 rounded-md border border-[var(--card-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-right text-[10px] text-[var(--text)] outline-none"
+                      type="number"
+                      inputMode="decimal"
+                      min="1"
+                      step="any"
+                      value={i.gramsPerServing}
+                      onChange={e => p.updateBasis(i.key, Number(e.target.value) || 1)}
+                    />
+                    <span>g</span>
+                  </div>
+                ) : null}
               </div>
               <div className="flex items-center gap-1">
-                <input
-                  className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="any"
-                  value={p.foodUnit === 'oz' ? Math.round(gToUnit(i.grams, 'oz') * 10) / 10 : i.grams}
-                  onChange={e =>
-                    p.updateGrams(i.key, Math.round(unitToG(Number(e.target.value) || 0, p.foodUnit)))
-                  }
-                />
-                <span className="text-[10px] text-[var(--muted)]">{p.foodUnit}</span>
+                {i.unit === 'serving' ? (
+                  <input
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={i.grams}
+                    onChange={e => p.updateGrams(i.key, Number(e.target.value) || 0)}
+                  />
+                ) : (
+                  <input
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={p.foodUnit === 'oz' ? Math.round(gToUnit(i.grams, 'oz') * 10) / 10 : i.grams}
+                    onChange={e => p.updateGrams(i.key, unitToG(Number(e.target.value) || 0, p.foodUnit))}
+                  />
+                )}
+                {i.gramsPerServing ? (
+                  <button
+                    type="button"
+                    onClick={() => p.toggleUnit(i.key)}
+                    aria-label="Switch between grams and servings"
+                    className="flex items-center gap-0.5 rounded-lg bg-[var(--bg)] px-1.5 py-1 text-[10px] font-semibold text-[var(--accent)]"
+                  >
+                    {i.unit === 'serving' ? (i.grams === 1 ? 'serving' : 'servings') : p.foodUnit}
+                    <ArrowLeftRight size={10} />
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-[var(--muted)]">
+                    {i.unit === 'serving' ? (i.grams === 1 ? 'serving' : 'servings') : p.foodUnit}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -465,17 +683,7 @@ function AddMealTab(p: AddMealProps) {
             </div>
           ))}
         </div>
-      ) : (
-        <div className="glass-card anim-fade-rise mt-4 p-6 text-center" style={{ animationDelay: '0.1s' }}>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)]/10">
-            <UtensilsCrossed size={22} style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="text-sm font-semibold text-[var(--text)]">Compose your meal</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            Search and add foods above — you'll see the full breakdown, then log it to your diary.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {p.items.length > 0 ? (
         <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.12s' }}>
@@ -496,49 +704,137 @@ function AddMealTab(p: AddMealProps) {
             type="button"
             onClick={p.logMeal}
             disabled={p.saving}
-            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:opacity-50 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+            className="mt-4 w-full rounded-2xl py-3.5 text-sm font-semibold text-[var(--on-accent)] disabled:opacity-50 bg-[image:var(--accent-gradient)]"
           >
             {p.saving ? 'Logging…' : `Log ${p.items.length} item${p.items.length > 1 ? 's' : ''} to diary`}
           </button>
         </div>
       ) : null}
 
-      {/* Today's log, grouped by meal */}
-      {p.loggedMeals.length > 0 ? (
-        <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
-          <p className="mb-2 text-sm font-semibold text-[var(--text)]">Today's log</p>
-          {MEAL_CATEGORY_OPTIONS.map(o => o.value)
+      {/* This day's diary, grouped by meal — tap to edit, swipe-free delete */}
+      <div className="glass-card anim-fade-rise mt-4 p-5" style={{ animationDelay: '0.14s' }}>
+        <div className="mb-1 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--text)]">Logged this day</p>
+          <div className="flex items-center gap-3">
+            {/* Also offered on a day that already has meals: picking single
+                items is most useful when you are topping a day up, not only
+                when starting it from nothing. */}
+            {p.mealCount > 0 ? (
+              <button
+                type="button"
+                onClick={p.onOpenCopy}
+                className="flex items-center gap-1 text-xs font-semibold"
+                style={{ color: 'var(--accent)' }}
+              >
+                <Copy size={12} /> Copy
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={p.onQuickAddCalories}
+              className="text-xs font-semibold"
+              style={{ color: 'var(--accent)' }}
+            >
+              + Quick add
+            </button>
+          </div>
+        </div>
+
+        {p.mealCount === 0 ? (
+          <>
+            <button
+              type="button"
+              onClick={p.onOpenCopy}
+              disabled={p.copying}
+              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[var(--card-border)] py-2.5 text-xs font-semibold disabled:opacity-50"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Copy size={13} />
+              {p.copying ? 'Copying…' : 'Copy meals from another day'}
+            </button>
+            <div className="py-4 text-center">
+              <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)]/10">
+                <UtensilsCrossed size={20} style={{ color: 'var(--accent)' }} />
+              </div>
+              <p className="text-xs text-[var(--muted)]">
+                Nothing logged for this day. Search and add foods above.
+              </p>
+            </div>
+          </>
+        ) : (
+          MEAL_CATEGORY_OPTIONS.map(o => o.value)
             .map(cat => ({ cat, list: p.loggedMeals.filter(m => m.meal_category === cat) }))
             .filter(g => g.list.length > 0)
             .map(g => (
               <div key={g.cat} className="mb-3 last:mb-0">
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1 flex items-baseline justify-between gap-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
                     {MEAL_LABELS[g.cat]}
                   </p>
-                  <p className="text-[10px] font-semibold text-[var(--muted)]">
-                    {Math.round(g.list.reduce((s, m) => s + (m.calories ?? 0), 0))} kcal
-                  </p>
+                  {(() => {
+                    // Per-meal macro subtotals, not just calories — otherwise you
+                    // have to add the rows up yourself to see where the protein
+                    // in a day actually came from.
+                    const t = g.list.reduce(
+                      (a, m) => ({
+                        kcal: a.kcal + (m.calories ?? 0),
+                        p: a.p + (m.protein_g ?? 0),
+                        c: a.c + (m.carbs_g ?? 0),
+                        f: a.f + (m.fat_g ?? 0),
+                      }),
+                      { kcal: 0, p: 0, c: 0, f: 0 },
+                    );
+                    return (
+                      <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
+                        <span className="text-[var(--text)]">{Math.round(t.kcal)} kcal</span> ·{' '}
+                        {Math.round(t.p)}P {Math.round(t.c)}C {Math.round(t.f)}F
+                      </p>
+                    );
+                  })()}
                 </div>
                 {g.list.map(m => (
-                  <div key={m.id} className="py-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 flex-1 text-xs text-[var(--text)]">{m.meal_name}</p>
-                      <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
-                        {m.calories ?? 0} kcal
-                      </p>
-                    </div>
-                    <MacroSplitBar
-                      protein={m.protein_g ?? 0}
-                      carbs={m.carbs_g ?? 0}
-                      fat={m.fat_g ?? 0}
-                    />
+                  <div
+                    key={m.id}
+                    className="flex items-start gap-2 border-b border-[var(--card-border)] py-2 last:border-b-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => p.onEditMeal(m)}
+                      className="min-w-0 flex-1 text-left"
+                      aria-label={`Edit ${m.meal_name}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 flex-1 text-xs font-medium text-[var(--text)]">{m.meal_name}</p>
+                        <p className="shrink-0 text-[10px] font-semibold text-[var(--muted)]">
+                          {m.calories ?? 0} kcal
+                        </p>
+                      </div>
+                      {m.amount != null && m.unit ? (
+                        <p className="text-[10px] text-[var(--muted)]">
+                          {m.amount}{' '}
+                          {m.unit === 'serving' ? (m.amount === 1 ? 'serving' : 'servings') : m.unit}
+                        </p>
+                      ) : null}
+                      <MacroSplitBar
+                        protein={m.protein_g ?? 0}
+                        carbs={m.carbs_g ?? 0}
+                        fat={m.fat_g ?? 0}
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => p.deleteMeal(m.id)}
+                      aria-label={`Delete ${m.meal_name}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-red-500/70"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
-            ))}
-        </div>
-      ) : null}
+            ))
+        )}
+      </div>
     </>
   );
 }
@@ -548,6 +844,7 @@ const MEAL_COLORS: Record<MealCategory, string> = {
   lunch: '#22c55e',
   dinner: '#f59e0b',
   snack: '#0ea5e9',
+  evening_snack: '#14b8a6',
   supplement: '#a855f7',
   other: '#94a3b8',
 };
@@ -557,6 +854,7 @@ const MEAL_LABELS: Record<MealCategory, string> = {
   lunch: 'Lunch',
   dinner: 'Dinner',
   snack: 'Snacks',
+  evening_snack: 'Evening snacks',
   supplement: 'Supplements',
   other: 'Other',
 };
@@ -595,7 +893,7 @@ function MacroSplitBar({ protein, carbs, fat }: { protein: number; carbs: number
           </>
         ) : null}
       </div>
-      <div className="relative mt-1 h-3 text-[9px] font-semibold">
+      <div className="relative mt-1 h-3 text-[10px] font-semibold">
         <span className="absolute whitespace-nowrap" style={{ ...pos(pW / 2), color: MACRO_COLORS.protein }}>
           {Math.round(protein)}g P
         </span>
@@ -675,7 +973,7 @@ function NutritionTab({
           >
             <div className="absolute inset-[14px] flex flex-col items-center justify-center rounded-full bg-[var(--card)]">
               <span className="text-lg font-black leading-none text-[var(--text)]">{calories}</span>
-              <span className="text-[8px] font-bold uppercase text-[var(--muted)]">kcal</span>
+              <span className="text-[10px] font-bold uppercase text-[var(--muted)]">kcal</span>
             </div>
           </div>
           <div className="flex-1">
@@ -796,7 +1094,7 @@ function MacrosTab({ totals, meals }: { totals: NutritionTotals; meals: FoodLog[
         <div className="mt-3 flex justify-between">
           {split.map(s => (
             <div key={s.label} className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
               <span className="text-xs text-[var(--text)]">
                 {s.label} <span className="text-[var(--muted)]">{s.grams}g</span>
               </span>
@@ -818,11 +1116,11 @@ function MacrosTab({ totals, meals }: { totals: NutritionTotals; meals: FoodLog[
                 key={s.label}
                 className="flex items-center justify-between border-b border-[var(--card-border)] py-2.5 last:border-b-0"
               >
-                <span className="flex items-center gap-2 text-xs">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                  <span className="text-[var(--muted)]">Most {s.label.toLowerCase()}</span>
+                <span className="flex shrink-0 items-center gap-2 text-xs">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
+                  <span className="whitespace-nowrap text-[var(--muted)]">Most {s.label.toLowerCase()}</span>
                 </span>
-                <span className="text-right text-xs text-[var(--text)]">
+                <span className="min-w-0 pl-3 text-right text-xs text-[var(--text)]">
                   {top ? (
                     <>
                       {top.meal_name}{' '}
@@ -845,7 +1143,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center rounded-xl bg-[var(--bg)] p-2">
       <p className="text-xs font-bold text-[var(--text)]">{value}</p>
-      <p className="mt-0.5 text-[8px] font-bold uppercase text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase text-[var(--muted)]">{label}</p>
     </div>
   );
 }

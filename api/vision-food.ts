@@ -26,6 +26,7 @@ type FoodResult = {
 
 const PROMPT = `You estimate nutrition from a photo of a meal.
 Estimate the nutrition for the WHOLE visible portion shown (not per 100g).
+The food in the photo is cooked / as-served, so estimate it that way (a plate of cooked rice uses cooked density, not dry). Remember cooking adds water, not calories.
 Respond with ONLY a JSON object, no markdown and no prose, with exactly these keys:
 "name" (short dish name, string),
 "calories" (kcal, integer),

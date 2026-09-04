@@ -38,6 +38,10 @@ export function useBodyScans() {
         user_id: userId,
         summary: result.summary,
         focus_areas: result.focusAreas,
+        strengths: result.strengths,
+        weak_points: result.weakPoints,
+        action_plan: result.actionPlan,
+        since_last: result.sinceLast || null,
         training_focus: result.trainingFocus,
         nutrition_focus: result.nutritionFocus,
       });
@@ -63,8 +67,12 @@ export function useBodyScans() {
 export function scanToResult(scan: BodyScan): BodyResult {
   return {
     summary: scan.summary,
+    strengths: scan.strengths ?? [],
+    weakPoints: scan.weak_points ?? [],
     focusAreas: scan.focus_areas ?? [],
+    actionPlan: scan.action_plan ?? [],
     trainingFocus: scan.training_focus ?? '',
     nutritionFocus: scan.nutrition_focus ?? '',
+    sinceLast: scan.since_last ?? '',
   };
 }

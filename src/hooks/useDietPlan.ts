@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { addDays } from '../utils/date';
+import { addDays, parseDate } from '../utils/date';
 import type { DietPlanItem, DietPlanResult } from '../lib/aiClient';
 
 // A personal eating plan kept locally (single-device convenience data, no
@@ -72,6 +72,30 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Set the time for every item in a meal on a given day (a meal is eaten once).
+  const setMealTime = useCallback(
+    (date: string, meal: string, time: string) => {
+      const list = (plan.byDate[date] ?? []).map(it => (it.meal === meal ? { ...it, time } : it));
+      persist({ ...plan, byDate: { ...plan.byDate, [date]: list } });
+    },
+    [plan, persist],
+  );
+
+  // Append several items to a date at once (e.g. a whole predefined day).
+  const addItems = useCallback(
+    (date: string, itemsToAdd: DietPlanItem[]) => {
+      const list = plan.byDate[date] ?? [];
+      persist({
+        ...plan,
+        byDate: {
+          ...plan.byDate,
+          [date]: [...list, ...itemsToAdd.map(it => ({ ...it, id: newId() }))],
+        },
+      });
+    },
+    [plan, persist],
+  );
+
   // Lay an AI result (a handful of unique days) across `span` days starting at
   // `startDate`, cycling through the source days. Only the affected dates are
   // overwritten — plans on other dates are kept.
@@ -89,6 +113,55 @@ export function useDietPlan() {
     [plan, persist],
   );
 
+  // Lay a 7-day typed plan (Mon..Sun) onto real dates by weekday, repeating it
+  // every week across `span`. Keeps the plan aligned to your weekly diet split.
+  const applyWeeklyPlan = useCallback(
+    (result: DietPlanResult, startDate: string, span = PLAN_SPAN) => {
+      const source = result.days;
+      if (!source.length) return;
+      const byDate = { ...plan.byDate };
+      for (let i = 0; i < span; i++) {
+        const date = addDays(startDate, i);
+        const weekday = (parseDate(date).getDay() + 6) % 7; // Mon = 0
+        const day = source[weekday] ?? source[i % source.length];
+        byDate[date] = (day?.items ?? []).map(it => ({ ...it, id: newId() }));
+      }
+      persist({ summary: result.summary ?? plan.summary, byDate });
+    },
+    [plan, persist],
+  );
+
+  // Write specific dates in one go. Unlike applyWeeklyPlan this takes explicit
+  // per-date meals, so a long programme whose eating rules change by phase and
+  // by weekday can be laid down in a single write rather than one per day.
+  const applyDates = useCallback(
+    (entries: { date: string; items: DietPlanItem[] }[], summary?: string) => {
+      if (!entries.length) return;
+      const byDate = { ...plan.byDate };
+      for (const entry of entries) {
+        byDate[entry.date] = entry.items.map(it => ({ ...it, id: newId() }));
+      }
+      persist({ summary: summary ?? plan.summary, byDate });
+    },
+    [plan, persist],
+  );
+
+  // Copy one day's meals across the whole span — handy when you eat the same
+  // thing most days and don't want variety.
+  const repeatDay = useCallback(
+    (sourceDate: string, startDate: string, span = PLAN_SPAN) => {
+      const items = plan.byDate[sourceDate] ?? [];
+      if (!items.length) return;
+      const byDate = { ...plan.byDate };
+      for (let i = 0; i < span; i++) {
+        const date = addDays(startDate, i);
+        byDate[date] = items.map(it => ({ ...it, id: newId() }));
+      }
+      persist({ ...plan, byDate });
+    },
+    [plan, persist],
+  );
+
   const clearDate = useCallback(
     (date: string) => {
       const byDate = { ...plan.byDate };
@@ -102,5 +175,5 @@ export function useDietPlan() {
 
   const hasPlan = Object.values(plan.byDate).some(list => list.length > 0);
 
-  return { plan, hasPlan, itemsFor, addItem, removeItem, applyAiPlan, clearDate, clearAll };
+  return { plan, hasPlan, itemsFor, addItem, addItems, removeItem, setMealTime, applyAiPlan, applyWeeklyPlan, applyDates, repeatDay, clearDate, clearAll };
 }

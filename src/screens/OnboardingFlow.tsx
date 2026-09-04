@@ -180,7 +180,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       {/* Header: back + progress */}
       <div className="flex items-center gap-3 pt-2">
         {step > 0 ? (
-          <button type="button" onClick={back} aria-label="Back" className="glass flex h-9 w-9 items-center justify-center rounded-full">
+          <button type="button" onClick={back} aria-label="Back" className="tap-44 glass flex h-9 w-9 items-center justify-center rounded-full">
             <ArrowLeft size={16} className="text-[var(--text)]" />
           </button>
         ) : (
@@ -197,7 +197,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       <div className="flex flex-1 flex-col justify-center py-6">
         {current === 'welcome' && (
           <div className="anim-fade-rise text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)] text-white">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--accent)] text-[var(--on-accent)]">
               <Dumbbell size={30} />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-[var(--text)]">Let's set up your plan</h1>
@@ -424,7 +424,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={finish}
           disabled={saving}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-50 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50 bg-[image:var(--accent-gradient)]"
         >
           {saving ? 'Saving…' : 'Start tracking'}
         </button>
@@ -433,7 +433,7 @@ export function OnboardingFlow({ onComplete }: Props) {
           type="button"
           onClick={next}
           disabled={!canNext}
-          className="w-full rounded-2xl py-4 text-sm font-bold text-white disabled:opacity-40 bg-[linear-gradient(135deg,#6c63ff,#4b3fe0)]"
+          className="w-full rounded-2xl py-4 text-sm font-bold text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
         >
           {current === 'welcome' ? "Let's go" : 'Continue'}
         </button>
@@ -470,7 +470,7 @@ function ChoiceCard({
       className={`flex items-center justify-center rounded-2xl border p-4 ${full ? 'w-full justify-start' : 'flex-1'}`}
       style={
         active
-          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }
+          ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--on-accent)' }
           : { borderColor: 'var(--card-border)', background: 'var(--card)', color: 'var(--text)' }
       }
     >
@@ -483,7 +483,7 @@ function MacroPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-2xl bg-[var(--bg)] p-2.5">
       <p className="text-sm font-bold text-[var(--text)]">{value}</p>
-      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">{label}</p>
     </div>
   );
 }

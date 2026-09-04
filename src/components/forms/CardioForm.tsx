@@ -98,7 +98,7 @@ export function CardioForm({ onSaved }: Props) {
         </div>
         <div className="mb-3">
           <label className={labelClass} htmlFor="cardio-cals">Calories burned — optional</label>
-          <input id="cardio-cals" className={inputClass} type="number" inputMode="numeric" min="0" value={calories} onChange={e => setCalories(e.target.value)} placeholder="e.g. 300" />
+          <input id="cardio-cals" className={inputClass} type="number" inputMode="decimal" min="0" value={calories} onChange={e => setCalories(e.target.value)} placeholder="e.g. 300" />
         </div>
         {paceStr ? <p className="mb-3 text-xs font-semibold" style={{ color: 'var(--accent)' }}>Pace: {paceStr}</p> : null}
         {error ? <p className={errorTextClass}>{error}</p> : null}

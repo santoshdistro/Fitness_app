@@ -1,4 +1,5 @@
 import { useAchievements } from '../hooks/useAchievements';
+import { SkeletonRows } from './Skeleton';
 
 export function AchievementsPanel() {
   const { achievements, earnedCount, total, loading } = useAchievements();
@@ -6,19 +7,19 @@ export function AchievementsPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div
-        className="overflow-hidden p-5 text-center text-white"
-        style={{ borderRadius: 'var(--radius-card)', background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+        className="overflow-hidden p-5 text-center text-[var(--on-accent)]"
+        style={{ borderRadius: 'var(--radius-card)', background: 'var(--accent-gradient)' }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Achievements</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Achievements</p>
         <p className="text-4xl font-black">
           {earnedCount}
-          <span className="text-lg font-bold text-white/70"> / {total}</span>
+          <span className="text-lg font-bold opacity-70"> / {total}</span>
         </p>
-        <p className="text-[11px] text-white/80">Keep logging to unlock more.</p>
+        <p className="text-[11px] opacity-80">Keep logging to unlock more.</p>
       </div>
 
       {loading ? (
-        <p className="text-xs text-[var(--muted)]">Loading…</p>
+        <SkeletonRows rows={4} label="Loading achievements" />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {achievements.map(ac => (

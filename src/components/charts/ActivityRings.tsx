@@ -64,7 +64,7 @@ export function ActivityRings({ rings, size = 132 }: Props) {
 
 export function RingLegend({ rings }: { rings: Ring[] }) {
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
       {rings.map(ring => {
         const pct = ring.target > 0 ? Math.round((ring.value / ring.target) * 100) : 0;
         return (

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTodayLog } from '../../hooks/useTodayLog';
@@ -12,7 +12,7 @@ type Props = {
 export function ActivityForm({ onSaved }: Props) {
   const { session } = useAuth();
   const [logDate, setLogDate] = useState(todayDateString());
-  const { log: dayLog } = useTodayLog(logDate);
+  const { log: dayLog, loading: dayLogLoading } = useTodayLog(logDate);
   const [steps, setSteps] = useState('');
   const [water, setWater] = useState('');
   const [sleepH, setSleepH] = useState('');
@@ -24,9 +24,14 @@ export function ActivityForm({ onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fully sync the fields to the selected day's log (clearing when it's empty),
-  // so switching dates never leaves another day's numbers behind.
+  // Populate the fields from the selected day's log ONCE per date — when you
+  // switch days. We deliberately don't re-sync on every refetch (e.g. when the
+  // app returns from the background), so in-progress typing is never wiped.
+  const populatedFor = useRef<string | null>(null);
   useEffect(() => {
+    if (dayLogLoading) return; // wait until this date's data has loaded
+    if (populatedFor.current === logDate) return; // already loaded — keep edits
+    populatedFor.current = logDate;
     setSteps(dayLog?.steps != null ? String(dayLog.steps) : '');
     setWater(dayLog?.water_ml != null ? String(dayLog.water_ml) : '');
     if (dayLog?.sleep_hours != null) {
@@ -42,7 +47,7 @@ export function ActivityForm({ onSaved }: Props) {
     setCaffeine(dayLog?.caffeine_mg != null ? String(dayLog.caffeine_mg) : '');
     setMood(dayLog?.mood ?? null);
     setEnergy(dayLog?.energy ?? null);
-  }, [dayLog]);
+  }, [dayLog, dayLogLoading, logDate]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

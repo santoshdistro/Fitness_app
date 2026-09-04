@@ -45,7 +45,7 @@ function Toggle<T extends string>({
           type="button"
           onClick={() => onChange(o.value)}
           className="flex-1 rounded-full px-2 py-1.5 text-[11px] font-semibold whitespace-nowrap"
-          style={value === o.value ? { background: 'var(--accent)', color: '#fff' } : { color: 'var(--muted)' }}
+          style={value === o.value ? { background: 'var(--accent)', color: 'var(--on-accent)' } : { color: 'var(--muted)' }}
         >
           {o.label}
         </button>
@@ -256,7 +256,7 @@ function MacroCalc({ wUnit, defaultWeight }: { wUnit: 'kg' | 'lb'; defaultWeight
             <p className="text-lg font-black" style={{ color: m.color }}>
               {m.g}g
             </p>
-            <p className="text-[9px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
+            <p className="text-[10px] font-bold uppercase text-[var(--muted)]">{m.label}</p>
           </div>
         ))}
       </div>

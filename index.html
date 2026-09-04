@@ -3,9 +3,75 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+    <!-- ONE tag, in the markup, with no media attribute. Every part of that is
+         load-bearing, and each was learned the hard way on device:
+
+         In the markup, because iOS reads this while parsing and a tag created
+         by script arrives too late — with no tag present at that moment it
+         falls back to a BLACK band, which is exactly what a script-created tag
+         produced. It also ignores later edits to the tag, so this value is the
+         one the band gets for the whole session.
+
+         No media attribute, because a pair scoped to prefers-color-scheme hands
+         the choice to the PHONE's appearance rather than the app's: a phone
+         that had gone dark for the evening matched the dark tag and painted
+         black over a light app, however the app itself was set. That is also
+         why changing the theme in-app never moved the band and relaunching did.
+
+         This is what paints the status-bar band above the app under `default`.
+         Without a tag here iOS paints that band black — the whole reason
+         `default` looked broken when this tag had been moved into a script.
+
+         The consequence, and it is a real limit rather than an oversight: on
+         iOS this cannot follow the in-app theme toggle, because the value is
+         taken at load and never re-read. It holds the light background, since
+         that is the theme the app runs in; switching the app to dark leaves a
+         light strip under the nav until this literal changes. Chrome does
+         honour the update below, so it only bites on iOS. -->
     <meta name="theme-color" content="#f7f7fb" />
 
-    <!-- iOS "Add to Home Screen" behavior -->
+    <!-- Blocking on purpose, and tiny. It stamps the saved theme before the
+         first paint, so the splash knows which accent to use — main.tsx is a
+         deferred module and runs too late — and updates theme-color for the
+         browsers that do read it live.
+
+         The literals repeat --bg and --page-edge on purpose: no stylesheet has
+         been parsed yet, so they cannot be read from CSS. Keep them in step. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('app_settings') || '{}');
+        var dark = s.theme === 'dark';
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var c = s.surface === 'glass' && s.backdrop ? '#0b0d16' : dark ? '#0a0a0a' : '#f7f7fb';
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', c);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
+
+    <!-- iOS "Add to Home Screen" behavior.
+
+         `default` with viewport-fit=cover, which is what this app ran on for
+         months with both edges right: the view is sized to the whole screen,
+         the safe-area insets do the work — the shell pads the top by
+         env(safe-area-inset-top), the nav pads the bottom for the home
+         indicator — and the status-bar band is painted from theme-color, so
+         with the light background there it is invisible against the page.
+
+         black-translucent was tried instead and is the wrong tool. It is the
+         legacy full-screen mechanism: iOS lifts the web view under the status
+         bar WITHOUT resizing it, so the height stays "screen minus status bar"
+         and the remainder falls off the BOTTOM as a strip no CSS can reach —
+         measured on device, innerHeight 797 against an 844pt screen. The gap
+         under the menu was that strip.
+
+         A note for whoever hits this next, because it cost a lot of rounds:
+         `default` was blamed for painting a black band, and it does — but only
+         when there is no theme-color tag in the markup for it to read. The
+         build that "proved" it had none, because the tag had been moved to a
+         script that creates it, which lands after iOS has already read the
+         head. The band was never uncontrollable; the tag was missing. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fitness" />
@@ -14,10 +80,330 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/app-icon-192.png" />
     <link rel="apple-touch-icon" href="/app-icon-180.png" />
+    <!-- Warms the connection for the splash photo below and the Home hero, which
+         share a URL and therefore a cache entry. -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 
     <title>Fitness</title>
+
+    <!--
+      Splash screen. Everything it needs is inline, so it paints on the very
+      first frame — before the bundle downloads, before React mounts, before the
+      auth check. Those three together are the couple of seconds the app used to
+      spend on a blank screen and then a 24px spinner.
+
+      The ground is #0a0a0a to match `background_color` in the manifest, which is
+      what iOS and Android paint for a standalone launch. Matching it means the
+      OS launch screen and this hand over with no flash between them, and it is
+      the icon's ground too, so home screen, launch and splash are one black.
+      The mark itself is white in both themes; what changes is the accent behind
+      it, so the splash hands over to an app that looks like itself.
+    -->
+    <style>
+      /* The field is the app's own aurora backdrop — the four brand radials that
+         sit behind the liquid-glass surface — darkened. It carries the screen on
+         its own, so a cold first run with no photo yet still looks composed
+         rather than empty. */
+      /* body's colour shows in the strip iOS leaves below the web view, and it
+         normally matches the nav. While the splash is up the nav isn't there
+         yet — a white band under a dark photo reads as broken — so it matches
+         the splash instead, and reverts when the splash is removed. */
+      body:has(#splash) {
+        background: #0a0a0a;
+      }
+
+      /* The glow and photo tint follow the theme the app will actually open in;
+         the mark stays white in both. */
+      #splash {
+        --splash-glow: rgba(108, 99, 255, 0.45);
+        --splash-tint: rgba(108, 99, 255, 0.3);
+      }
+      :root[data-theme='dark'] #splash {
+        --splash-glow: rgba(203, 238, 79, 0.34);
+        --splash-tint: rgba(150, 190, 90, 0.22);
+      }
+
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-color: #0a0a0a;
+        background-image:
+          radial-gradient(52% 38% at 12% 8%, rgba(125, 117, 255, 0.45), transparent 66%),
+          radial-gradient(48% 34% at 90% 14%, rgba(14, 165, 233, 0.3), transparent 66%),
+          radial-gradient(50% 40% at 84% 88%, rgba(45, 212, 191, 0.22), transparent 68%),
+          radial-gradient(56% 44% at 14% 94%, rgba(168, 85, 247, 0.36), transparent 70%);
+      }
+
+      /* The neon world has no violet in it, so the field goes lime-on-black
+         rather than carrying the light theme's aurora into a dark-mode launch. */
+      :root[data-theme='dark'] #splash {
+        background-color: #0a0a0a;
+        background-image:
+          radial-gradient(54% 38% at 14% 8%, rgba(203, 238, 79, 0.15), transparent 62%),
+          radial-gradient(46% 32% at 88% 16%, rgba(119, 235, 216, 0.09), transparent 64%),
+          radial-gradient(52% 42% at 84% 90%, rgba(147, 155, 168, 0.1), transparent 66%),
+          radial-gradient(58% 44% at 12% 94%, rgba(203, 238, 79, 0.09), transparent 68%);
+      }
+
+      /* Gym photography, layered OVER the field and faded in only once it has
+         actually decoded — the rule the in-app imagery already follows. If it
+         never arrives, nothing above depends on it. */
+      #splash .splash-photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      #splash .splash-photo.is-in {
+        /* Held well back. The photo is atmosphere, not the subject — the mark
+           is, and at 0.7 the dumbbells were competing with it. */
+        opacity: 0.56;
+      }
+
+      /* Three jobs: a periwinkle duotone that pulls any photo into the brand
+         whatever its own colour is, a vignette that darkens the edges so the
+         mark holds contrast wherever the crop happens to land, and a fade at
+         the bottom into the same black the strip below the viewport is painted.
+         Without that last one the photo ends on mid-grey dumbbells against a
+         pure-black band and the seam is the first thing you see on launch;
+         listed first so it sits above the other two. */
+      #splash .splash-wash {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(to top, #0a0a0a 0, rgba(10, 10, 10, 0.88) 44px, transparent 132px),
+          linear-gradient(150deg, var(--splash-tint), rgba(20, 22, 30, 0.52)),
+          radial-gradient(94% 66% at 50% 44%, transparent 20%, rgba(6, 7, 12, 0.9) 100%);
+      }
+
+      /* A pulse of the accent leaving the mark, once it has formed. Sized to the
+         mark and behind it, so it reads as light coming off the logo rather than
+         a ring drawn around it. Loops while the app loads, which also keeps a
+         slow start from looking frozen. */
+      #splash .splash-pulse {
+        position: absolute;
+        width: clamp(128px, 34vw, 176px);
+        aspect-ratio: 1;
+        margin-bottom: 6vh;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--splash-glow) 0%, transparent 68%);
+        opacity: 0;
+        animation: splash-pulse 2200ms cubic-bezier(0.22, 1, 0.36, 1) 640ms infinite;
+      }
+
+      #splash .splash-mark {
+        position: relative;
+        width: clamp(128px, 34vw, 176px);
+        height: auto;
+        /* Optical centering — dead-centre reads low on a tall phone screen. */
+        margin-bottom: 6vh;
+        filter: drop-shadow(0 16px 38px rgba(0, 0, 0, 0.75));
+        /* The mark wipes downward as it appears, so it forms the way the shape
+           reads — wide at the shoulders first, converging to the point. */
+        animation: splash-mark-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes splash-mark-in {
+        from {
+          opacity: 0;
+          transform: scale(0.88);
+          clip-path: inset(0 0 100% 0);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+          clip-path: inset(0 0 0 0);
+        }
+      }
+
+      @keyframes splash-pulse {
+        0% {
+          opacity: 0;
+          transform: scale(0.55);
+        }
+        30% {
+          opacity: 0.55;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(2.2);
+        }
+      }
+
+      /* Slow-load state. Pure CSS on a delay, so it needs no timer and no
+         script: a normal start removes the whole splash seconds before this
+         fires, and nobody ever sees it. If the bundle or the session check
+         stalls, it explains the wait instead of leaving a logo sitting there. */
+      #splash .splash-hint {
+        position: absolute;
+        left: 50%;
+        bottom: max(11vh, calc(env(safe-area-inset-bottom) + 48px));
+        transform: translateX(-50%);
+        margin: 0;
+        width: min(78vw, 320px);
+        text-align: center;
+        font-family: -apple-system, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.74);
+        opacity: 0;
+        animation: splash-hint 600ms cubic-bezier(0.22, 1, 0.36, 1) 6s both;
+      }
+      @keyframes splash-hint {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* The one authored moment: the splash lifts away and the app arrives
+         through it, rather than a cut or a plain dissolve. */
+      /* The handover: the mark breaks along the seam it is already cut on and
+         the two halves slide apart, and the app is behind them.
+
+         Keyframes rather than a transition because this fires exactly once per
+         launch and can never be interrupted or re-fired — the case where
+         keyframes are the right tool. They also run off the main thread, which
+         matters here more than anywhere: this plays at the moment React mounts
+         and the first screen's data starts arriving.
+
+         The halves separate ALONG the diagonal cut, not straight left/right —
+         they are two faces of one broken shape, so they shear past each other
+         the way the seam already implies. The 8% anticipation is what sells it
+         as a break: they close a hair before they let go. */
+      #splash .splash-facet {
+        transform-origin: 50% 50%;
+      }
+
+      #splash.is-done .splash-facet-a {
+        animation: splash-break-a 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      }
+
+      #splash.is-done .splash-facet-b {
+        animation: splash-break-b 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      }
+
+      @keyframes splash-break-a {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+          opacity: 1;
+        }
+        8% {
+          transform: translate(1.5%, 1%) rotate(0.4deg);
+          opacity: 1;
+        }
+        /* Opacity holds most of the way. A strong ease-out front-loads the
+           travel, so fading on the same curve had the halves gone by 167ms —
+           the break was over before the app behind it started showing. */
+        62% {
+          opacity: 0.82;
+        }
+        100% {
+          transform: translate(-46%, -14%) rotate(-7deg);
+          opacity: 0;
+        }
+      }
+
+      @keyframes splash-break-b {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+          opacity: 1;
+        }
+        8% {
+          transform: translate(-1.5%, -1%) rotate(-0.4deg);
+          opacity: 1;
+        }
+        /* Opacity holds most of the way. A strong ease-out front-loads the
+           travel, so fading on the same curve had the halves gone by 167ms —
+           the break was over before the app behind it started showing. */
+        62% {
+          opacity: 0.82;
+        }
+        100% {
+          transform: translate(46%, 14%) rotate(7deg);
+          opacity: 0;
+        }
+      }
+
+      /* The reveal trails the break by 160ms so the halves are seen to move
+         before the screen they are covering starts coming through. */
+      #splash.is-done {
+        opacity: 0;
+        transform: scale(1.06);
+        filter: blur(6px);
+        pointer-events: none;
+        transition:
+          opacity 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms,
+          transform 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms,
+          filter 420ms cubic-bezier(0.23, 1, 0.32, 1) 160ms;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #splash .splash-photo {
+          transition: none;
+        }
+        #splash .splash-mark {
+          animation: none;
+        }
+        #splash .splash-pulse {
+          animation: none;
+          opacity: 0;
+        }
+        #splash.is-done .splash-facet-a,
+        #splash.is-done .splash-facet-b {
+          animation: none;
+        }
+        #splash.is-done {
+          transform: none;
+          filter: none;
+          transition: opacity 200ms linear;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <img
+        class="splash-photo"
+        src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=70"
+        alt=""
+        fetchpriority="low"
+        decoding="async"
+        onload="this.classList.add('is-in')"
+      />
+      <div class="splash-wash"></div>
+      <div class="splash-pulse"></div>
+      <!-- Same geometry as scripts/build-icons.mjs — keep the two in step. White
+           rather than the accent: the mark is the mark everywhere, and the lime
+           stays reserved for things you press. The colour on this screen comes
+           from the pulse behind it. -->
+      <svg class="splash-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="splash-cut-top"><polygon points="0,0 100,0 100,40 0,56" /></clipPath>
+          <clipPath id="splash-cut-bot"><polygon points="0,59 100,43 100,100 0,100" /></clipPath>
+        </defs>
+        <g fill="#ffffff">
+          <g class="splash-facet splash-facet-a" clip-path="url(#splash-cut-top)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(-3 -2.5)" />
+          </g>
+          <g class="splash-facet splash-facet-b" clip-path="url(#splash-cut-bot)">
+            <path d="M 16 20 L 50 80 L 84 20 L 66 20 L 50 52 L 34 20 Z" transform="translate(3 2.5)" />
+          </g>
+        </g>
+      </svg>
+      <p class="splash-hint">Taking longer than usual — check your connection.</p>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

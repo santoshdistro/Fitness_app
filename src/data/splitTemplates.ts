@@ -57,8 +57,92 @@ export const SPLIT_TEMPLATES: Record<string, TemplateExercise[]> = {
     { name: 'Plank', sets: 3, reps: '45-60s' },
     { name: 'Russian twists', sets: 3, reps: '20' },
   ],
+  Crossfit: [
+    { name: 'Warm-up: row 500m + mobility', sets: 1, reps: '5 min' },
+    { name: 'Strength: power clean', sets: 5, reps: '3' },
+    { name: 'WOD: 12-min AMRAP — 10 thrusters, 10 burpees, 200m run', sets: 1, reps: 'AMRAP' },
+    { name: 'Kettlebell swings', sets: 3, reps: '15' },
+    { name: 'Box jumps', sets: 3, reps: '12' },
+    { name: 'Core finisher: hanging leg raises', sets: 3, reps: '12' },
+  ],
+
+  // --- Specific muscle groups (combine several on one day, e.g. Chest + Triceps) ---
+  Chest: [
+    { name: 'Barbell bench press', sets: 4, reps: '6-8' },
+    { name: 'Incline dumbbell press', sets: 3, reps: '8-10' },
+    { name: 'Chest fly', sets: 3, reps: '12-15' },
+    { name: 'Push-ups', sets: 3, reps: 'AMRAP' },
+  ],
+  Back: [
+    { name: 'Pull-ups / lat pulldown', sets: 4, reps: '6-10' },
+    { name: 'Barbell row', sets: 4, reps: '6-8' },
+    { name: 'Seated cable row', sets: 3, reps: '10-12' },
+    { name: 'Face pulls', sets: 3, reps: '12-15' },
+  ],
+  Shoulders: [
+    { name: 'Overhead shoulder press', sets: 4, reps: '6-8' },
+    { name: 'Lateral raises', sets: 4, reps: '12-15' },
+    { name: 'Rear delt fly', sets: 3, reps: '12-15' },
+    { name: 'Upright row', sets: 3, reps: '10-12' },
+  ],
+  Biceps: [
+    { name: 'Barbell curl', sets: 3, reps: '8-10' },
+    { name: 'Dumbbell curl', sets: 3, reps: '10-12' },
+    { name: 'Hammer curl', sets: 3, reps: '10-12' },
+  ],
+  Triceps: [
+    { name: 'Triceps rope pushdown', sets: 3, reps: '10-12' },
+    { name: 'Skull crushers', sets: 3, reps: '8-10' },
+    { name: 'Overhead triceps extension', sets: 3, reps: '10-12' },
+  ],
+  Quads: [
+    { name: 'Barbell back squat', sets: 4, reps: '6-8' },
+    { name: 'Leg press', sets: 3, reps: '10-12' },
+    { name: 'Leg extension', sets: 3, reps: '12-15' },
+    { name: 'Walking lunges', sets: 3, reps: '10-12 / leg' },
+  ],
+  Hamstrings: [
+    { name: 'Romanian deadlift', sets: 4, reps: '8-10' },
+    { name: 'Leg curl', sets: 3, reps: '12-15' },
+    { name: 'Good mornings', sets: 3, reps: '10-12' },
+  ],
+  Glutes: [
+    { name: 'Hip thrust', sets: 4, reps: '8-10' },
+    { name: 'Bulgarian split squat', sets: 3, reps: '10-12 / leg' },
+    { name: 'Glute bridge', sets: 3, reps: '12-15' },
+  ],
+  Calves: [
+    { name: 'Standing calf raise', sets: 4, reps: '12-15' },
+    { name: 'Seated calf raise', sets: 3, reps: '15-20' },
+  ],
+  Abs: [
+    { name: 'Hanging leg raises', sets: 3, reps: '10-15' },
+    { name: 'Cable crunch', sets: 3, reps: '12-15' },
+    { name: 'Plank', sets: 3, reps: '45-60s' },
+  ],
+
   Rest: [],
 };
+
+/**
+ * Resolve a day's focus — which may combine several groups joined by " + "
+ * (e.g. "Chest + Triceps") — into a deduped exercise list.
+ */
+export function templatesForFocus(focus: string): TemplateExercise[] {
+  if (!focus || focus === 'Rest') return [];
+  const seen = new Set<string>();
+  const out: TemplateExercise[] = [];
+  for (const part of focus.split('+').map(p => p.trim()).filter(Boolean)) {
+    for (const ex of SPLIT_TEMPLATES[part] ?? []) {
+      const k = ex.name.toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(ex);
+      }
+    }
+  }
+  return out;
+}
 
 // Map an AI plan day's free-text focus onto a canonical split bucket.
 export function classifyFocus(focus: string): string | null {

@@ -5,6 +5,7 @@ export const MEAL_CATEGORY_OPTIONS: { value: MealCategory; label: string }[] = [
   { value: 'lunch', label: 'Lunch' },
   { value: 'dinner', label: 'Dinner' },
   { value: 'snack', label: 'Snack' },
+  { value: 'evening_snack', label: 'Evening snack' },
   { value: 'supplement', label: 'Supplement' },
   { value: 'other', label: 'Other' },
 ];
@@ -14,6 +15,7 @@ export function defaultMealCategoryForNow(now = new Date()): MealCategory {
   const hour = now.getHours();
   if (hour < 11) return 'breakfast';
   if (hour < 15) return 'lunch';
-  if (hour < 21) return 'dinner';
+  if (hour < 18) return 'evening_snack';
+  if (hour < 22) return 'dinner';
   return 'snack';
 }

@@ -62,7 +62,8 @@ export function HealthSyncPanel() {
         <p className="text-xs leading-relaxed text-[var(--muted)]">
           Push steps, active energy, weight, sleep and water from Apple Health into your daily log with
           an iOS Shortcut — no App Store, no subscription. Set it up once, then run it (or automate it)
-          from your phone.
+          from your phone. If you wear an Apple Watch, add the body signals below too: those are the
+          ones that describe your recovery and fitness rather than your behaviour.
         </p>
       </div>
 
@@ -85,8 +86,8 @@ export function HealthSyncPanel() {
           type="button"
           onClick={regenerate}
           disabled={working}
-          className="w-full rounded-2xl py-3 text-sm font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+          className="w-full rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
+          style={{ background: 'var(--accent-gradient)' }}
         >
           {working ? 'Generating…' : 'Generate my sync token'}
         </button>
@@ -115,8 +116,8 @@ export function HealthSyncPanel() {
             <button
               type="button"
               onClick={() => runSyncShortcut(shortcutName)}
-              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #6c63ff, #4b3fe0)' }}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-[var(--on-accent)]"
+              style={{ background: 'var(--accent-gradient)' }}
             >
               <Play size={15} fill="currentColor" />
               Sync now
@@ -171,6 +172,25 @@ export function HealthSyncPanel() {
               <br />
               water_ml → Water (ml)
             </div>
+            <p className="mt-2 text-[11px] font-semibold text-[var(--text)]">
+              Apple Watch — the ones worth adding
+            </p>
+            <div className="mt-1 rounded-xl bg-[var(--bg)] px-3 py-2 font-mono text-[10px] leading-relaxed text-[var(--text)]">
+              resting_hr → Resting Heart Rate (bpm)
+              <br />
+              hrv_ms &nbsp;→ Heart Rate Variability (ms)
+              <br />
+              vo2_max → Cardio Fitness (VO₂ max)
+              <br />
+              respiratory_rate → Respiratory Rate
+              <br />
+              wrist_temp_delta → Wrist Temperature (Δ°C)
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--muted)]">
+              Use the <span className="font-semibold text-[var(--text)]">latest</span> value for these, not
+              a sum — they are measurements, not totals. Wrist temperature is a deviation from your own
+              baseline and can be negative, so don't take the absolute value.
+            </p>
           </li>
           <li>
             <span className="font-semibold text-[var(--text)]">5.</span> Run it. A green{' '}

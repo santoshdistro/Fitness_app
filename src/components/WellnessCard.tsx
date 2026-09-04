@@ -33,15 +33,15 @@ export function WellnessCard() {
           <div key={l.log_date} className="flex flex-1 flex-col items-center gap-1.5">
             <span className="text-lg leading-none">{l.mood != null ? MOOD[l.mood - 1] : '·'}</span>
             <span className="text-lg leading-none">{l.energy != null ? ENERGY[l.energy - 1] : '·'}</span>
-            <span className="text-[9px] font-semibold text-[var(--text)]">
+            <span className="text-[10px] font-semibold text-[var(--text)]">
               {l.caffeine_mg != null ? `${l.caffeine_mg}` : '–'}
             </span>
-            <span className="text-[9px] text-[var(--muted)]">{weekdayLetter(l.log_date)}</span>
+            <span className="text-[10px] text-[var(--muted)]">{weekdayLetter(l.log_date)}</span>
           </div>
         ))}
       </div>
 
-      <div className="mt-3 flex justify-between text-[9px] text-[var(--muted)]">
+      <div className="mt-3 flex justify-between text-[10px] text-[var(--muted)]">
         <span>Top: mood 😄 · energy ⚡</span>
         <span>caffeine in mg</span>
       </div>

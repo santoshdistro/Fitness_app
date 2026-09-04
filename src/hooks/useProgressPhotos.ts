@@ -73,6 +73,48 @@ export function useProgressPhotos() {
     [userId, refresh],
   );
 
+  // Edit a saved photo: change its date/weight/note and, optionally, swap the
+  // image for a new one (old file is removed once the row points at the new one).
+  const updatePhoto = useCallback(
+    async (
+      photo: ProgressPhoto,
+      meta: { file?: File | null; takenOn?: string; weightKg?: number | null; note?: string },
+    ) => {
+      if (!userId) return { error: new Error('Not signed in') };
+      let storagePath = photo.storage_path;
+      if (meta.file) {
+        const blob = await fileToDownscaledBlob(meta.file);
+        const newPath = `${userId}/${crypto.randomUUID()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(newPath, blob, { contentType: 'image/jpeg', upsert: false });
+        if (uploadError) return { error: uploadError };
+        storagePath = newPath;
+      }
+
+      const { error: updateError } = await supabase
+        .from('progress_photos')
+        .update({
+          storage_path: storagePath,
+          taken_on: meta.takenOn ?? photo.taken_on,
+          weight_kg: meta.weightKg ?? null,
+          note: meta.note?.trim() || null,
+        })
+        .eq('id', photo.id);
+
+      if (updateError) {
+        // The row still points at the old file — clean up the just-uploaded one.
+        if (storagePath !== photo.storage_path) await supabase.storage.from(BUCKET).remove([storagePath]);
+        return { error: updateError };
+      }
+      // Row now points at the new image — safe to drop the old file.
+      if (storagePath !== photo.storage_path) await supabase.storage.from(BUCKET).remove([photo.storage_path]);
+      await refresh();
+      return { error: null };
+    },
+    [userId, refresh],
+  );
+
   const removePhoto = useCallback(
     async (photo: ProgressPhoto) => {
       await supabase.storage.from(BUCKET).remove([photo.storage_path]);
@@ -83,5 +125,5 @@ export function useProgressPhotos() {
     [refresh],
   );
 
-  return { photos, loading, refresh, addPhoto, removePhoto };
+  return { photos, loading, refresh, addPhoto, updatePhoto, removePhoto };
 }

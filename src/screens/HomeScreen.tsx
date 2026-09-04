@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Flame, RefreshCw, Settings } from 'lucide-react';
+import { Flame, RefreshCw, Settings } from 'lucide-react';
 import { useTodayLog } from '../hooks/useTodayLog';
 import { useRecentDailyLogs } from '../hooks/useRecentDailyLogs';
 import { useRecentWorkouts } from '../hooks/useRecentWorkouts';
@@ -9,18 +9,22 @@ import { useProfile } from '../hooks/useProfile';
 import { useSettings } from '../hooks/useSettings';
 import { useCoachInsight, type CoachPayload } from '../hooks/useCoachInsight';
 import { useWeeklyReview } from '../hooks/useWeeklyReview';
-import { useStartWeight } from '../hooks/useStartWeight';
+import { useJourney } from '../hooks/useJourney';
+import { Sheet } from '../components/Sheet';
+import { unitToKg, weightValue } from '../utils/units';
 import { SleepBarChart } from '../components/charts/SleepBarChart';
-import { ActivityRings, RingLegend, type Ring } from '../components/charts/ActivityRings';
+import { type Ring } from '../components/charts/ActivityRings';
 import { CoachCard } from '../components/CoachCard';
-import { TodayGamePlan, type GamePlanItem } from '../components/TodayGamePlan';
+import { type GamePlanItem } from '../components/TodayGamePlan';
+import { TodayDashboard } from '../components/TodayDashboard';
+import { WorkoutOverviewCard } from '../components/WorkoutOverviewCard';
 import { GoalProgressCard } from '../components/GoalProgressCard';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { StepsCard } from '../components/StepsSummary';
 import { DateNavigator } from '../components/DateNavigator';
 import { addDays, isToday, todayDateString } from '../utils/date';
 import { initialsFromName } from '../utils/name';
 import { getSyncShortcutName, runSyncShortcut } from '../utils/healthShortcut';
-import { volumeParts } from '../utils/units';
 import {
   ageFromBirthDate,
   computeBMR,
@@ -67,8 +71,9 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
   const { totals, refresh: refreshNutrition } = useTodayNutrition(selectedDate);
   const { profile } = useProfile();
   const { settings } = useSettings();
-  const startWeight = useStartWeight();
+  const { startWeight, startDate, isManual, startJourney, clearJourney } = useJourney();
   const { workouts } = useRecentWorkouts(20);
+  const [journeyOpen, setJourneyOpen] = useState(false);
 
   const refreshing = dayLoading || recentLoading;
   const reloadData = () => {
@@ -95,8 +100,6 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const waterDisplay = volumeParts(dayLog?.water_ml ?? 0, settings.volumeUnit);
-  const waterGoalDisplay = volumeParts(settings.waterGoalMl, settings.volumeUnit);
 
   // Continuous 7-day window ending on the selected date, so every day shows on
   // the axis whether or not sleep was logged.
@@ -182,18 +185,18 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       progress: proteinGoal > 0 ? totals.protein_g / proteinGoal : 0,
     },
     {
-      key: 'steps',
-      label: 'Get your steps in',
-      detail: `${steps.toLocaleString()} / ${settings.stepGoal.toLocaleString()}`,
-      done: steps >= settings.stepGoal,
-      progress: settings.stepGoal > 0 ? steps / settings.stepGoal : 0,
+      key: 'water',
+      label: 'Drink your water',
+      detail: `${waterMl} / ${settings.waterGoalMl} ml`,
+      done: settings.waterGoalMl > 0 && waterMl >= settings.waterGoalMl * 0.9,
+      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
     },
     {
-      key: 'water',
-      label: 'Stay hydrated',
-      detail: `${volumeParts(waterMl, settings.volumeUnit).value} / ${waterGoalDisplay.value} ${waterGoalDisplay.label}`,
-      done: waterMl >= settings.waterGoalMl,
-      progress: settings.waterGoalMl > 0 ? waterMl / settings.waterGoalMl : 0,
+      key: 'burn',
+      label: 'Burn active calories',
+      detail: `${burnedKcal} / ${settings.activeCalorieGoal} kcal`,
+      done: settings.activeCalorieGoal > 0 && burnedKcal >= settings.activeCalorieGoal,
+      progress: settings.activeCalorieGoal > 0 ? burnedKcal / settings.activeCalorieGoal : 0,
     },
     {
       key: 'workout',
@@ -213,7 +216,8 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
       color: '#22c55e',
       unit: 'g',
     },
-    { label: 'Steps', value: dayLog?.steps ?? 0, target: settings.stepGoal, color: '#f97316' },
+    { label: 'Water', value: waterMl, target: settings.waterGoalMl, color: '#0ea5e9', unit: 'ml' },
+    { label: 'Active', value: burnedKcal, target: settings.activeCalorieGoal, color: '#f59e0b', unit: 'kcal' },
   ];
 
   const hasAnyData =
@@ -250,9 +254,15 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onOpenProfile}
             aria-label="Edit profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[var(--accent)]"
+            // The ring reads as a gap cut out of the page, so it follows the
+            // background — as white it was invisible on light and a bright
+            // circle on black. The initials sit ON the accent, so they take
+            // --on-accent like every other accent surface.
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--bg)] bg-[var(--accent)]"
           >
-            <span className="text-sm font-bold text-white">{initialsFromName(profile?.name)}</span>
+            <span className="text-sm font-bold text-[var(--on-accent)]">
+              {initialsFromName(profile?.name)}
+            </span>
           </button>
           {streak > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1.5">
@@ -265,7 +275,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onRefresh}
             aria-label={syncShortcut ? 'Sync Health & refresh' : 'Refresh'}
-            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+            className="tap-44 glass flex h-10 w-10 items-center justify-center rounded-full"
           >
             <RefreshCw
               size={15}
@@ -275,7 +285,7 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
           <button
             onClick={onOpenSettings}
             aria-label="Settings"
-            className="glass flex h-10 w-10 items-center justify-center rounded-full"
+            className="tap-44 glass flex h-10 w-10 items-center justify-center rounded-full"
           >
             <Settings size={16} className="text-[var(--muted)]" />
           </button>
@@ -287,95 +297,48 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
         <DateNavigator selectedDate={selectedDate} onChange={setSelectedDate} />
       </div>
 
-      {/* Today's game plan (today only) */}
-      {viewingToday ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
-          <TodayGamePlan items={gamePlan} />
-        </div>
-      ) : null}
-
-      {/* Activity rings dashboard */}
-      <div
-        className="glass-card anim-fade-rise mt-4 flex items-center gap-5 p-5"
-        style={{ animationDelay: '0.1s' }}
-      >
-        <ActivityRings rings={rings} />
-        <div className="flex-1">
-          <RingLegend rings={rings} />
-          <button
-            onClick={onNavigateStats}
-            className="mt-3 flex items-center gap-1 text-xs font-semibold"
-            style={{ color: 'var(--accent)' }}
-          >
-            See full stats
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Goal progress (today only) */}
+      {/* 1. Your journey */}
       {viewingToday && goalProgress ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.14s' }}>
-          <GoalProgressCard progress={goalProgress} weightUnit={settings.weightUnit} />
-        </div>
-      ) : null}
-
-      {/* Coach (today only) */}
-      {viewingToday ? (
-        <div className="mt-4">
-          <CoachCard
-            status={coach.status}
-            insight={coach.status === 'ready' ? coach.insight : undefined}
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.06s' }}>
+          <GoalProgressCard
+            progress={goalProgress}
+            weightUnit={settings.weightUnit}
+            startDate={startDate}
+            onEditJourney={() => setJourneyOpen(true)}
           />
         </div>
       ) : null}
 
-      {/* Weekly review (today only) */}
-      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
-        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.2s' }}>
-          <WeeklyReviewCard review={weeklyReview} />
+      {/* 2. Today's game plan (rings + goals) */}
+      <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.08s' }}>
+        <TodayDashboard rings={rings} items={gamePlan} onNavigateStats={onNavigateStats} />
+      </div>
+
+      {/* 3. Steps */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.1s' }}>
+          <StepsCard steps={steps} goal={settings.stepGoal} />
         </div>
       ) : null}
 
-      {/* Water + active kcal */}
-      <div className="anim-fade-rise mt-4 flex gap-3" style={{ animationDelay: '0.28s' }}>
-        <div className="glass-card flex-1 p-4">
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            {dayLog?.water_ml != null ? waterDisplay.value : '--'}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Water / {waterGoalDisplay.value}
-            {waterGoalDisplay.label}
-          </p>
-        </div>
-        <div className="glass-card flex-1 p-4">
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            {dayLog?.active_calories_burned ?? '--'}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-            Active kcal
-          </p>
-        </div>
-      </div>
-
-      {/* Sleep */}
+      {/* 4. Sleep (compact) */}
       <div
-        className="glass-card anim-fade-rise mt-4 flex flex-col gap-4 p-5"
-        style={{ animationDelay: '0.32s' }}
+        className="glass-card anim-fade-rise mt-4 flex flex-col gap-2.5 p-4"
+        style={{ animationDelay: '0.12s' }}
       >
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
-              <span>🌙</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10">
+              <span className="text-xs">🌙</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--text)]">Sleep</p>
-              <p className="text-[11px] text-[var(--muted)]">
+              <p className="text-xs font-semibold text-[var(--text)]">Sleep</p>
+              <p className="text-[10px] text-[var(--muted)]">
                 {latestSleepHours && latestSleepHours < 7
-                  ? 'You slept too little last night'
+                  ? 'Slept too little last night'
                   : latestSleepHours
-                    ? 'Nice, you hit your sleep window'
-                    : 'No sleep data logged yet'}
+                    ? 'Hit your sleep window'
+                    : 'No sleep data yet'}
               </p>
             </div>
           </div>
@@ -386,6 +349,142 @@ export function HomeScreen({ onNavigateStats, onOpenProfile, onOpenSettings }: P
 
         <SleepBarChart entries={sleepEntries} goalHours={8} maxScaleHours={10} />
       </div>
+
+      {/* 5. Coach */}
+      {viewingToday ? (
+        <div className="mt-4">
+          <CoachCard
+            status={coach.status}
+            insight={coach.status === 'ready' ? coach.insight : undefined}
+          />
+        </div>
+      ) : null}
+
+      {/* 6. Weekly progress */}
+      {viewingToday ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.16s' }}>
+          <WorkoutOverviewCard />
+        </div>
+      ) : null}
+
+      {/* 7. This week */}
+      {viewingToday && weeklyReview && weeklyReview.daysLogged > 0 ? (
+        <div className="anim-fade-rise mt-4" style={{ animationDelay: '0.18s' }}>
+          <WeeklyReviewCard
+            review={weeklyReview}
+            weightUnit={settings.weightUnit}
+            calorieTarget={calorieTarget}
+          />
+        </div>
+      ) : null}
+
+      <Sheet open={journeyOpen} onClose={() => setJourneyOpen(false)} title="Your journey">
+        <JourneyEditor
+          weightUnit={settings.weightUnit}
+          currentWeightKg={latestWeight}
+          startWeightKg={startWeight}
+          startDate={startDate}
+          isManual={isManual}
+          onStart={(kg, date) => {
+            startJourney(kg, date);
+            setJourneyOpen(false);
+          }}
+          onReset={() => {
+            clearJourney();
+            setJourneyOpen(false);
+          }}
+        />
+      </Sheet>
+    </div>
+  );
+}
+
+function JourneyEditor({
+  weightUnit,
+  currentWeightKg,
+  startWeightKg,
+  startDate,
+  isManual,
+  onStart,
+  onReset,
+}: {
+  weightUnit: 'kg' | 'lb';
+  currentWeightKg: number | null;
+  startWeightKg: number | null;
+  startDate: string | null;
+  isManual: boolean;
+  onStart: (startWeightKg: number, startDate: string) => void;
+  onReset: () => void;
+}) {
+  const u = weightUnit;
+  const seed = currentWeightKg ?? startWeightKg;
+  const [weight, setWeight] = useState(seed != null ? weightValue(seed, u) : '');
+  const [date, setDate] = useState(todayDateString());
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs leading-relaxed text-[var(--muted)]">
+        Start or restart your journey from today. Your progress card measures from this point, so
+        earlier weigh-ins won't drag the baseline. Handy if you've been logging for a while and want
+        a fresh start now.
+      </p>
+
+      {startDate ? (
+        <p className="rounded-2xl bg-[var(--bg)] px-3 py-2 text-[11px] text-[var(--muted)]">
+          Current baseline: {startWeightKg != null ? `${weightValue(startWeightKg, u)} ${u}` : '—'} from{' '}
+          {new Date(`${startDate}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+          {isManual ? ' (set by you)' : ' (your first log)'}.
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+            Start weight ({u})
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={weight}
+            onChange={e => setWeight(e.target.value)}
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">
+            Start date
+          </label>
+          <input
+            type="date"
+            value={date}
+            max={todayDateString()}
+            onChange={e => e.target.value && setDate(e.target.value)}
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={!weight || Number(weight) <= 0}
+        onClick={() => onStart(unitToKg(Number(weight), u), date)}
+        className="rounded-2xl py-3.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-50"
+        style={{ background: 'var(--accent-gradient)' }}
+      >
+        {startDate ? 'Restart from here' : 'Start my journey'}
+      </button>
+
+      {isManual ? (
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-center text-[11px] font-semibold text-[var(--muted)]"
+        >
+          Reset to my first logged weight
+        </button>
+      ) : null}
     </div>
   );
 }
