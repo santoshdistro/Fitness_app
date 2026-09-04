@@ -13,7 +13,7 @@ import {
 import { kgToUnit, unitToKg } from '../utils/units';
 
 const inputCls =
-  'w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none';
+  'w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
 const labelCls = 'mb-1 block text-xs font-semibold text-[var(--muted)]';
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {

@@ -528,7 +528,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
               setCategory(e.target.value as MealCategory);
               setLogState('idle');
             }}
-            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             {MEAL_CATEGORY_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -545,7 +545,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
                 setServings(e.target.value);
                 setLogState('idle');
               }}
-              className="w-10 bg-transparent py-2 text-right outline-none"
+              className="w-10 bg-transparent py-2 text-right outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             />
             <span className="text-[10px] text-[var(--muted)]">serv</span>
           </label>
@@ -577,7 +577,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
               setPlanMeal(e.target.value as (typeof PLAN_MEALS)[number]);
               setPlanned(false);
             }}
-            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             {PLAN_MEALS.map(m => (
               <option key={m} value={m}>{m}</option>
@@ -592,7 +592,7 @@ function RecipeDetail({ recipe }: { recipe: Recipe }) {
                 setPlanned(false);
               }
             }}
-            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+            className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
         </div>
         <button

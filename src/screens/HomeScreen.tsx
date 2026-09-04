@@ -449,7 +449,7 @@ function JourneyEditor({
             step="any"
             value={weight}
             onChange={e => setWeight(e.target.value)}
-            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
         </div>
         <div>
@@ -461,7 +461,7 @@ function JourneyEditor({
             value={date}
             max={todayDateString()}
             onChange={e => e.target.value && setDate(e.target.value)}
-            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-3 py-3 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
         </div>
       </div>

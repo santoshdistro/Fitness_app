@@ -319,7 +319,7 @@ export function DietPlanner() {
               <select
                 value={split[i]}
                 onChange={e => setDay(i, e.target.value as DietDayType)}
-                className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none"
+                className="flex-1 rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 {DIET_DAY_OPTIONS.map(o => (
                   <option key={o} value={o}>
@@ -1034,7 +1034,7 @@ function PredefinedPlanPicker({
         <select
           value={section}
           onChange={e => setSection(e.target.value)}
-          className="rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-xs font-semibold text-[var(--text)] outline-none"
+          className="rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {MEALS.map(m => (
             <option key={m} value={m}>

@@ -99,7 +99,7 @@ export function DayScheduleCard({
   }
 
   const timeInput =
-    'rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-xs font-semibold text-[var(--text)] outline-none';
+    'rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-2 py-1.5 text-xs font-semibold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
 
   return (
     <div className="glass-card flex flex-col gap-2 p-4">
@@ -177,7 +177,7 @@ export function DayScheduleCard({
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
                 placeholder="e.g. I train fasted, prefer 4 meals, add lemon water mid-morning, dinner by 8pm"
-                className="w-full resize-none rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--text)] outline-none"
+                className="w-full resize-none rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               />
               <div className="flex items-center gap-3">
                 <button

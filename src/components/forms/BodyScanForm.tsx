@@ -195,7 +195,7 @@ export function BodyScanForm() {
                   step="any"
                   value={photoWeight}
                   onChange={e => setPhotoWeight(e.target.value)}
-                  className="w-20 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-sm text-[var(--text)] outline-none"
+                  className="w-20 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 />
                 <span className="text-xs font-semibold text-[var(--muted)]">{wUnit}</span>
               </div>

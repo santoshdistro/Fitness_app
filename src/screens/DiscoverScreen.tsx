@@ -622,7 +622,7 @@ function AddMealTab(p: AddMealProps) {
                   <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--muted)]">
                     <span>1 serving =</span>
                     <input
-                      className="w-12 rounded-md border border-[var(--card-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-right text-[10px] text-[var(--text)] outline-none"
+                      className="w-12 rounded-md border border-[var(--card-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-right text-[10px] text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                       type="number"
                       inputMode="decimal"
                       min="1"
@@ -637,7 +637,7 @@ function AddMealTab(p: AddMealProps) {
               <div className="flex items-center gap-1">
                 {i.unit === 'serving' ? (
                   <input
-                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     type="number"
                     inputMode="decimal"
                     min="0"
@@ -647,7 +647,7 @@ function AddMealTab(p: AddMealProps) {
                   />
                 ) : (
                   <input
-                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none"
+                    className="w-16 rounded-xl border border-[var(--card-border)] bg-[var(--input-bg)] px-2 py-1.5 text-right text-xs text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     type="number"
                     inputMode="decimal"
                     min="0"

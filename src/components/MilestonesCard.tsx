@@ -54,7 +54,7 @@ export function MilestonesCard() {
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="e.g. Started cut"
-            className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none"
+            className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
           <div className="flex items-center gap-2">
             <input

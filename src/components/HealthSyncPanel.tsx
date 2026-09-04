@@ -45,6 +45,9 @@ export function HealthSyncPanel() {
   const [working, setWorking] = useState(false);
   const [shortcutName, setShortcutName] = useState(getSyncShortcutName());
 
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   const token = profile?.sync_token ?? null;
   const endpoint =
     typeof window !== 'undefined' ? `${window.location.origin}/api/health-sync` : '/api/health-sync';
@@ -53,6 +56,54 @@ export function HealthSyncPanel() {
     setWorking(true);
     await saveProfile({ sync_token: makeToken() });
     setWorking(false);
+  }
+
+  /**
+   * Proves the endpoint is reachable and the token is valid WITHOUT writing
+   * anything: a body with a token and no metrics is rejected with a specific
+   * 400, so that exact error is the success case here. "Sync doesn't work" is
+   * three very different problems — wrong URL, bad token, malformed body — and
+   * they are indistinguishable from inside Shortcuts, which reports them all
+   * the same way.
+   */
+  async function testConnection() {
+    if (!token) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const text = await res.text();
+      let parsed: { error?: string } = {};
+      try {
+        parsed = JSON.parse(text) as { error?: string };
+      } catch {
+        // Not JSON at all — almost always a Vercel deployment-protection page,
+        // which is what you get when the endpoint points at a preview build.
+        setTestResult({
+          ok: false,
+          message:
+            res.status === 401 || text.includes('Authentication')
+              ? 'The endpoint is protected — this looks like a preview URL, not the live app. Copy the endpoint from the installed app and update the Shortcut.'
+              : `Got ${res.status} and a non-JSON response. The URL is probably not the API.`,
+        });
+        return;
+      }
+      if (res.status === 400 && /no health values/i.test(parsed.error ?? '')) {
+        setTestResult({ ok: true, message: 'Endpoint reachable and token accepted. Sync is set up correctly.' });
+      } else if (res.status === 401) {
+        setTestResult({ ok: false, message: 'Token rejected. Regenerate it below and update the Shortcut.' });
+      } else {
+        setTestResult({ ok: false, message: parsed.error ?? `Unexpected ${res.status}.` });
+      }
+    } catch {
+      setTestResult({ ok: false, message: 'Could not reach the endpoint at all — check the URL and your connection.' });
+    } finally {
+      setTesting(false);
+    }
   }
 
   return (
@@ -71,6 +122,24 @@ export function HealthSyncPanel() {
         <div className="glass-card flex flex-col gap-3 p-4">
           <CopyRow label="Endpoint URL" value={endpoint} />
           <CopyRow label="Your sync token" value={token} />
+          <button
+            type="button"
+            onClick={testConnection}
+            disabled={testing}
+            className="w-full rounded-2xl py-2.5 text-xs font-bold disabled:opacity-50"
+            style={{ background: 'var(--input-bg)', color: 'var(--accent)' }}
+          >
+            {testing ? 'Testing…' : 'Test connection'}
+          </button>
+          {testResult ? (
+            <p
+              aria-live="polite"
+              className="text-[11px] leading-relaxed"
+              style={{ color: testResult.ok ? '#22c55e' : '#f97316' }}
+            >
+              {testResult.message}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={regenerate}
@@ -103,7 +172,7 @@ export function HealthSyncPanel() {
             </p>
           </div>
           <input
-            className="rounded-xl bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none"
+            className="rounded-xl bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             type="text"
             value={shortcutName}
             onChange={e => {

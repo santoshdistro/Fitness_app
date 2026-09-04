@@ -328,7 +328,7 @@ export function CoachChat({ onClose }: { onClose: () => void }) {
             }}
             rows={1}
             placeholder="Ask your coach…"
-            className="hide-scrollbar max-h-28 flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm text-[var(--text)] outline-none"
+            className="hide-scrollbar max-h-28 flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
           />
           <button

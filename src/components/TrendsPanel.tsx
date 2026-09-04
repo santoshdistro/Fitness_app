@@ -28,6 +28,44 @@ function rangeToDays(key: RangeKey): TrendRange {
 
 // Which days in the last fortnight have food logged. A compact adherence read —
 // consistency is the thing that actually moves the other charts.
+function BodySignal({
+  label,
+  points,
+  unit,
+  color,
+  note,
+  decimals = 0,
+}: {
+  label: string;
+  points: Series;
+  unit: string;
+  color: string;
+  note: string;
+  decimals?: number;
+}) {
+  if (points.length === 0) return null;
+  const latest = points[points.length - 1];
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs font-semibold text-[var(--text)]">{label}</p>
+        <p className="text-xs font-bold tabular-nums text-[var(--text)]">
+          {latest.value.toFixed(decimals)}
+          {unit}
+        </p>
+      </div>
+      {points.length > 1 ? (
+        <TrendChart points={points} type="line" unit={unit} color={color} decimals={decimals} height={92} />
+      ) : (
+        <p className="mt-1 text-[10px] text-[var(--muted)]">
+          First reading in — the trend line appears once there are two.
+        </p>
+      )}
+      <p className="mt-1 text-[10px] leading-relaxed text-[var(--muted)]">{note}</p>
+    </div>
+  );
+}
+
 function AdherenceStrip({ days }: { days: { date: string; logged: boolean }[] }) {
   const hit = days.filter(d => d.logged).length;
   return (
@@ -291,44 +329,44 @@ export function TrendsPanel() {
         <p className="text-[10px] text-[var(--muted)]">Total kg lifted per session (weight × reps).</p>
       </Section>
 
-      {/* Body signals. Only appears once the watch is actually sending them —
-          three empty charts would be worse than no section at all. */}
+      {/* Body signals. A signal appears as soon as ONE reading lands — the
+          value first, the chart once there are two. The section used to gate
+          every chart on >1 reading while the section itself gated on >=1, so a
+          first sync produced a heading with nothing under it and no way to tell
+          whether the Shortcut had worked. */}
       {trends.hasBodySignals ? (
         <div className="glass-card flex flex-col gap-3 p-5">
           <div className="flex items-baseline justify-between">
             <p className="text-sm font-semibold text-[var(--text)]">Body signals</p>
             <p className="text-[11px] text-[var(--muted)]">from your watch</p>
           </div>
-          {trends.restingHr.length > 1 ? (
-            <>
-              <p className="text-xs font-semibold text-[var(--text)]">Resting heart rate</p>
-              <TrendChart points={trends.restingHr} type="line" unit=" bpm" color="#ef4444" height={92} />
-              <p className="text-[10px] text-[var(--muted)]">
-                Drifts down as fitness improves. A sustained rise is usually under-recovery, illness or
-                alcohol — <span className="font-semibold text-[var(--text)]">lower is better</span>.
-              </p>
-            </>
-          ) : null}
-          {trends.hrv.length > 1 ? (
-            <>
-              <p className="mt-1 text-xs font-semibold text-[var(--text)]">HRV</p>
-              <TrendChart points={trends.hrv} type="line" unit=" ms" color="#0ea5e9" height={92} />
-              <p className="text-[10px] text-[var(--muted)]">
-                Day-to-day readiness. Noisy on any single night, so read the direction over a week —{' '}
-                <span className="font-semibold text-[var(--text)]">higher is better</span>.
-              </p>
-            </>
-          ) : null}
-          {trends.vo2Max.length > 1 ? (
-            <>
-              <p className="mt-1 text-xs font-semibold text-[var(--text)]">Cardio fitness (VO₂ max)</p>
-              <TrendChart points={trends.vo2Max} type="line" unit="" color="#22c55e" decimals={1} height={92} />
-              <p className="text-[10px] text-[var(--muted)]">
-                The headline running number. Moves over 6–8 weeks, not day to day, so a flat month here is
-                normal.
-              </p>
-            </>
-          ) : null}
+          <BodySignal
+            label="Resting heart rate"
+            points={trends.restingHr}
+            unit=" bpm"
+            color="#ef4444"
+            note="Drifts down as fitness improves. A sustained rise is usually under-recovery, illness or alcohol — lower is better."
+          />
+          <BodySignal
+            label="HRV"
+            points={trends.hrv}
+            unit=" ms"
+            color="#0ea5e9"
+            note="Day-to-day readiness, and the noisiest of the three — read the direction over a week, not any one night. Higher is better."
+          />
+          <BodySignal
+            label="Cardio fitness (VO₂ max)"
+            points={trends.vo2Max}
+            unit=""
+            decimals={1}
+            color="#22c55e"
+            note="The headline running number. Moves over 6–8 weeks, not day to day, so a flat month here is normal."
+          />
+          {/* The watch does not sample these every day — HRV especially, which
+              it mostly takes during sleep — so gaps are the norm, not a fault. */}
+          <p className="text-[10px] leading-relaxed text-[var(--muted)]">
+            The watch samples these when it can rather than every day, so gaps are normal.
+          </p>
         </div>
       ) : null}
 

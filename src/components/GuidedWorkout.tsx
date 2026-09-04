@@ -287,7 +287,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
       <div className="mt-3 px-6">
         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--card-border)]">
           <div
-            className="h-full rounded-full transition-all"
+            className="h-full rounded-full transition-[width]"
             style={{ width: `${(doneSets / totalSets) * 100}%`, background: 'var(--accent)' }}
           />
         </div>
@@ -408,7 +408,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Minutes</label>
                       <input
-                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                         type="number"
                         inputMode="decimal"
                         step="any"
@@ -420,7 +420,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Distance (km)</label>
                       <input
-                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                         type="number"
                         inputMode="decimal"
                         step="any"
@@ -434,7 +434,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                         <div>
                           <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Speed (km/h)</label>
                           <input
-                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                             type="number"
                             inputMode="decimal"
                             step="any"
@@ -446,7 +446,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                         <div>
                           <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Incline (%)</label>
                           <input
-                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                            className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                             type="number"
                             inputMode="decimal"
                             step="any"
@@ -463,7 +463,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Reps</label>
                       <input
-                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                         type="number"
                         inputMode="numeric"
                         value={reps}
@@ -473,7 +473,7 @@ export function GuidedWorkout({ title, exercises, onClose, onSaved, lastByExerci
                     <div>
                       <label className="mb-1 block text-xs font-semibold text-[var(--muted)]">Weight (kg)</label>
                       <input
-                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none"
+                        className="w-full rounded-2xl border border-[var(--card-border)] bg-[var(--input-bg)] px-4 py-3 text-center text-lg font-bold text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                         type="number"
                         inputMode="decimal"
                         step="any"

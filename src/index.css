@@ -310,6 +310,26 @@ body,
   height: 100%;
 }
 
+/* Tells the browser which way round the UI is, which is what native controls
+   read: without it the dark theme gets a light <select> dropdown, a light date
+   picker and light scrollbars, none of which any stylesheet can reach. */
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Tap highlight is set deliberately rather than left to the platform's grey
+   flash, and taps stop waiting 300ms to see if they were a double-tap. */
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   /* Not --bg: this shows only where the shell can't reach — the strip iOS

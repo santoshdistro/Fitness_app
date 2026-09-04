@@ -266,7 +266,7 @@ function ManualEntry({
           inputMode="numeric"
           autoComplete="off"
           placeholder="e.g. 5000112637922"
-          className="flex-1 rounded-2xl px-4 py-3 text-sm text-[var(--text)] outline-none"
+          className="flex-1 rounded-2xl px-4 py-3 text-sm text-[var(--text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
         />
         <button
