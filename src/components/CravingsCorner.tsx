@@ -211,9 +211,10 @@ function CravingDetail({ craving, onBack }: { craving: Craving; onBack: () => vo
           type="button"
           onClick={() => logIt(craving.realThing.name, craving.realThing.kcal)}
           disabled={loggedName === craving.realThing.name}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold text-white disabled:opacity-80"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold disabled:opacity-80"
           style={{
             background: loggedName === craving.realThing.name ? '#16a34a' : 'var(--accent-gradient)',
+            color: loggedName === craving.realThing.name ? '#ffffff' : 'var(--on-accent)',
           }}
         >
           {loggedName === craving.realThing.name ? (

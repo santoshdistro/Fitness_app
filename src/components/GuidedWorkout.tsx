@@ -673,8 +673,11 @@ function CardioTimer({
             if (done) reset();
             setRunning(r => !r);
           }}
-          className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white"
-          style={{ background: running ? '#ef4444' : 'var(--accent-gradient)' }}
+          className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold"
+          style={{
+            background: running ? '#ef4444' : 'var(--accent-gradient)',
+            color: running ? '#ffffff' : 'var(--on-accent)',
+          }}
         >
           {running ? <><Pause size={14} /> Pause</> : <><Play size={14} fill="currentColor" /> {done ? 'Restart' : 'Start'}</>}
         </button>

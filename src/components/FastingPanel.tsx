@@ -45,14 +45,20 @@ export function FastingPanel() {
               : 'var(--accent-gradient)',
           }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">
             Fasting · target {active.targetHours}h
           </p>
           <p className="mt-1 text-5xl font-black tabular-nums">{fmt(elapsedMs)}</p>
-          <div className="mx-auto mt-3 h-2 max-w-xs overflow-hidden rounded-full bg-white/25">
-            <div className="h-full rounded-full bg-white" style={{ width: `${percent}%` }} />
+          <div
+            className="mx-auto mt-3 h-2 max-w-xs overflow-hidden rounded-full"
+            style={{ background: 'color-mix(in srgb, var(--on-accent) 25%, transparent)' }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${percent}%`, background: 'var(--on-accent)' }}
+            />
           </div>
-          <p className="mt-2 text-[11px] text-white/85">
+          <p className="mt-2 text-[11px] opacity-85">
             {reached
               ? 'Target reached — well done! 🎉'
               : `${fmt(targetMs - elapsedMs)} to your ${active.targetHours}h goal · ${Math.round(percent)}%`}

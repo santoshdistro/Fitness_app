@@ -296,8 +296,8 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="mb-1 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-white" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Your AI plan</p>
+                <Sparkles size={13} style={{ color: 'var(--on-accent)' }} />
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--on-accent) 80%, transparent)' }}>Your AI plan</p>
               </div>
               <p className="text-sm font-bold text-white">{aiPlan.name}</p>
               <p className="text-[11px] text-white/80">{aiPlan.description}</p>
@@ -406,14 +406,16 @@ export function WorkoutsScreen({ onLogWorkout, onGeneratePlan }: Props) {
           <button
             type="button"
             onClick={sendPlanToCalendar}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-2.5 text-xs font-bold text-[#4b3fe0]"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-xs font-bold"
+            style={{ background: 'var(--on-accent)', color: 'var(--accent)' }}
           >
             <CalendarPlus size={15} /> Add to Plan calendar
           </button>
           <button
             type="button"
             onClick={clearPlan}
-            className="mt-2 w-full rounded-2xl border border-white/25 py-2 text-[11px] font-semibold text-white/90"
+            className="mt-2 w-full rounded-2xl border py-2 text-[11px] font-semibold"
+            style={{ borderColor: 'color-mix(in srgb, var(--on-accent) 25%, transparent)', color: 'color-mix(in srgb, var(--on-accent) 90%, transparent)' }}
           >
             Remove plan
           </button>

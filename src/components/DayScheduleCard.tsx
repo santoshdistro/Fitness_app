@@ -188,7 +188,13 @@ export function DayScheduleCard({
                   style={{ background: 'var(--accent-gradient)' }}
                 >
                   {busy ? (
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    <span
+                      className="h-3 w-3 animate-spin rounded-full border-2"
+                      style={{
+                        borderColor: 'color-mix(in srgb, var(--on-accent) 40%, transparent)',
+                        borderTopColor: 'var(--on-accent)',
+                      }}
+                    />
                   ) : (
                     <Sparkles size={12} />
                   )}

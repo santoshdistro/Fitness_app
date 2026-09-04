@@ -54,8 +54,8 @@ export function AdaptiveTdeeCard({
       }}
     >
       <div className="flex items-center gap-1.5">
-        <Sparkles size={14} className="text-white" />
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+        <Sparkles size={14} style={{ color: 'var(--on-accent)' }} />
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">
           Adaptive maintenance · your real data
         </p>
       </div>

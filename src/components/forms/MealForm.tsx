@@ -506,7 +506,13 @@ export function MealForm({ onSaved, initial }: Props) {
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl text-[var(--on-accent)] disabled:opacity-40 bg-[image:var(--accent-gradient)]"
           >
             {estimating ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--on-accent) 40%, transparent)',
+                  borderTopColor: 'var(--on-accent)',
+                }}
+              />
             ) : (
               <Sparkles size={18} />
             )}

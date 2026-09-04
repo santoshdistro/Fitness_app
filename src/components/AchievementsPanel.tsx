@@ -10,12 +10,12 @@ export function AchievementsPanel() {
         className="overflow-hidden p-5 text-center text-[var(--on-accent)]"
         style={{ borderRadius: 'var(--radius-card)', background: 'var(--accent-gradient)' }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Achievements</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Achievements</p>
         <p className="text-4xl font-black">
           {earnedCount}
-          <span className="text-lg font-bold text-white/70"> / {total}</span>
+          <span className="text-lg font-bold opacity-70"> / {total}</span>
         </p>
-        <p className="text-[11px] text-white/80">Keep logging to unlock more.</p>
+        <p className="text-[11px] opacity-80">Keep logging to unlock more.</p>
       </div>
 
       {loading ? (

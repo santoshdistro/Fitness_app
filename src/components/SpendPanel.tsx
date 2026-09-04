@@ -63,17 +63,17 @@ export function SpendPanel() {
     <div className="flex flex-col gap-4">
       {/* Hero: your spend this month */}
       <div
-        className="overflow-hidden p-5 text-center"
+        className="overflow-hidden p-5 text-center text-[var(--on-accent)]"
         style={{
           borderRadius: 'var(--radius-card)',
           background: 'var(--accent-gradient)',
         }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--on-accent) 80%, transparent)' }}>
           Your AI spend this month
         </p>
-        <p className="text-4xl font-black tracking-tight text-white">{formatUsd(totalUsd)}</p>
-        <p className="mt-1 text-[11px] text-white/70">Adds up every AI call — this is what you've spent.</p>
+        <p className="text-4xl font-black tracking-tight" style={{ color: 'var(--on-accent)' }}>{formatUsd(totalUsd)}</p>
+        <p className="mt-1 text-[11px]" style={{ color: 'color-mix(in srgb, var(--on-accent) 70%, transparent)' }}>Adds up every AI call — this is what you've spent.</p>
       </div>
 
       {/* Per-feature breakdown */}

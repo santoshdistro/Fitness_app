@@ -329,8 +329,11 @@ export function BodyMapCard({ large }: { large?: boolean } = {}) {
                 setAdded(true);
               }}
               disabled={added}
-              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white disabled:opacity-70"
-              style={{ background: added ? '#22c55e' : 'var(--accent-gradient)' }}
+              className="flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold disabled:opacity-70"
+              style={{
+                background: added ? '#22c55e' : 'var(--accent-gradient)',
+                color: added ? '#ffffff' : 'var(--on-accent)',
+              }}
             >
               {added ? (
                 <>

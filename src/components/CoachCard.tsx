@@ -21,11 +21,19 @@ export function CoachCard({ status, insight, message, onRetry }: Props) {
       }}
     >
       <div className="flex items-start gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20">
-          <Sparkles size={14} className="text-white" />
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'color-mix(in srgb, var(--on-accent) 16%, transparent)' }}
+        >
+          <Sparkles size={14} style={{ color: 'var(--on-accent)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-white/80">Coach</p>
+          <p
+            className="mb-1 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: 'color-mix(in srgb, var(--on-accent) 72%, transparent)' }}
+          >
+            Coach
+          </p>
           {status === 'loading' ? (
             <div className="flex flex-col gap-1.5">
               <span className="shimmer h-2.5 w-11/12 rounded-full" />
@@ -33,20 +41,28 @@ export function CoachCard({ status, insight, message, onRetry }: Props) {
             </div>
           ) : status === 'error' ? (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-white/90">{message}</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--on-accent)' }}>
+                {message}
+              </p>
               {onRetry ? (
                 <button
                   type="button"
                   onClick={onRetry}
                   aria-label="Retry coaching"
-                  className="tap-44 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+                  className="tap-44 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: 'color-mix(in srgb, var(--on-accent) 16%, transparent)',
+                    color: 'var(--on-accent)',
+                  }}
                 >
                   <RefreshCw size={13} />
                 </button>
               ) : null}
             </div>
           ) : (
-            <p className="text-xs font-semibold leading-relaxed text-white">{insight}</p>
+            <p className="text-xs font-semibold leading-relaxed" style={{ color: 'var(--on-accent)' }}>
+              {insight}
+            </p>
           )}
         </div>
       </div>
