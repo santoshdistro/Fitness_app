@@ -6,6 +6,29 @@ import type { CardioLog, DailyLog, FoodLog, Measurement, WorkoutLog } from '../t
 
 export type Series = { label: string; value: number; date: string }[];
 
+export type CardioSession = {
+  date: string;
+  label: string;
+  activity: string;
+  km: number | null;
+  minutes: number | null;
+  /** Minutes per km. Null unless BOTH distance and duration were logged. */
+  pace: number | null;
+};
+
+export type CardioSummary = {
+  sessions: number;
+  totalKm: number;
+  totalMinutes: number;
+  /** Fastest pace in the window — lower is better, so this is a min. */
+  bestPace: number | null;
+  avgPace: number | null;
+  longestKm: number | null;
+  /** Pace of the most recent paced session, against the one before it. */
+  latestPace: number | null;
+  paceDelta: number | null;
+};
+
 /** How much history Trends shows, in days. null means everything ever logged. */
 export type TrendRange = number | null;
 
@@ -20,6 +43,9 @@ export type Trends = {
   volume: Series; // per workout session
   cardioDistance: Series; // km per cardio session
   totalKm: number;
+  /** Per-session cardio, newest last, for the running panel. */
+  cardioSessions: CardioSession[];
+  cardioSummary: CardioSummary | null;
   waist: Series; // inches, per recording
   bodyFat: Series; // %, per recording
   workoutsPerWeek: Series; // sessions per week (Mon-anchored)
@@ -99,7 +125,10 @@ export function useTrends(range: TrendRange = 30) {
         start && startOfDateIso(start),
       ).order('session_timestamp', { ascending: true }),
       since(
-        supabase.from('cardio_logs').select('session_timestamp, distance_km').eq('user_id', userId),
+        supabase
+          .from('cardio_logs')
+          .select('session_timestamp, distance_km, duration_min, activity_type')
+          .eq('user_id', userId),
         'session_timestamp',
         start && startOfDateIso(start),
       ).order('session_timestamp', { ascending: true }),
@@ -219,7 +248,11 @@ export function useTrends(range: TrendRange = 30) {
         return { label: shortLabel(date), value: Math.round(vol), date };
       });
 
-      const cardio = (cardioRes.data as Pick<CardioLog, 'session_timestamp' | 'distance_km'>[]) ?? [];
+      const cardio =
+        (cardioRes.data as Pick<
+          CardioLog,
+          'session_timestamp' | 'distance_km' | 'duration_min' | 'activity_type'
+        >[]) ?? [];
       const cardioDistance: Series = cardio
         .filter(c => c.distance_km != null)
         .map(c => {
@@ -227,6 +260,41 @@ export function useTrends(range: TrendRange = 30) {
           return { label: shortLabel(date), value: Math.round((c.distance_km as number) * 10) / 10, date };
         });
       const totalKm = Math.round(cardioDistance.reduce((s, p) => s + p.value, 0) * 10) / 10;
+
+      // Pace only means something when both halves were logged, so a session
+      // with just a distance still counts for volume but not for pace.
+      const cardioSessions: CardioSession[] = cardio.map(c => {
+        const date = c.session_timestamp.slice(0, 10);
+        const km = c.distance_km ?? null;
+        const minutes = c.duration_min ?? null;
+        return {
+          date,
+          label: shortLabel(date),
+          activity: c.activity_type || 'Cardio',
+          km,
+          minutes,
+          pace: km != null && km > 0 && minutes != null && minutes > 0 ? minutes / km : null,
+        };
+      });
+      const paced = cardioSessions.filter(c => c.pace != null);
+      const totalMinutes = cardioSessions.reduce((sum, c) => sum + (c.minutes ?? 0), 0);
+      const cardioSummary: CardioSummary | null = cardioSessions.length
+        ? {
+            sessions: cardioSessions.length,
+            totalKm,
+            totalMinutes,
+            bestPace: paced.length ? Math.min(...paced.map(c => c.pace as number)) : null,
+            avgPace: paced.length
+              ? paced.reduce((sum, c) => sum + (c.pace as number), 0) / paced.length
+              : null,
+            longestKm: cardioDistance.length ? Math.max(...cardioDistance.map(p => p.value)) : null,
+            latestPace: paced.length ? (paced[paced.length - 1].pace as number) : null,
+            paceDelta:
+              paced.length > 1
+                ? (paced[paced.length - 1].pace as number) - (paced[paced.length - 2].pace as number)
+                : null,
+          }
+        : null;
 
       // Body composition from measurements.
       const measures =
@@ -266,6 +334,8 @@ export function useTrends(range: TrendRange = 30) {
         volume,
         cardioDistance,
         totalKm,
+        cardioSessions,
+        cardioSummary,
         waist,
         bodyFat,
         workoutsPerWeek,

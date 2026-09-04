@@ -30,11 +30,18 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
   const all = [...values, ...(overlay ?? []), ...(goal != null ? [goal] : [])];
   const min = Math.min(...all);
   const max = Math.max(...all);
-  const range = max - min || 1;
+  // BARS BASELINE AT ZERO, lines at the series minimum, and the difference is
+  // not cosmetic: a bar's length IS its value, so starting the axis at the
+  // smallest reading makes the smallest value vanish and every gap look total.
+  // Two cardio sessions of 2.0km and 2.2km drew as an empty slot next to a
+  // full-height bar. A line only claims to show shape, so zooming to the data
+  // is right there — a weight chart baselined at zero would be a flat line.
+  const base = type === 'bar' ? Math.min(0, min) : min;
+  const range = max - base || 1;
   const n = points.length;
 
   const x = (i: number) => (n === 1 ? 50 : (i / (n - 1)) * 100);
-  const y = (v: number) => 38 - ((v - min) / range) * 34 + 2; // 2..38
+  const y = (v: number) => 38 - ((v - base) / range) * 34 + 2; // 2..38
 
   // Bars sit in evenly-spaced bands (each centred in its own slot) so the first
   // and last aren't half-clipped at the chart edges — a point-based x would put
@@ -84,12 +91,13 @@ export function TrendChart({ points, type = 'line', color = '#6c63ff', overlay, 
           {type === 'bar' ? (
             points.map((p, i) => {
               const bw = Math.max(0.8, bandW - 1.5);
-              const bh = ((p.value - min) / range) * 34;
+              const top = y(p.value);
+              const bh = y(base) - top;
               return (
                 <rect
                   key={i}
                   x={xBar(i) - bw / 2}
-                  y={38 - bh}
+                  y={top}
                   width={bw}
                   height={Math.max(0.6, bh)}
                   rx={0.6}

@@ -4,6 +4,7 @@ import { useCalorieTargets } from '../hooks/useCalorieTargets';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { kgToUnit } from '../utils/units';
 import { TrendChart } from './charts/TrendChart';
+import { CardioPanel } from './CardioPanel';
 import { WellnessCard } from './WellnessCard';
 import { SkeletonChart, SkeletonTiles } from './Skeleton';
 
@@ -266,11 +267,12 @@ export function TrendsPanel() {
         <p className="text-[10px] text-[var(--muted)]">Total kg lifted per session (weight × reps).</p>
       </Section>
 
-      {trends.cardioDistance.length > 0 ? (
-        <Section title="Cardio distance" subtitle={`${trends.totalKm} km total`}>
-          <TrendChart points={trends.cardioDistance} type="bar" unit="km" color="#0ea5e9" />
-          <p className="text-[10px] text-[var(--muted)]">Distance per cardio session.</p>
-        </Section>
+      {trends.cardioSummary ? (
+        <CardioPanel
+          sessions={trends.cardioSessions}
+          summary={trends.cardioSummary}
+          distance={trends.cardioDistance}
+        />
       ) : null}
 
       {trends.hasCaffeine ? (
